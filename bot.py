@@ -23,12 +23,6 @@ from typing import Optional
 # Setup Script Directory
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Developer Mode: Use local Astra engine from Downloads
-
-LOCAL_ENGINE_PATH = "/Users/paman7647/Downloads/whatsapp-web.js-main"
-if os.path.exists(LOCAL_ENGINE_PATH):
-    sys.path.insert(0, LOCAL_ENGINE_PATH)
-
 from astra import Client, Filters
 
 # Environment & Logging Setup
