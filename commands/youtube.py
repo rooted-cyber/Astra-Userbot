@@ -142,7 +142,7 @@ async def youtube_handler(client: Client, message: Message):
             now = time.time()
             if now - upload_last_update < 2.0: return
             
-            pct = (current / total) * 100
+            pct = (current / total) * 100 if total else 0
             bar = get_progress_bar(pct)
             
             # Calculate speed based on percentage of file size
@@ -190,4 +190,4 @@ async def youtube_handler(client: Client, message: Message):
 
     except Exception as e:
         await smart_reply(message, f" ❌ System Error: {str(e)}")
-        await report_error(client, e, context='YouTube command root failure')
+        await report_error(client, e, context='YouTube command root failure' 
