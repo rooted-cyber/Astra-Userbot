@@ -1,70 +1,172 @@
 # Changelog
 
-All notable changes to the **Astra-Userbot** project will be documented in this file.
+All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.0.1b8] - 2026-02-22
+## [0.0.1b2] - Astra Beta 2 - 2026-02-22
+
 ### Added
-- **Premium UI Overhaul**: Professionalized `.alive`, `.platform`, `.stats`, and `.ping` commands with premium layouts and descriptive metrics.
-- **Comprehensive Documentation**: Completed a full audit of all commands to include detailed Syntax, Examples, and Descriptions in the help system.
-- **Dynamic Identity**: The `.alive` command now resolves user pushname/name dynamically from the engine.
+- **Dynamic Config & DB Tools**:
+    - New `.db` developer utility for direct surgical state/database manipulation (`set`, `get`, `list`, `del`).
+    - New `.setcfg` command for user-friendly dynamic configuration management.
+    - Support for `ALIVE_IMG` override with web URL and local path support.
+    - Dynamic runtime overrides for `BOT_NAME` and `COMMAND_PREFIX`.
+- **Professional Status (Alive)**:
+    - Real-time "Pinging" state transition for responsive feedback.
+    - System metadata reporting including Python version, OS, Uptime, and Database type.
+    - Official repository and `Astra` library redirection links.
+- **Compact Help System**:
+    - Side-by-side 2-column grid layout for modules to reduce message length by 50%+.
+    - Module-aware query logic: `.help <module_name>` to view command lists per plugin.
+- **Privacy Protection**:
+    - `SENSITIVE_PATTERNS` filter for input code and live execution output.
+    - Dual-gate Developer Mode (`FULL_DEV` + `I_DEV`) for secure bypass of privacy guards.
+    - Detailed [run_command_guide](.gemini/antigravity/brain/dfc16dda-8227-4dd8-a07e-233f30bfb50b/run_command_guide.md).
+- **Universal Media Engine**:
+    - Support for Facebook, Reddit, and SoundCloud.
+    - Global `MediaChannel` integration for 0.5s real-time progress tracking across all platforms.
+    - Automatic `+faststart` injection for instant video playback in WhatsApp.
+- **Astra Essentials Suite**:
+    - `.whois`: Deep intelligence tracking for contacts and groups.
+    - `.ocr`: AI-powered text extraction from images via Gemini.
+    - `.pdf`: Multi-image/sticker to PDF document conversion tools.
+    - `.telegraph`: Instant cloud hosting for images.
+- **Remote Log Access**:
+    - `.logs`: Instant 50-line activity preview and full debug log (`astra_full_debug.txt`) upload.
+
 ### Fixed
-- **Media Suite Recovery**: Fixed critical issues where `.youtube`, `.instagram`, `.pinterest`, and other downloaders were non-functional.
-- **Group Management**: Resolved bugs preventing `.admin` and other group-related commands from executing correctly.
-- **Optimized Performance**: Significant internal refinements to media processing and command dispatching for a faster user experience.
+- **Anti-Flood Logic**: Implemented `BOOT_TIME` filtering to ignore stale messages received during bot downtime/reconnection.
+- **Update Engine**: Fixed dependency sync issues and added branch-aware update support (`-b`).
+- **Video Playback**: Resolved MP4 container issues causing "Video cannot be played" errors on some WhatsApp clients.
+
 ### Changed
-- **Logic Restoration**: Reverted core plugin logic (e.g., `admin.py`, `meme.py`, `exec_cmd.py`) across the suite to match original behavior while maintaining stability polish.
-- **Manual Delay Stability**: Implemented mandatory `time.sleep(0.5)` for the second and subsequent edits in multi-edit sequences across 40+ plugins for better rate-limit compliance.
-- **Restored Formatting**: Reverted `help.py` and `plugin_utils.py` to original states to ensure architectural parity.
+- Refactored `config.py` to prioritize database-backed dynamic overrides over environment variables.
+- Standardized command categories and metadata for the new Help v4.1 engine.
 
-## [0.0.1b7] - 2026-02-21
-### Added
-- **Engine Sync (v0.0.2b7)**: Full integration with the latest Astra Engine, including the new 3-stage history retrieval strategy.
-- **Improved History Command**: The `.history` and `.fetch` commands now support anchorless execution, defaulting to the latest 10 messages.
-- **Enhanced Debug Visibility**: Bridge logs are now streamed directly to the bot console at INFO level, making it easier to track fetch operations and engine decisions.
-- **Robust Purge Logic**: Improved multi-message deletion reliability during high-latency scenarios.
+## [0.0.2b15] - 2026-02-22
 ### Fixed
-- **History Command Crash**: Resolved a `TypeError` when calling `.history` without replying to a message.
-- **Fetch Count Consistency**: Fixed an issue where `.fetch` would sometimes return fewer messages than requested.
+- **Performance**: Replaced synchronous `time.sleep` with `asyncio.sleep` in several core methods (`Message.edit`, `ChatMethods.edit_message`). This fixes the "Cannot edit message" error (E3006) by ensuring the event loop is never blocked during message acknowledgement.
+- **Reliability**: Updated `.ping` command to use `waitForSend=True`, ensuring the base message is fully acknowledged by WhatsApp before the second result-edit is attempted.
 
-## [0.0.1b] - 2026-02-20
+## [0.0.2b14] - 2026-02-22
+### Fixed
+- **Performance**: Replaced synchronous `time.sleep` with `asyncio.sleep` in several core methods (Pre-release candidate).
 
-Welcome to the initial public beta release of the **Astra-Userbot**.
+## [0.0.2b13] - 2026-02-22
+### Changed
+- **Logging Supremacy**: Suppressed noisy `PROTOCOL` and internal bridge logs by moving them to the `DEBUG` level. This ensures the console remains clean for production use while maintaining detailed diagnostics in debug mode.
 
-This is a powerful, modular WhatsApp Userbot framework built on top of the ultra-fast asynchronous `astra-engine`.
+## [0.0.2b12] - 2026-02-22
+### Changed
+- **Pairing UX**: Increased the phone pairing retry interval from 10s to 60s to give users ample time to input the code.
+- **Log Noise Reduction**: Reduced internal bridge protocol logs from INFO to DEBUG level to provide a cleaner console experience.
 
-### Initial Features
+## [0.0.2b11] - 2026-02-22
+### Added
+- **proot-distro Optimization**: Added `--disable-software-rasterizer` and forced hardware acceleration flags for better performance in emulated Linux environments.
+- **Persistent Pairing Retry**: Implemented an automated retry loop for phone pairing to handle resource load delays (400 errors).
+### Fixed
+- **State Transition Race Conditions**: Improved `DETECT_STATE` to prioritize phone inputs over stale QR canvases.
 
-**Core Framework Integration**
-- Fully utilizes `astra-engine` for anti-ban asynchronous message processing, media handling, and headless browser session management.
-- Built-in SQLite local storage to handle bot state, settings, afk flags, and user restrictions.
-- Easy-to-extend architecture. Every `.py` file inside the `commands/` directory is automatically loaded as a modular plugin.
+## [0.0.2b10] - 2026-02-22
+### Fixed
+- **PyPI Release Consistency**: Finalized version string synchronization across documentation, code, and distribution metadata to resolve installation ambiguities.
+- **Rollback Parity**: Confirmed stable phone pairing logic is correctly packaged for both macOS and Linux environments.
 
-**Artificial Intelligence**
-- Out-of-the-box advanced interaction with Google's `gemini-3-flash-preview` model via `.ai`, `.chat`, or `.ask`.
+## [0.0.2b9] - 2026-02-22
+### Added
+- **Linux Stability Optimization**: Implemented a modern Linux-based Chromium User Agent to prevent 400 "Failed to load resource" errors on VPS environments.
+- **Enhanced Browser Launch Args**: Added `--disable-web-security` and site-isolation overrides in `browser_manager.py` for improved cross-origin resource loading on Linux.
+### Fixed
+- **Phone Pairing Trigger**: Resolved an issue where pairing code generation would fail or fallback to QR in certain network conditions.
+- **Session Consistency**: Ensured the stable phone pairing method is preserved for high-fidelity authentication.
 
-**Media & Download Suite**
-- Robust media downloading pipeline built on top of a Node.js JS bridge and `yt-dlp`.
-- **YouTube Support**: Download videos directly via `.yt` or pure audio using `.song`.
-- **Instagram & Socials**: Extract high-quality media from Instagram using `.ig` / `.reel`, Twitter/X via `.twitter`, and Pinterest using `.pinterest`.
-- **Spotify**: Download high-quality tracks directly using `.spotify`.
+## [0.0.2b8] - 2026-02-22
+### Added
+- **PyPI Release (v0.0.2b8)**: Optimized core engine distribution for latest environment compatibility.
+### Fixed
+- **Bridge Reliability**: Fixed underlying bridge issues that were causing media downloaders (YouTube, Instagram, etc.) to fail.
+- **Group Command Execution**: Resolved protocol mismatches affecting group participant management.
+### Changed
+- **Stability Restoration**: Reverted engine-level logic modifications to ensure 100% parity with the original bridge specifications.
+- **Documentation Consistency**: Synchronized plugin metadata requirements to support enhanced help system parsing in the userbot wrapper.
 
-**Moderation & Group Security**
-- Advanced multi-level user permissions involving strict owner filters and sudo privileges (`.sudo`).
-- PM Protection System: Automatic warnings to mitigate spam and unwanted personal messages (`.pmpermit`).
-- **Group Management**: Commands to efficiently manage group dynamics including `.mute`, `.spam`, and dynamic message purging (`.del`, `.purge`).
+## [0.0.2b7] - 2026-02-21
+### Added
+- **Bridge-to-Python Logging**: Introduced `Astra.log` in the browser bridge, enabling real-time JS runtime logs to be streamed directly to the Python terminal.
+- **Enhanced History Fetching**: Implemented a 3-stage strategy (Local Cache -> msgFindQuery -> loadEarlierMsgs) for 100% reliable message retrieval, even after deep anchors.
+- **Anchorless Fetching**: The `.fetch` and `.history` commands now support being called without a reply, defaulting to the latest 10 messages in the chat.
+### Fixed
+- **History Command Crash**: Resolved a `TypeError` when `.history` was called without a quoted message.
+- **Bulk Delete Race Condition**: Fixed "Unexpected null or undefined" error in `bulkDeleteMessages` by ensuring Store job persistence.
+- **Fetch Count Consistency**: Fixed a bug where `.fetch` with high limits (>10) would only return 10 messages from the local cache tail.
+- **Command Directionality**: Corrected a mapping error where anchorless fetches defaulted to 'after', returning zero history.
+- **Protocol Stability**: Internal bridge logs promoted to `INFO` level for better visibility into engine decisions.
 
-**Utility & Productivity Tools**
-- **Notes System**: Save, fetch, and delete custom text payloads directly in chat using `.notes`.
-- **Translations & Lookups**: Built-in translation commands (`.translate`), Wikipedia lookups (`.wiki`), and dictionary definition lookups (`.define`).
-- **System Diagnostics**: Detailed system health tracking using `.alive`, latency measurements via `.ping`, and execution of raw system commands via `.exec`.
-- **Fun Modules**: Generate random facts (`.fact`), interactive jokes (`.joke`), games (`.truth`, `.dare`), dynamic memes (`.meme`), mathematical quizzes (`.mathquiz`), and ship percent calculators (`.ship`).
+## [0.0.2b6] - 2026-02-20
+### Added
+- **Monolithic Requirements:** Explicitly added support for `aiosqlite`, `motor`, `aiohttp`, `psutil`, and `yt-dlp` in `pyproject.toml` and `requirements.txt` to support the userbot wrapper directly.
+### Fixed
+- **Module Imports**: Cleaned up legacy `SystemHealth` and `MediaFilter` bugs causing nested module resolutions to fail.
+- **Typing Syntax**: Added missing `Union` to `astra/client/methods/chat.py` resolving a `NameError` crash during media initialization.
 
-### Deployment & Ecosystem
+## [0.0.2b5] - 2026-02-20
 
-- **Native Cloud Support**: Pre-configured setups for 1-click deployments to **Railway** (`railway.json`), **Heroku** (`app.json`), and **Render** (`render.yaml` + `render.py`).
-- **Universal Auto-Installers**: Automated environment bootstrap files for cross-platform zero-dependency setups (`install.sh` for Linux/macOS and `install.ps1` for Windows).
-- **Production Built Container**: Professional `Dockerfile` running on `python:3.11-slim-bookworm` paired with Node.js 20, designed for seamless VPS containerization.
-- **State Persistence**: Secure internal session directory structure `(.astra_sessions)` preventing authentication drops during scheduled reboots or cloud spin-downs.
+### Added
+- **Force Fetching Support**: Added `force` parameter to `Client.fetch_messages` and bridge-level `fetchMessages` to bypass internal caches and retrieve fresh data directly from WhatsApp storage.
+- **High-Level Media Methods**: Added `send_image`, `send_video`, `send_audio`, and `send_sticker` directly to `Client`.
+- **Client.delete_message Shortcut**: Introduced a streamlined `delete_message` method in the `Client` class for easier moderation plugin development.
+- **Centralized Plugin Imports**: Command modules can now use `from . import *` to access core framework and utility symbols from the package level.
+- **Smart Sticker Handling**: `send_sticker` now supports both file paths and Base64 data strings.
+- **Client Shortcuts**: Exposed media methods (`send_audio`, `download_media`, etc.) as first-class citizens on the `Client` instance.
+
+### Fixed
+- **Mention Parsing Resilience**: Fixed `TypeError` in `Message.from_payload` by ensuring `mentionedJidList` gracefully handles `null` or missing values.
+- **Plugin Compatibility**: Restored `download_media` and patched `send_media` to support `reply_to`, fixing crashes in plugins like `sticker`, `spotify`, and `youtube`.
+- **Bridge Argument Normalization**: Updated `Astra.fetchMessages` (JS) to robustly handle both positional and dictionary-based argument payloads.
+- **Userbot Response Loops**: Refined `purge` and `smart_reply` logic to prevent message editing failures when the status message and command message are the same.
+- **Stability**: Standardized codebase with professional headers and updated repository branding (`Astra-Userbot`).
+
+## [0.0.1b4] - 2026-02-19
+
+### Added
+- **Rate-limit protection for edits**: Integrated a mandatory 0.5s stability delay in `Message.edit` and `ChatMethods.edit_message`. This helps prevent WhatsApp rate limits and race conditions when performing rapid-fire edits.
+
+### Fixed
+- **Attribute cleanup**: Standardized on `is_media` globally to eliminate sporadic `AttributeError` crashes related to legacy `has_media` property.
+- **Quoted media extraction**: Refined the model to accurately detect quoted stickers and media even when received as skeletal payloads.
+
+### Changed
+- **Unthrottled deletions**: Intentionally kept deletion methods fast. Multi-message removal remains high-speed without artificial delays.
+- **Documentation**: Updated the Sphinx guide to reflect framework-level timing management, reducing the need for manual sleeps in custom handlers.
+
+## [0.0.1b3] - 2026-02-17
+
+### Added
+- **Phone Pairing Support**: Added native support for linking via phone number in terminal-based environments.
+- **Rate Limit Handling**: Enhanced detection of "Too many attempts" during phone pairing to prevent silent failures.
+- **Reliability**: Optimized browser state detection order for pairing.
+
+### Changed
+- **Documentation**: Internal docstrings and comments refined for improved technical clarity.
+- **Dependency**: Updated version to `0.0.1b3`.
+
+
+## [0.0.1b1] - 2026-02-16
+
+### Added
+- **Core Engine**: Asynchronous, Playwright-based WhatsApp Web automation.
+- **Multi-Device Support**: Full support for MD beta and stable versions.
+- **Messaging**: Text, replies, mentions, editing, and deletion supported.
+- **Media Support**: Send/Receive images, videos, audio, documents, and stickers.
+- **Interaction**: reaction to messages, poll creation, and event handling.
+- **Group Management**: Admin tools for promoting, demoting, and managing participants.
+- **Privacy Controls**: Settings for profile picture, status, and last seen visibility.
+- **Documentation**: Comprehensive README, Sphinx docs, and 6 examples.
+- **Infrastructure**: GitHub Actions CI, Dependabot, and Issue Templates.
+
+### Changed
+- **Dependencies**: Made `qrcode`, `Pillow`, and `requests` mandatory core dependencies.
+- **Repository**: Clean rewrite of the codebase for public beta release.

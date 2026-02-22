@@ -42,7 +42,8 @@ class StateManager:
             "group_configs": {}, # gid -> {muted: bool, welcome: str}
             "prefix": None,
             "FULL_DEV": True,  # Infrastructure enabled by default
-            "I_DEV": False     # Privacy filter bypass (Disabled by default)
+            "I_DEV": False,    # Privacy filter bypass (Disabled by default)
+            "configs": {}      # Dynamic runtime configurations
         }
         self.initialized = False
 
@@ -57,10 +58,12 @@ class StateManager:
         await db.initialize()
         
         # Bulk load managed state keys
-        keys = ["afk", "pm_permits", "sudo_users", "notes", "pm_warnings", "group_configs", "prefix", "I_DEV", "FULL_DEV"]
+        keys = ["afk", "pm_permits", "sudo_users", "notes", "pm_warnings", "group_configs", "prefix", "I_DEV", "FULL_DEV", "configs"]
         for key in keys:
             val = await db.get(key)
             if val is not None:
+                if key == "configs" and not isinstance(val, dict):
+                    val = {}
                 self.state[key] = val
         
         self.initialized = True
@@ -161,6 +164,21 @@ class StateManager:
         """Toggles the internal developer mode (I_DEV)."""
         self.state["I_DEV"] = enabled
         asyncio.create_task(db.set("I_DEV", enabled))
+
+    # --- Dynamic Configuration Management ---
+
+    def set_config(self, key: str, value: Any):
+        """Sets a dynamic configuration value in the database."""
+        self.state["configs"][key] = value
+        asyncio.create_task(db.set("configs", self.state["configs"]))
+
+    def get_config(self, key: str, default: Any = None) -> Any:
+        """Retrieves a dynamic configuration value."""
+        return self.state["configs"].get(key, default)
+
+    def get_all_configs(self) -> Dict[str, Any]:
+        """Returns all dynamic configurations."""
+        return self.state["configs"]
 
 # Singleton Export
 state = StateManager()

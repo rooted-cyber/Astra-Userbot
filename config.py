@@ -34,8 +34,8 @@ class Config:
     
     # Versioning & Branding
     # ---------------------
-    VERSION = "0.0.1b2"
-    VERSION_NAME = "Beta 1"
+    VERSION = "0.0.2b2"
+    VERSION_NAME = "Beta 2"
 
     # Bot Identity & Ownership
     # ------------------------
@@ -90,6 +90,19 @@ class Config:
     MAX_FILE_SIZE_MB = int(os.getenv('MAX_FILE_SIZE_MB', '2048'))
     # Request timeout in milliseconds
     REQUEST_TIMEOUT = int(os.getenv('REQUEST_TIMEOUT', '30000'))
+
+    # Getter methods for Dynamic Configs (v6.0)
+    # ----------------------------------------
+    @property
+    def alive_img(self) -> str:
+        """Dynamically resolves the image for .alive command."""
+        from utils.state import state
+        return state.get_config("ALIVE_IMG") or os.path.join(BASE_DIR, "utils", "ub.png")
+
+    @property
+    def bot_name(self) -> str:
+        from utils.state import state
+        return state.get_config("BOT_NAME") or self.BOT_NAME
 
     def __init__(self):
         self._validate()
