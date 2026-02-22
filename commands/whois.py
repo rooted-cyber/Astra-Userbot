@@ -49,10 +49,10 @@ async def whois_handler(client: Client, message: Message):
         
         # Fetch Contact/User details
         contact = await client.get_contact(jid_str)
-        name = contact.name or contact.pushname or contact.verifiedName or "Unknown"
+        name = contact.name or contact.push_name or contact.verified_name or "Unknown"
         
         # Check if Business
-        is_business = "Yes" if contact.isBusiness else "No"
+        is_business = "Yes" if contact.is_business else "No"
         
         # About/Status
         about = "N/A" # Status fetching is currently unsupported natively by Astra
