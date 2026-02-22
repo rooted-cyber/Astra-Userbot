@@ -1,4 +1,4 @@
-astra-engine>=0.0.2b26
+astra-engine>=0.0.2b27
 python-dotenv>=1.0.0
 google-genai>=0.2.2
 aiohttp>=3.9.0
