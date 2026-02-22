@@ -6,7 +6,7 @@ import asyncio
 import shutil
 import os
 import uuid
-
+from typing import Optional
 from . import *  # Astra helpers (astra_command, extract_args, smart_reply, report_error)
 
 # -----------------------------------------------------------
