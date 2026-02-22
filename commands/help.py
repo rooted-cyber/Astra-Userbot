@@ -8,67 +8,80 @@
 
 from . import *
 import time
+from config import config
+
+# Global cache for metadata indexing
+HELP_CACHE = {
+    "categories": {},
+    "last_update": 0
+}
 
 @astra_command(
     name="help",
     aliases=["h", "menu"],
     description="List all commands or get help for a specific one.",
     category="Utility",
-    usage="[command/module] (optional, e.g. ping)",
+    usage="[command/category] (optional, e.g. ping)",
     is_public=True
 )
 async def help_handler(client: Client, message: Message):
     """
     Renders an interactive help menu. Features:
-    1. Grid Main Menu (2-column modules)
-    2. Module-wise command listing (.help <module>)
+    1. Category-based Main Menu (2-column layout)
+    2. Category-wise command listing (.help <category>)
     3. Detailed command info (.help <command>)
     """
-    import asyncio
     try:
         from utils.state import state
         curr_prefix = state.get_prefix()
         args = extract_args(message)
 
-        # Pre-process categorization
-        plugins = {}
-        for cmd_entry in COMMANDS_METADATA:
-            mod = cmd_entry.get('module', 'General')
-            if mod not in plugins:
-                plugins[mod] = []
-            plugins[mod].append(cmd_entry)
+        # 1. Indexing / Caching Logic (Permanent Startup Cache)
+        global HELP_CACHE
+        if not HELP_CACHE["categories"]:
+            HELP_CACHE["categories"] = {}
+            for cmd_entry in COMMANDS_METADATA:
+                cat = cmd_entry.get('category', 'Utility')
+                if cat not in HELP_CACHE["categories"]:
+                    HELP_CACHE["categories"][cat] = []
+                HELP_CACHE["categories"][cat].append(cmd_entry)
 
-        def get_icon(mod_name: str):
-            m_low = mod_name.lower()
-            if any(x in m_low for x in ["media", "instagram", "youtube", "twitter", "spotify", "pinterest", "facebook", "reddit", "soundcloud"]): return "🎥"
-            if any(x in m_low for x in ["utility", "tools", "essentials"]): return "🛠️"
-            if any(x in m_low for x in ["admin", "group", "protect"]): return "🛡️"
-            if any(x in m_low for x in ["system", "mgmt", "bot"]): return "⚙️"
-            if any(x in m_low for x in ["fun", "meme", "game", "quiz"]): return "🎭"
-            if any(x in m_low for x in ["ocr", "whois", "pdf", "search"]): return "🔎"
-            if "ai" in m_low: return "🤖"
-            if "owner" in m_low or "sudo" in m_low: return "👑"
+        categories = HELP_CACHE["categories"]
+
+        def get_icon(cat_name: str):
+            c_low = cat_name.lower()
+            if any(x in c_low for x in ["media", "instagram", "youtube", "twitter", "spotify", "pinterest", "facebook", "reddit", "soundcloud"]): return "🎥"
+            if any(x in c_low for x in ["utility", "tools", "essentials", "general"]): return "🛠️"
+            if any(x in c_low for x in ["admin", "group", "protect", "management"]): return "🛡️"
+            if any(x in c_low for x in ["system", "mgmt", "bot", "owner", "sudo"]): return "👑"
+            if any(x in c_low for x in ["fun", "meme", "game", "quiz", "social"]): return "🎭"
+            if any(x in c_low for x in ["ocr", "whois", "pdf", "search"]): return "🔎"
+            if "ai" in c_low: return "🤖"
             return "📦"
 
-        # 1. Handle Queries (Command or Module)
+        # 2. Handle Queries (Command or Category)
         if args:
             query = args[0].lower().strip().lstrip('.!/')
             
-            # Check if it's a MODULE query
-            match_mod = next((m for m in plugins.keys() if m.lower() == query or m.lower().replace('_', ' ') == query), None)
-            if match_mod:
-                cmd_list = sorted([c['name'] for c in plugins[match_mod]])
-                mod_help = (
-                    f"{get_icon(match_mod)} **{match_mod.upper()} MODULE**\n"
+            # Check for CATEGORY query
+            match_cat = next((c for c in categories.keys() if c.lower() == query or c.lower().replace(' ', '_') == query), None)
+            if match_cat:
+                cmd_entries = sorted(categories[match_cat], key=lambda x: x['name'])
+                cat_help = (
+                    f"{get_icon(match_cat)} **{match_cat.upper()} COMMANDS**\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"💠 **Commands:** `{len(cmd_list)}`\n\n"
-                    f"`{'  '.join(cmd_list)}`\n\n"
-                    f"━━━━━━━━━━━━━━━━━━━━\n"
+                    f"💠 **Total:** `{len(cmd_entries)}` commands\n\n"
+                )
+                for c in cmd_entries:
+                    cat_help += f"🔹 `{c['name']}` - {c['description'][:40]}...\n"
+                
+                cat_help += (
+                    f"\n━━━━━━━━━━━━━━━━━━━━\n"
                     f"💡 Use `{curr_prefix}help <cmd>` for details."
                 )
-                return await smart_reply(message, mod_help)
+                return await smart_reply(message, cat_help)
 
-            # Check if it's a COMMAND query
+            # Check for COMMAND query
             cmd = next((c for c in COMMANDS_METADATA if c['name'].lower() == query or query in [a.lower() for a in c.get('aliases', [])]), None)
             if cmd:
                 help_text = (
@@ -76,50 +89,47 @@ async def help_handler(client: Client, message: Message):
                     f"━━━━━━━━━━━━━━━━━━━━\n"
                     f"💠 **Command:** `{curr_prefix}{cmd['name']}`\n"
                     f"ℹ️ **Info:** {cmd['description']}\n"
-                    f"📁 **Module:** `{cmd['module']}`\n"
-                    f"🔖 **Category:** `{cmd.get('category', 'General')}`\n"
+                    f"🔖 **Category:** `{cmd.get('category', 'Utility')}`\n"
                 )
                 if cmd.get('aliases'):
                     help_text += f"➕ **Aliases:** `{', '.join(cmd['aliases'])}`\n"
                 help_text += (
                     f"💡 **Usage:** `{curr_prefix}{cmd['name']} {cmd.get('usage', '')}`\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"🚀 *Astra Userbot Engine*"
+                    f"🚀 *Astra Engine v{config.VERSION}*"
                 )
                 return await smart_reply(message, help_text)
             
-            return await smart_reply(message, f"❌ `{query}` not found as command or module.")
+            return await smart_reply(message, f"❌ `{query}` not found as command or category.")
 
-        # 2. Render Main Menu (Compact 2-Column Grid)
-        status_msg = await smart_reply(message, "⚙️ *Indexing Astra Modules...*")
-        
-        sorted_mods = sorted(plugins.keys())
+        # 3. Main Menu (Nested Category -> Command View)
+        sorted_cats = sorted(categories.keys())
         menu_text = (
-            f"🚀 **ASTRA USERBOT v4.1**\n"
+            f"🚀 **ASTRA USERBOT {config.VERSION_NAME}**\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"💠 **Prefix:** `{curr_prefix}`    💠 **Owner:** `Yes`\n"
-            f"💠 **Modules:** `{len(plugins)}`    💠 **Commands:** `{len(COMMANDS_METADATA)}`\n"
+            f"💠 **Categories:** `{len(categories)}`   💠 **Cmds:** `{len(COMMANDS_METADATA)}`\n"
             f"━━━━━━━━━━━━━━━━━━━━\n\n"
         )
 
-        # Build Grid
-        for i in range(0, len(sorted_mods), 2):
-            mod1 = sorted_mods[i]
-            m1_display = f"{get_icon(mod1)} {mod1[:10].title()}"
-            if i + 1 < len(sorted_mods):
-                mod2 = sorted_mods[i+1]
-                m2_display = f"{get_icon(mod2)} {mod2[:10].title()}"
-                menu_text += f"🔹 {m1_display.ljust(15)} 🔹 {m2_display}\n"
-            else:
-                menu_text += f"🔹 {m1_display}\n"
+        for cat in sorted_cats:
+            cmd_names = sorted([c['name'] for c in categories[cat]])
+            menu_text += f"{get_icon(cat)} **{cat.upper()}**\n"
+            
+            # Formatted command list (clean strings)
+            # We join them into a compact readable line
+            cmds_str = "  ".join([f"`{name}`" for name in cmd_names])
+            menu_text += f"╰ {cmds_str}\n\n"
 
         menu_text += (
-            f"\n━━━━━━━━━━━━━━━━━━━━\n"
-            f"💡 `{curr_prefix}help <module>` to see commands.\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"💡 `{curr_prefix}help <category>` for details per module.\n"
             f"✨ *Premium Userbot Performance*"
         )
         
-        await status_msg.edit(menu_text)
+        await smart_reply(message, menu_text)
 
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         await smart_reply(message, f"❌ Help Error: {e}")

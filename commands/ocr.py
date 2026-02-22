@@ -6,68 +6,80 @@
 # -----------------------------------------------------------
 
 import os
-import base64
+import aiohttp
 from . import *
-from config import config
 
 @astra_command(
     name="ocr",
-    description="AI-powered text extraction from images.",
+    description="Free text extraction from images (Non-AI).",
     category="Astra Essentials",
     aliases=["read"],
     usage="(reply to an image)",
     owner_only=False
 )
 async def ocr_handler(client: Client, message: Message):
-    """AI OCR using Gemini."""
+    """Free OCR using OCR.space API."""
+    file_path = None
     try:
         if not message.has_quoted_msg or not message.quoted.is_media:
             return await smart_reply(message, " 👁️ Reply to an image to read its text.")
 
-        status_msg = await smart_reply(message, " 👁️ *AI is reading the image...*")
+        status_msg = await smart_reply(message, " 👁️ *Reading image text...*")
 
         # 1. Download Media
         file_path = await client.media.download(message.quoted)
         if not file_path:
             return await status_msg.edit(" ❌ Failed to download image for OCR.")
 
-        # 2. Use Gemini for High-Precision OCR
-        # We assume Astra already has Gemini configured in config/engine
-        from google import genai
-        from google.genai import types
+        # 2. OCR.space Integration (Free Tier)
+        # Using the official free API endpoint
+        url = "https://api.ocr.space/parse/image"
         
-        api_key = getattr(config, 'GEMINI_API_KEY', None)
-        if not api_key:
-             return await status_msg.edit(" ❌ Gemini API Key not found in config.")
+        # We use a public free key or allow user to provide one. 
+        # Defaulting to a common free key if not in config.
+        api_key = getattr(config, 'OCR_API_KEY', 'helloworld') 
 
-        ai_client = genai.Client(api_key=api_key)
-        
-        with open(file_path, "rb") as f:
-            image_bytes = f.read()
+        data = aiohttp.FormData()
+        data.add_field('apikey', api_key)
+        data.add_field('language', 'eng')
+        data.add_field('file', open(file_path, 'rb'))
 
-        prompt = "Extract all text from this image exactly as it appears. If there is no text, say 'No text found'."
-        
-        response = ai_client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=[prompt, types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")]
-        )
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=data) as response:
+                if response.status != 200:
+                    return await status_msg.edit(f" ❌ API Error: {response.status}")
+                
+                result = await response.json()
 
-        extracted_text = response.text if response.text else "No text detected."
+        # Parse Results
+        if result.get('OCRExitCode') == 1:
+            parsed_results = result.get('ParsedResults', [])
+            extracted_text = parsed_results[0].get('ParsedText', '').strip() if parsed_results else ""
+            
+            if not extracted_text:
+                extracted_text = "No text detected in the image."
+        else:
+            error_msg = result.get('ErrorMessage', ['Unknown API error'])[0]
+            return await status_msg.edit(f" ❌ OCR Engine Error: {error_msg}")
 
         # 3. Formatted Output
         text = (
-            f"👁️ **AI OCR RESULT**\n"
+            f"👁️ **FREE OCR RESULT**\n"
             f"━━━━━━━━━━━━━━━━━━━━\n\n"
             f"{extracted_text}\n\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"🚀 *Powered by Astra AI*"
+            f"🚀 *Powered by Astra Engine (Free)*"
         )
         
         await status_msg.edit(text)
-        
-        # Cleanup
-        if os.path.exists(file_path): os.remove(file_path)
 
     except Exception as e:
         await smart_reply(message, f" ❌ OCR Error: {str(e)}")
-        await report_error(client, e, context='OCR command failure')
+        await report_error(client, e, context='Free OCR command failure')
+    finally:
+        # Cleanup
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass

@@ -278,9 +278,16 @@ def reload_all_plugins(client: Client) -> int:
     commands_dir = os.path.join(project_root, "commands")
     success = 0
     if os.path.exists(commands_dir):
-        # Clear metadata to start fresh
+        # Clear metadata and help cache to start fresh
         global COMMANDS_METADATA
         COMMANDS_METADATA.clear()
+        
+        try:
+            from commands.help import HELP_CACHE
+            HELP_CACHE["categories"].clear()
+            logger.info("Cleared Help System cache for re-indexing.")
+        except ImportError:
+            pass
         
         for loader, mod_name, is_pkg in pkgutil.walk_packages([commands_dir], prefix="commands."):
             if load_plugin(client, mod_name):
