@@ -190,7 +190,7 @@ async def quotly_handler(client: Client, message: Message):
             if raw_target:
                 # Resolve target_jid string for helpers
                 target_jid_str = raw_target.serialized if hasattr(raw_target, "serialized") else str(raw_target)
-                sender_name = await client.get_contact_name(target_jid_str, message=msg)
+                sender_name = await get_contact_name(client, target_jid_str)
                 sender_id = raw_target.user if hasattr(raw_target, "user") else target_jid_str.split('@')[0]
 
             quote_list.append({
