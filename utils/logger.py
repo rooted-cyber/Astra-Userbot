@@ -64,7 +64,7 @@ def setup_logging(script_dir: str):
     log_file = os.path.join(script_dir, "astra_full_debug.txt")
     file_formatter = logging.Formatter('%(asctime)s - [%(levelname)s] - %(name)s - %(message)s')
     
-    file_handler = logging.FileHandler(log_file, mode='w')
+    file_handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_formatter)
 
@@ -83,6 +83,9 @@ def setup_logging(script_dir: str):
         
     root_log.addHandler(file_handler)
     root_log.addHandler(console_handler)
+
+    # Startup Separator
+    root_log.info("\n" + "="*50 + "\n" + "ASTRA BOT STARTUP".center(50) + "\n" + "="*50)
 
     # Silence noisy dependencies
     logging.getLogger("asyncio").setLevel(logging.WARNING)

@@ -49,7 +49,8 @@ async function download() {
         ytArgs.push('-f', 'ba/b');
     } else {
         // Force H.264/MP4 for maximum compatibility across all devices
-        ytArgs.push('-f', 'bestvideo[vcodec^=avc1][height<=720]+bestaudio[ext=m4a]/best[vcodec^=avc1][height<=720]/best[ext=mp4]/best');
+        ytArgs.push('-f', 'bestvideo[ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc1]/best');
+        ytArgs.push('-S', 'vcodec:h264,res,acodec:m4a');
         ytArgs.push('--merge-output-format', 'mp4');
         ytArgs.push('--postprocessor-args', 'ffmpeg:-movflags +faststart');
     }

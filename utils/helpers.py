@@ -101,6 +101,7 @@ async def smart_reply(message: Message, content: str, **kwargs):
     try:
         # If the bot itself sent the message, editing provides a cleaner UI.
         if message.from_me:
+            await asyncio.sleep(0.5)
             await message.edit(content)
             return message
         else:
@@ -119,6 +120,7 @@ async def safe_edit(message: Message, content: str, **kwargs):
     try:
         # If edit is possible (it's from me), attempt it
         if message.from_me:
+            await asyncio.sleep(0.5)
             return await message.edit(content, **kwargs)
         else:
             # If not from me, we must reply

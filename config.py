@@ -34,8 +34,8 @@ class Config:
     
     # Versioning & Branding
     # ---------------------
-    VERSION = "0.0.2b21"
-    VERSION_NAME = "Beta 21"
+    VERSION = "0.0.2b23"
+    VERSION_NAME = "Beta 23"
 
     # Bot Identity & Ownership
     # ------------------------
