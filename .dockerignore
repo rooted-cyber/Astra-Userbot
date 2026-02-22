@@ -1,0 +1,34 @@
+# Ignore the git directory.
+.git/
+
+# Ignore Python dependencies and virtual environments
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore Node.js modules
+node_modules/
+npm-debug.log
+
+# Ignore environment variables and local config
+.env
+.env.*
+.DS_Store
+
+# Ignore IDE configurations
+.vscode/
+.idea/
+
+# Ignore local state and db
+bot_state.db
+bot_state.db-journal
+.astra_sessions/
+.astra_session/
+
+# Output and temp files
+temp/
+logs/
+*.log

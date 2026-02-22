@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: astra-bot
+    env: docker
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    dockerCommand: "python render.py"
+    plan: free
+    autoDeploy: false
+    envVars:
+      - key: BOT_NAME
+        value: "Astra Userbot"
+      - key: COMMAND_PREFIX
+        value: "."
+      - key: OWNER_WHATSAPP_ID
+        sync: false
+      - key: OWNER_NAME
+        value: "Astra User"
+      - key: BOT_OWNER_ID
+        sync: false
+      - key: PHONE_NUMBER
+        sync: false
+      - key: ENABLE_AI
+        value: "true"
+      - key: ENABLE_YOUTUBE
+        value: "true"
+      - key: ENABLE_INSTAGRAM
+        value: "true"
+      - key: ENABLE_PM_PROTECTION
+        value: "true"
+      - key: PM_WARN_LIMIT
+        value: "5"
+      - key: ALLOW_MULTI_PREFIX
+        value: "false"
+      - key: ASTRA_HEADLESS
+        value: "true"
+      - key: ASTRA_SESSION_ID
+        value: "ASTRA"
+      - key: ASTRA_PHONE_PAIRING
+        value: "true"
+      - key: SQLITE_PATH
+        value: "bot_state.db"
+      - key: DATABASE_SYNC_INTERVAL
+        value: "300"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: NEWS_GEMINI_API_KEY
+        sync: false
+      - key: MAX_FILE_SIZE_MB
+        value: "50"
+      - key: REQUEST_TIMEOUT
+        value: "30000"
+      - key: FFMPEG_PATH
+        value: "ffmpeg"

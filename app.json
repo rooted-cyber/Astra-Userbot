@@ -1,0 +1,140 @@
+{
+    "name": "Astra Userbot",
+    "description": "A powerful, modular WhatsApp Userbot framework.",
+    "keywords": [
+        "whatsapp",
+        "userbot",
+        "bot",
+        "astra",
+        "python"
+    ],
+    "repository": "https://github.com/paman7647/Astra-Userbot",
+    "logo": "https://raw.githubusercontent.com/paman7647/Astra-Userbot/main/AstraClient.png",
+    "env": {
+        "BOT_NAME": {
+            "description": "The name of your userbot.",
+            "value": "Astra Userbot",
+            "required": true
+        },
+        "COMMAND_PREFIX": {
+            "description": "Command prefix for the bot (e.g. . ! /).",
+            "value": ".",
+            "required": true
+        },
+        "OWNER_WHATSAPP_ID": {
+            "description": "Your WhatsApp ID including country code and @c.us (e.g., 910000000000@c.us).",
+            "required": true
+        },
+        "OWNER_NAME": {
+            "description": "Your name.",
+            "value": "Astra User",
+            "required": true
+        },
+        "BOT_OWNER_ID": {
+            "description": "Your WhatsApp phone number including country code (e.g. 910000000000).",
+            "required": true
+        },
+        "PHONE_NUMBER": {
+            "description": "Your WhatsApp phone number including country code (for pairing).",
+            "required": true
+        },
+        "ENABLE_AI": {
+            "description": "Enable Gemini AI features (true/false).",
+            "value": "true",
+            "required": false
+        },
+        "ENABLE_YOUTUBE": {
+            "description": "Enable YouTube download features (true/false).",
+            "value": "true",
+            "required": false
+        },
+        "ENABLE_INSTAGRAM": {
+            "description": "Enable Instagram download features (true/false).",
+            "value": "true",
+            "required": false
+        },
+        "ENABLE_PM_PROTECTION": {
+            "description": "Enable PM Protection to prevent spam (true/false).",
+            "value": "true",
+            "required": false
+        },
+        "PM_WARN_LIMIT": {
+            "description": "Number of warnings before PM protection kicks in.",
+            "value": "5",
+            "required": false
+        },
+        "ALLOW_MULTI_PREFIX": {
+            "description": "Allow using multiple prefixes (true/false).",
+            "value": "false",
+            "required": false
+        },
+        "ASTRA_HEADLESS": {
+            "description": "Whether to run the browser in headless mode (use true for cloud hosting).",
+            "value": "true",
+            "required": true
+        },
+        "ASTRA_SESSION_ID": {
+            "description": "Your WhatsApp session name.",
+            "value": "ASTRA",
+            "required": false
+        },
+        "ASTRA_PHONE_PAIRING": {
+            "description": "Enable phone number pairing (true/false).",
+            "value": "true",
+            "required": true
+        },
+        "SQLITE_PATH": {
+            "description": "Name of the local SQLite database file.",
+            "value": "bot_state.db",
+            "required": false
+        },
+        "DATABASE_SYNC_INTERVAL": {
+            "description": "Interval (in seconds) for database sync.",
+            "value": "300",
+            "required": false
+        },
+        "GEMINI_API_KEY": {
+            "description": "Your Google Gemini API key (optional).",
+            "required": false
+        },
+        "NEWS_GEMINI_API_KEY": {
+            "description": "News API key (optional).",
+            "required": false
+        },
+        "MAX_FILE_SIZE_MB": {
+            "description": "Max file size for media processing in MB.",
+            "value": "50",
+            "required": false
+        },
+        "REQUEST_TIMEOUT": {
+            "description": "Timeout in milliseconds for requests.",
+            "value": "30000",
+            "required": false
+        },
+        "FFMPEG_PATH": {
+            "description": "Path to ffmpeg binary.",
+            "value": "ffmpeg",
+            "required": false
+        }
+    },
+    "formation": {
+        "worker": {
+            "quantity": 1,
+            "size": "eco"
+        }
+    },
+    "buildpacks": [
+        {
+            "url": "heroku/python"
+        },
+        {
+            "url": "heroku/nodejs"
+        },
+        {
+            "url": "https://github.com/heroku/heroku-buildpack-google-chrome"
+        },
+        {
+            "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git"
+        }
+    ]
+}

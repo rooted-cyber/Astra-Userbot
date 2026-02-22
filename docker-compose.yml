@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  astra-bot:
+    build: .
+    container_name: astra-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./.astra_sessions:/app/.astra_sessions
+      - ./.astra_session:/app/.astra_session
+      - ./bot_state.db:/app/bot_state.db
+      - ./astra_bot.log:/app/astra_bot.log
+    environment:
+      - ASTRA_HEADLESS=true
+      - PYTHONUNBUFFERED=1

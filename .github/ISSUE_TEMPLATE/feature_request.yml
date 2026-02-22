@@ -1,0 +1,34 @@
+name: Feature Request
+description: Suggest an idea for Astra Userbot plugin or feature
+title: "[REQUEST] "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping make Astra better!
+  - type: textarea
+    id: idea
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of what the feature should do.
+      placeholder: E.g., Add a .wiki summary command...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Describe alternatives you've considered
+      description: Any alternative solutions or workarounds you're currently using.
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What type of feature is this?
+      options:
+        - New Plugin/Command
+        - Core Engine Request
+        - Deployment / DevOps
+        - UI / Visual Output
+    validations:
+      required: true
