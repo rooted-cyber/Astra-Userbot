@@ -55,17 +55,14 @@ async def whois_handler(client: Client, message: Message):
         is_business = "Yes" if contact.isBusiness else "No"
         
         # About/Status
-        about = "N/A"
-        try:
-            status_obj = await client.get_status(jid_str)
-            about = status_obj.status if status_obj else "N/A"
-        except:
-            pass
-
+        about = "N/A" # Status fetching is currently unsupported natively by Astra
+        
         # Profile Pic
         pic_url = "https://telegra.ph/file/18a28f73177695376046e.jpg"
         try:
-            pic_url = await client.get_profile_pic_url(jid_str) or pic_url
+            target_pic = await client.bridge.call("getProfilePicUrl", jid_str)
+            if target_pic:
+                pic_url = target_pic
         except:
             pass
 
