@@ -11,6 +11,7 @@ import sys
 import asyncio
 import time
 import hashlib
+from config import config
 from . import *
 
 @astra_command(
