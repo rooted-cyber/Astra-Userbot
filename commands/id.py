@@ -12,7 +12,7 @@ from . import *
     name="id",
     description="Description: Retrieve unique identifiers for chats, users, and quoted messages.\nSyntax: .id [reply]\nExample: .id",
     category="Astra Essentials",
-    aliases=["info", "whois"],
+    aliases=["info"],
     usage=".id (reply to message to inspect its IDs)",
     is_public=True
 )
