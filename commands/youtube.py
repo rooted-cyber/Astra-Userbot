@@ -14,15 +14,17 @@ import re
 import random
 import time
 from . import *
+import aiohttp
+from urllib.parse import quote_plus
 from config import config
 from utils.helpers import get_progress_bar, safe_edit
 
 @astra_command(
     name="youtube",
-    description="Download media from YouTube (Audio or Video).",
+    description="Download media from YouTube. Supports auto-search for queries.",
     category="Media Engine",
     aliases=["yt", "ytdl"],
-    usage="<url> [video|audio] [--doc] (e.g. .youtube <link> video)",
+    usage="<url|query> [video|audio]\n\n💡 *Tip:* Use `.setcfg FAST_MEDIA on` for high-speed uploads without progress bars.",
     owner_only=False
 )
 async def youtube_handler(client: Client, message: Message):
@@ -46,24 +48,26 @@ async def youtube_handler(client: Client, message: Message):
         # Auto-Search Logic
         url = url_input
         if not url_input.startswith(("http://", "https://", "www.")):
-            await status_msg.edit(f"📺 **Searching for:** `{url_input}`...")
-            search_query = " ".join(args_list) # Use full args as query
+            search_query = " ".join(args_list)
             if " video" in search_query.lower() or " audio" in search_query.lower():
-                search_query = search_query.rsplit(' ', 1)[0] # Strip mode for search
+                search_query = search_query.rsplit(' ', 1)[0]
+            
+            await status_msg.edit(f"📺 **Searching for:** `{search_query}`...")
 
-            search_url = f"https://api.disroot.org/search/youtube/search?q={quote_plus(search_query)}"
-            async with aiohttp.ClientSession() as session:
-                async with session.get(search_url, timeout=10) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        results = data.get('results', [])
-                        if results:
-                            url = results[0]['url']
-                            await status_msg.edit(f"✅ **Found:** `{results[0]['title']}`\n📥 *Downloading...*")
-                        else:
-                            return await status_msg.edit(f"❌ No results found for `{search_query}`.")
+            try:
+                import yt_dlp
+                ydl_opts = {'quiet': True, 'extract_flat': True}
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    search_result = ydl.extract_info(f"ytsearch1:{search_query}", download=False)
+                    if search_result.get('entries'):
+                        entry = search_result['entries'][0]
+                        url = f"https://www.youtube.com/watch?v={entry['id']}"
+                        duration = entry.get('duration_string') or (f"{int(entry['duration']) // 60}:{int(entry['duration']) % 60:02d}" if entry.get('duration') else "N/A")
+                        await status_msg.edit(f"✅ **Found:** `{entry['title']}` ({duration})\n📥 *Downloading...*")
                     else:
-                        return await status_msg.edit("⚠️ Search engine failed. Please provide a direct link.")
+                        return await status_msg.edit(f"❌ No results found for `{search_query}`.")
+            except Exception as e:
+                 return await status_msg.edit(f"❌ YouTube Search failed: {str(e)}")
         
         # Use MediaChannel for a "real-time" experience
         from utils.media_channel import MediaChannel

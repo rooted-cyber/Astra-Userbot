@@ -23,8 +23,8 @@ class Config:
     """Bot config container"""
     
     # Versioning
-    VERSION = "0.0.2b25"
-    VERSION_NAME = "Beta 25"
+    VERSION = "0.0.3b1"
+    VERSION_NAME = "Beta 1 (v0.0.3)"
 
     # Bot Identity
     @property

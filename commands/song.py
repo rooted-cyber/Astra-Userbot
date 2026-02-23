@@ -24,6 +24,10 @@ async def song_handler(client: Client, message: Message):
         return await smart_reply(message, "❌ **Usage:** `.song <song name>`")
 
     query = " ".join(args)
+    # Refine search query
+    if "song" not in query.lower() and "audio" not in query.lower():
+        query += " audio song"
+
     status_msg = await smart_reply(message, f"🎵 **Searching for song:** `{query}`...")
 
     try:
@@ -45,9 +49,9 @@ async def song_handler(client: Client, message: Message):
         res = results[0]
         target_url = f"https://www.youtube.com/watch?v={res.get('id')}"
         title = res.get('title')
-        duration = res.get('duration_string', 'N/A')
+        duration = res.get('duration_string') or (f"{int(res['duration']) // 60}:{int(res['duration']) % 60:02d}" if res.get('duration') else "N/A")
         
-        await status_msg.edit(f"✅ **Found:** `{title}` (`{duration}`)\n📥 *Downloading audio...*")
+        await status_msg.edit(f"✅ **Found:** `{title}` ({duration})\n📥 *Downloading audio...*")
 
         # Use MediaChannel for download/upload
         from utils.media_channel import MediaChannel
@@ -75,6 +79,10 @@ async def vsong_handler(client: Client, message: Message):
         return await smart_reply(message, "❌ **Usage:** `.vsong <video name>`")
 
     query = " ".join(args)
+    # Refine search query
+    if "video" not in query.lower():
+        query += " full video"
+
     status_msg = await smart_reply(message, f"🎬 **Searching for video:** `{query}`...")
 
     try:
@@ -96,9 +104,9 @@ async def vsong_handler(client: Client, message: Message):
         res = results[0]
         target_url = f"https://www.youtube.com/watch?v={res.get('id')}"
         title = res.get('title')
-        duration = res.get('duration_string', 'N/A')
+        duration = res.get('duration_string') or (f"{int(res['duration']) // 60}:{int(res['duration']) % 60:02d}" if res.get('duration') else "N/A")
         
-        await status_msg.edit(f"✅ **Found:** `{title}` (`{duration}`)\n📥 *Downloading video...*")
+        await status_msg.edit(f"✅ **Found:** `{title}` ({duration})\n📥 *Downloading video...*")
 
         # Use MediaChannel for download/upload
         from utils.media_channel import MediaChannel

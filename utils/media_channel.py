@@ -14,7 +14,8 @@ from typing import Optional, Callable
 from astra.client import Client
 from astra.models import Message
 from config import config
-from utils.helpers import get_progress_bar, safe_edit
+from utils.helpers import safe_edit
+from utils.progress import get_progress_bar
 
 class MediaChannel:
     """

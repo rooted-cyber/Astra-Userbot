@@ -17,6 +17,7 @@ import asyncio
 import traceback
 from typing import Optional, List
 from astra.models import Message
+from utils.progress import get_progress_bar
 
 # Core Utility Functions
 # ----------------------
@@ -131,17 +132,6 @@ async def safe_edit(message: Message, content: str, **kwargs):
 
 
 
-def get_progress_bar(pct: float, length: int = 15) -> str:
-    """
-    Generates a visual progress bar string.
-    Example: [▰▰▰▱▱▱▱▱▱▱] 30.0%
-    """
-    try:
-        filled = int(length * pct / 100)
-        bar = "▰" * filled + "▱" * (length - filled)
-        return f"[{bar}] {pct:.1f}%"
-    except:
-        return f"[░░░░░░░░░░░░░] {pct}%"
 
 async def report_error(client, exc: Exception, context: str = ""):
     """

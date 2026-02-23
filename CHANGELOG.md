@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.3b1] - Astra Beta 1 (v0.0.3) - 2026-02-23
+
+### Added
+- **Identity Merging**: Integrated `BOT_OWNER_ID` as a fallback for `PHONE_NUMBER` across both the core engine and userbot. This allows single-account configurations to use a single ID for all operations.
+- **Fast Media Mode**: New high-speed media processing engine. Enable via `.setcfg FAST_MEDIA on` to skip progress UI and maximize upload/download performance.
+- **Stability Monitoring**: Improved error reporting in `youtube.py` for headless environments.
+
+### Fixed
+- **Authentication Flow**: Resolved a race condition where the QR code was suppressed prematurely during phone pairing initialization.
+- **Search Stability**: Replaced unstable third-party YouTube search APIs with a robust internal `yt-dlp` engine in `.youtube`, `.song`, and `.vsong`.
+- **UI Progress**: Fixed a redundant progress bar implementation; all commands now use the modern circular `●/○` style consistently.
+- **Duration Parsing**: Fixed `N/A` values in media results; video/audio lengths are now correctly extracted and displayed.
+
 ## [0.0.1b3] - Astra Beta 3 - 2026-02-23
 
 ### Added
