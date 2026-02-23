@@ -58,8 +58,11 @@ async def weather_handler(client: Client, message: Message):
                         "data": b64_data,
                         "filename": f"weather_{city}.png"
                     }
-                    await client.chat.send_media(message.chat_id, media, caption=weather_report)
-                    return await status_msg.delete()
+                    try:
+                        await client.send_media(message.chat_id, media, caption=weather_report)
+                        return await status_msg.delete()
+                    except Exception as upload_err:
+                        return await status_msg.edit(f"❌ **Upload Error:** Failed to send weather image. ({str(upload_err)})")
 
             # Fallback to text only
             time.sleep(0.5)

@@ -50,8 +50,11 @@ async def ss_handler(client: Client, message: Message):
                         "data": b64_data,
                         "filename": "screenshot.jpg"
                     }
-                    await client.send_media(message.chat_id, media, caption=f"📸 **Screenshot:** {url}")
-                    await status_msg.delete()
+                    try:
+                        await client.send_media(message.chat_id, media, caption=f"📸 **Screenshot:** {url}")
+                        await status_msg.delete()
+                    except Exception as upload_err:
+                        await status_msg.edit(f"❌ **Upload Error:** Failed to send screenshot. ({str(upload_err)})")
                     return
                 elif resp.status == 429:
                     return await status_msg.edit("❌ **Rate Limited:** Too many screenshot requests. Try again in a minute.")

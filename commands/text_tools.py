@@ -39,13 +39,6 @@ async def fancy_handler(client: Client, message: Message):
     
     target_font = FANCY_FONTS[font_type]
     result = ""
-    for char in text:
-        if char in NORMAL_CHARS:
-            result += target_font[NORMAL_CHARS.index(char)]
-        else:
-            result += char
-            
-    await smart_reply(message, result)
 
 @astra_command(
     name="morse",
