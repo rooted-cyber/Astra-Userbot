@@ -55,6 +55,8 @@ async def pmpermit_handler(client: Client, message: Message):
             elif message.has_quoted_msg:
                 quoted = message.quoted
                 target_id = quoted.sender or quoted.chat_id
+            elif not str(message.chat_id).endswith('@g.us'):
+                target_id = message.chat_id
 
             if not target_id:
                 return await smart_reply(message, "⚠️ **Astra PM Security:** Please provide a user ID or reply to a message.")
@@ -78,6 +80,8 @@ async def pmpermit_handler(client: Client, message: Message):
             elif message.has_quoted_msg:
                 quoted = message.quoted
                 target_id = quoted.sender or quoted.chat_id
+            elif not str(message.chat_id).endswith('@g.us'):
+                target_id = message.chat_id
 
             if not target_id:
                 return await smart_reply(message, "⚠️ **Astra PM Security:** Please provide a user ID or reply to a message.")
