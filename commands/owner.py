@@ -58,45 +58,7 @@ async def setbio_handler(client: Client, message: Message):
     except Exception as e:
         await status_msg.edit(f" ❌ Failed to update bio: {str(e)}")
 
-@astra_command(
-    name="status",
-    description="Post a text or media status update (Story).",
-    category="Owner Tools",
-    aliases=["setstatus", "post"],
-    usage="<text/reply media> (reply to a message or supply text)",
-    owner_only=True
-)
-async def status_handler(client: Client, message: Message):
-    args = extract_args(message)
-    
-    if message.has_quoted_msg and message.quoted.is_media:
-        status_msg = await smart_reply(message, " ⏳ *Uploading media to status...*")
-        try:
-            # Download quoted media
-            media_b64 = await client.media.download_media(message.quoted.id if message.quoted else message.quoted_message_id)
-            caption = " ".join(args) if args else ""
-            
-            # Determine type
-            mime = message.quoted.mimetype
-            mtype = 'image' if 'image' in mime else 'video'
-            
-            await client.api.send_media_status(media_b64, mtype, caption)
-            await status_msg.edit(" ✅ Media status posted successfully!")
-        except Exception as e:
-            await status_msg.edit(f" ❌ Failed to post media status: {str(e)}")
-        return
 
-    if not args:
-        return await smart_reply(message, " ⚠️ Provide text or reply to media to post a status Story.")
-    
-    text = " ".join(args)
-    status_msg = await smart_reply(message, " ⏳ *Posting text status...*")
-    
-    try:
-        await client.account.post_status(text)
-        await status_msg.edit(" ✅ Text status posted successfully!")
-    except Exception as e:
-        await status_msg.edit(f" ❌ Failed to post status: {str(e)}")
 
 @astra_command(
     name="setpfp",
