@@ -194,3 +194,42 @@ async def listcfg_handler(client: Client, message: Message):
     
     await smart_reply(message, list_text)
 
+@astra_command(
+    name="sysvars",
+    description="📖 View a list of all official dynamic system configuration keys.",
+    category="System Hub",
+    aliases=["cfghints", "vars"],
+    owner_only=True
+)
+async def sysvars_handler(client: Client, message: Message):
+    """Provides a cheat sheet of all dynamic configurations supported by the bot."""
+    
+    docs = (
+        "📖 **ASTRA SYSTEM VARIABLES**\n"
+        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "💡 _Use `.setcfg <key> <value>` to change these._\n\n"
+        
+        "⚙️ **Core & Access**\n"
+        "🔹 `COMMAND_PREFIX`: Bot prefix (e.g. `.` or `!`)\n"
+        "🔹 `BOT_NAME`: Your custom bot brand name\n"
+        "🔹 `ALLOW_MULTI_PREFIX`: `on/off` (Allow `.`, `!`, `/`)\n\n"
+        
+        "🚀 **Media Engine**\n"
+        "🔹 `FAST_MEDIA`: `on/off` (Hide progress bars for speed)\n"
+        "🔹 `ENABLE_MEDIA_CACHE`: `on/off` (Instant duplicate dl)\n"
+        "🔹 `CACHE_AUTO_DELETE`: `on/off` (Delete cache > 2hrs)\n"
+        "🔹 `ALIVE_IMG`: Custom URL for the `.alive` command\n\n"
+        
+        "🛡️ **Security & PMs**\n"
+        "🔹 `ENABLE_PM_PROTECTION`: `on/off` (Anti-spam in PMs)\n"
+        "🔹 `PM_WARN_LIMIT`: `number` (Max warnings before block)\n\n"
+        
+        "🤖 **Third-Party APIs**\n"
+        "🔹 `GEMINI_API_KEY`: Your Google AI Studio key\n"
+        "🔹 `NEWS_GEMINI_API_KEY`: Key for `.technews`\n\n"
+
+        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🔍 _Use `.listcfg` to see your currently active overrides._"
+    )
+    
+    await smart_reply(message, docs)
