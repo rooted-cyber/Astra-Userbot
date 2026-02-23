@@ -20,6 +20,7 @@ import sys
 import signal
 import threading
 import requests
+import random
 import time
 from flask import Flask
 from typing import *
@@ -30,6 +31,27 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 import astra
 from astra import Client, Filters, Message
 from utils.logger import setup_logging, Colors
+
+# --- Framework Monkey-Patching (Stability & Rate-Limiting) ---
+def apply_framework_patches():
+    """
+    Applies runtime patches to the Astra framework to enhance stability 
+    specifically for the userbot environment.
+    """
+    # Patch Message.edit to include randomized delays (Fixes [E3006])
+    original_edit = Message.edit
+    
+    async def patched_edit(self, text: str) -> bool:
+        # WhatsApp has strict rate limits for edits. 
+        # Randomized delays help avoid detection and race conditions.
+        await asyncio.sleep(random.uniform(0.4, 1.2))
+        return await original_edit(self, text)
+    
+    Message.edit = patched_edit
+    logger.info("🔧 Applied stability patch: Message.edit now uses randomized delays (0.4s - 1.2s).")
+
+# Apply patches early
+apply_framework_patches()
 
 # 1. Initialize Modern Logging
 setup_logging(SCRIPT_DIR)
