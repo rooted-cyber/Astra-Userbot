@@ -67,6 +67,9 @@ def setup_logging(script_dir: str):
     file_handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_formatter)
+    
+    # Ensure immediate flush for "real-time" log tracking
+    file_handler.flush = lambda: super(logging.FileHandler, file_handler).flush()
 
     # 2. Modern Colored Console Logger
     console_handler = logging.StreamHandler(sys.stdout)

@@ -205,15 +205,24 @@ async def logs_cmd(client: Client, message: Message):
     log_file = "astra_full_debug.txt"
     if not os.path.exists(log_file):
         return await status_msg.edit("❌ *Error:* Log file `astra_full_debug.txt` not found.")
-
     try:
-        # Read the last 50 lines for a quick preview
-        with open(log_file, "r") as f:
-            lines = f.readlines()
-            recent_logs = "".join(lines[-50:])
+        # Efficiently read the last 100 lines
+        def tail(filename, n=100):
+            try:
+                from collections import deque
+                with open(filename, "r", encoding='utf-8', errors='ignore') as f:
+                    return list(deque(f, n))
+            except Exception as e:
+                return [f"Unable to read log file: {str(e)}"]
+
+        lines = tail(log_file)
+        recent_logs = "".join(lines)
         
-        # Format for WhatsApp
-        preview = f"📜 **Recent Logs (Last 50 Lines):**\n```\n{recent_logs}\n```"
+        # Format for WhatsApp - ensure it fits message limits
+        if len(recent_logs) > 3500:
+            recent_logs = recent_logs[-3500:]
+            
+        preview = f"📜 **Astra Console (Live Logs):**\n```\n{recent_logs}\n```\n🕒 **Fetched at:** `{time.strftime('%H:%M:%S')}`"
         
         # Always send text preview (unless logs are empty)
         if recent_logs:

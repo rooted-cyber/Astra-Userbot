@@ -11,3 +11,5 @@ sphinx-rtd-theme>=2.0.0
 flask>=2.3.0
 flask-restful>=0.3.0
 requests>=2.31.0
+googlesearch-python>=1.2.3
+duckduckgo-search>=5.0.0

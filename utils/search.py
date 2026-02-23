@@ -5,31 +5,17 @@
 # Licensed under the MIT License.
 # -----------------------------------------------------------
 
-import aiohttp
+import asyncio
 import logging
-import random
 from typing import List, Dict, Any, Optional
+from googlesearch import search as gsearch
+from duckduckgo_search import DDGS
 
 logger = logging.getLogger("Astra.Search")
 
-# List of public SearXNG instances that are known to support JSON
-# We will rotate through these if one fails or returns HTML instead of JSON.
-SEARX_INSTANCES = [
-    "https://searx.be",
-    "https://searx.work",
-    "https://searx.otter.sh",
-    "https://searx.ch",
-    "https://paulgo.io",
-    "https://priv.au",
-    "https://searx.tiekoetter.com",
-    "https://search.ononoki.org",
-    "https://search.demit.online",
-    "https://searx.xyz",
-]
-
 async def perform_search(query: str, engines: List[str] = ["google"], limit: int = 5) -> Optional[Dict[str, Any]]:
     """
-    Performs a web search using a rotating list of SearXNG instances.
+    Performs a web search using standalone Python libraries (googlesearch and duckduckgo-search).
     
     Args:
         query: The search term.
@@ -37,43 +23,47 @@ async def perform_search(query: str, engines: List[str] = ["google"], limit: int
         limit: Number of results to return.
         
     Returns:
-        A dictionary containing 'results', 'answers', and 'infoboxes', or None if all instances fail.
+        A dictionary containing 'results', or None if all libraries fail.
     """
-    # Shuffle instances to distribute load and try different ones on each call
-    instances = SEARX_INSTANCES.copy()
-    random.shuffle(instances)
+    results = []
+    engine_used = engines[0] if engines else "google"
     
-    headers = {
-        "User-Agent": "AstraUserbot/1.0 (https://github.com/paman7647/Astra-Userbot)",
-        "Accept": "application/json"
-    }
-    
-    category = "general"
-    engine_str = ",".join(engines)
-    
-    for instance in instances:
-        url = f"{instance}/search?q={query}&format=json&engines={engine_str}&pageno=1"
-        try:
-            async with aiohttp.ClientSession(headers=headers) as session:
-                async with session.get(url, timeout=8) as resp:
-                    if resp.status == 200:
-                        # Check if content-type is JSON
-                        content_type = resp.headers.get('Content-Type', '')
-                        if 'application/json' in content_type:
-                            data = await resp.json()
-                            if data.get('results'):
-                                return {
-                                    "results": data.get('results', [])[:limit],
-                                    "answers": data.get('answers', []),
-                                    "infoboxes": data.get('infoboxes', []),
-                                    "instance": instance
-                                }
-                        else:
-                            logger.debug(f"Instance {instance} returned non-JSON content: {content_type}")
-                    else:
-                        logger.debug(f"Instance {instance} returned status {resp.status}")
-        except Exception as e:
-            logger.debug(f"Failed to search via {instance}: {str(e)}")
+    try:
+        if "google" in engines:
+            # googlesearch-python is synchronous, run in thread
+            def sync_google():
+                # returns a generator of links
+                return list(gsearch(query, num_results=limit, advanced=True))
             
-    logger.error(f"All SearXNG instances failed for query: {query}")
+            search_results = await asyncio.to_thread(sync_google)
+            for res in search_results:
+                results.append({
+                    "title": res.title,
+                    "url": res.url,
+                    "content": res.description
+                })
+            
+        elif "duckduckgo" in engines or "ddg" in engines:
+            # duckduckgo-search is synchronous, run in thread
+            def sync_ddg():
+                with DDGS() as ddgs:
+                    return list(ddgs.text(query, max_results=limit))
+            
+            search_results = await asyncio.to_thread(sync_ddg)
+            for res in search_results:
+                results.append({
+                    "title": res.get("title"),
+                    "url": res.get("href"),
+                    "content": res.get("body")
+                })
+                
+        if results:
+            return {
+                "results": results[:limit],
+                "instance": f"Python Lib ({engine_used})"
+            }
+            
+    except Exception as e:
+        logger.error(f"Search library error ({engine_used}): {str(e)}")
+            
     return None

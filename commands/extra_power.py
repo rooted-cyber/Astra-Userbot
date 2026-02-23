@@ -39,6 +39,10 @@ async def ss_handler(client: Client, message: Message):
             async with session.get(ss_url, timeout=20) as resp:
                 if resp.status == 200:
                     img_data = await resp.read()
+                    # Check if it actually returned an image
+                    if len(img_data) < 1000:
+                        return await status_msg.edit("⚠️ Screenshot service returned an invalid image. The site might be blocking us.")
+                        
                     b64_data = base64.b64encode(img_data).decode('utf-8')
                     
                     media = {
@@ -49,6 +53,8 @@ async def ss_handler(client: Client, message: Message):
                     await client.send_media(message.chat_id, media, caption=f"📸 **Screenshot:** {url}")
                     await status_msg.delete()
                     return
+                elif resp.status == 429:
+                    return await status_msg.edit("❌ **Rate Limited:** Too many screenshot requests. Try again in a minute.")
                 
         await status_msg.edit("⚠️ Failed to capture screenshot. Make sure the URL is valid.")
 
