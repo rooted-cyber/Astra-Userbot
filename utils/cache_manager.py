@@ -28,6 +28,32 @@ class MediaCacheManager:
                 logger.error(f"Failed to load cache metadata: {e}")
         return {}
 
+    def _auto_cleanup(self):
+        """Deletes cache entries older than 2 hours if CACHE_AUTO_DELETE is enabled."""
+        from utils.state import state
+        # Default True, user can disable with `.setcfg CACHE_AUTO_DELETE off`
+        if str(state.get_config("CACHE_AUTO_DELETE")).lower() in ["false", "off", "0"]:
+            return
+
+        now = time.time()
+        two_hours = 2 * 60 * 60
+        to_delete = []
+
+        for key, entry in self.metadata.items():
+            timestamp = entry.get('timestamp', 0)
+            if now - timestamp > two_hours:
+                to_delete.append((key, entry.get('file_path')))
+
+        if to_delete:
+            for key, path in to_delete:
+                try:
+                    if path and os.path.exists(path):
+                        os.remove(path)
+                    del self.metadata[key]
+                except Exception as e:
+                    logger.debug(f"Failed to auto-delete {path}: {e}")
+            self._save_metadata()
+
     def _save_metadata(self):
         try:
             with open(CACHE_META_FILE, 'w') as f:
@@ -42,6 +68,12 @@ class MediaCacheManager:
 
     async def get_cached_file(self, url: str, mode: str):
         """Returns (file_path, metadata) if a valid cache exists, else (None, None)."""
+        from utils.state import state
+        if str(state.get_config("ENABLE_MEDIA_CACHE")).lower() in ["false", "off", "0"]:
+            return None, None
+
+        self._auto_cleanup()
+        
         key = self.generate_cache_key(url, mode)
         
         if key in self.metadata:
@@ -62,6 +94,10 @@ class MediaCacheManager:
 
     async def save_to_cache(self, url: str, mode: str, original_file_path: str, media_meta: dict) -> str:
         """Copies the downloaded file to the cache directory and stores metadata."""
+        from utils.state import state
+        if str(state.get_config("ENABLE_MEDIA_CACHE")).lower() in ["false", "off", "0"]:
+            return original_file_path
+
         try:
             key = self.generate_cache_key(url, mode)
             ext = os.path.splitext(original_file_path)[1]
