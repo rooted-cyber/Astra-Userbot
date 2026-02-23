@@ -43,7 +43,24 @@ class MediaChannel:
             self.last_update = now
 
     async def run_bridge(self, url: str, mode: str):
-        """Executes the JS downloader bridge and handles output streams."""
+        """Executes the JS downloader bridge, utilizing cache for speed."""
+        from utils.cache_manager import cache
+        
+        # 1. Check Cache
+        cached_file, cached_meta = await cache.get_cached_file(url, mode)
+        if cached_file:
+            await self._update_status(
+                f"⚡ **Astra Media Gateway**\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"✨ *{cached_meta.get('title', 'Media')}*\n"
+                f"🟢 *Cache Hit:* Delivered instantly.\n\n"
+                f"📤 *Preparing upload...*",
+                force=True
+            )
+            # Small delay to let the user read the cache hit message
+            await asyncio.sleep(1)
+            return cached_file, cached_meta
+
         bridge_script = os.path.join(os.path.dirname(__file__), "js_downloader.js")
         cookies_file = getattr(config, 'YOUTUBE_COOKIES_FILE', '') or ''
         cookies_browser = getattr(config, 'YOUTUBE_COOKIES_FROM_BROWSER', '') or ''
@@ -69,10 +86,12 @@ class MediaChannel:
             if line_str.startswith("METADATA:"):
                 metadata.update(json.loads(line_str.replace("METADATA:", "")))
                 await self._update_status(
+                    f"⚡ **Astra Media Gateway**\n"
+                    f"━━━━━━━━━━━━━━━━━━━━\n"
                     f"✨ *{metadata['title']}*\n"
                     f"🌐 *Platform:* {metadata['platform']}\n"
-                    f"📂 *Mode:* {mode.capitalize()}\n\n"
-                    f"⏳ *Preparing download...*",
+                    f"📂 *Format:* {mode.capitalize()}\n\n"
+                    f"⏳ *Initializing download stream...*",
                     force=True
                 )
 
@@ -83,12 +102,13 @@ class MediaChannel:
                     pct, size, speed, eta = match.groups()
                     bar = get_progress_bar(float(pct))
                     await self._update_status(
-                        f"✨ *{metadata['title']}*\n"
-                        f"🌐 *Platform:* {metadata['platform']}\n\n"
-                        f"📥 *Downloading:* {bar}\n"
+                        f"⚡ **Astra Media Gateway**\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"✨ *{metadata['title']}*\n\n"
+                        f"📥 *Stream:* {bar}\n"
                         f"📋 *Size:* `{size}`\n"
-                        f"⚡ *Speed:* `{speed}`\n"
-                        f"⏳ *Remaining:* `{eta}`",
+                        f"🚀 *Speed:* `{speed}`\n"
+                        f"🕒 *ETA:* `{eta}`",
                         is_progress=True
                     )
 
@@ -104,9 +124,11 @@ class MediaChannel:
             raise Exception(f"Bridge Error: {stderr}")
 
         if not file_path or not os.path.exists(file_path):
-            raise Exception("File not found after download.")
+            raise Exception("File stream failed or was not written to disk.")
 
-        return file_path, metadata
+        # Save to Cache automatically
+        cached_path = await cache.save_to_cache(url, mode, file_path, metadata)
+        return cached_path, metadata
 
     async def upload_file(self, file_path: str, metadata: dict, mode: str):
         """Uploads file with real-time progress bar."""
@@ -129,10 +151,11 @@ class MediaChannel:
                 speed_text = "..."
 
             await self._update_status(
-                f"✨ *{metadata['title']}*\n"
-                f"🌐 *Platform:* {metadata['platform']}\n\n"
-                f"📤 *Uploading:* {bar}\n"
-                f"⚡ *Speed:* `{speed_text}`",
+                f"⚡ **Astra Media Gateway**\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"✨ *{metadata['title']}*\n\n"
+                f"📤 *Bridging to WA:* {bar}\n"
+                f"🚀 *Transfer Rate:* `{speed_text}`",
                 is_progress=True
             )
 
@@ -152,5 +175,5 @@ class MediaChannel:
             
             await self.status_msg.delete()
         finally:
-            if os.path.exists(file_path):
-                os.remove(file_path)
+            # We don't remove file_path anymore here because it's serving from the cache directory
+            pass

@@ -43,7 +43,7 @@ async def youtube_handler(client: Client, message: Message):
         video_keywords = ["video", "vid", "mp4", "mkv", "720p", "1080p"]
         mode = "video" if any(kw in args_lower for kw in video_keywords) else "audio"
 
-        status_msg = await smart_reply(message, f" 🔍 *Initializing Astra Media Engine...*")
+        status_msg = await smart_reply(message, f"⚡ **Astra Media Engine**\n━━━━━━━━━━━━━━━━━━━━\n🔍 *Initializing request...*")
 
         # Auto-Search Logic
         url = url_input
@@ -52,7 +52,7 @@ async def youtube_handler(client: Client, message: Message):
             if " video" in search_query.lower() or " audio" in search_query.lower():
                 search_query = search_query.rsplit(' ', 1)[0]
             
-            await status_msg.edit(f"📺 **Searching for:** `{search_query}`...")
+            await status_msg.edit(f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n📺 **Query:** `{search_query}`...")
 
             try:
                 import yt_dlp
@@ -63,7 +63,7 @@ async def youtube_handler(client: Client, message: Message):
                         entry = search_result['entries'][0]
                         url = f"https://www.youtube.com/watch?v={entry['id']}"
                         duration = entry.get('duration_string') or (f"{int(entry['duration']) // 60}:{int(entry['duration']) % 60:02d}" if entry.get('duration') else "N/A")
-                        await status_msg.edit(f"✅ **Found:** `{entry['title']}` ({duration})\n📥 *Downloading...*")
+                        await status_msg.edit(f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Found:** `{entry['title']}`\n⏱️ **Duration:** `{duration}`\n\n📥 *Routing to Gateway...*")
                     else:
                         return await status_msg.edit(f"❌ No results found for `{search_query}`.")
             except Exception as e:

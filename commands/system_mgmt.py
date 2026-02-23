@@ -252,3 +252,34 @@ async def logs_cmd(client: Client, message: Message):
 
     except Exception as e:
         await status_msg.edit(f"❌ *Error retrieving logs:* {str(e)}")
+
+@astra_command(
+    name="clearcache",
+    description="🧹 Clears the Astra Media Gateway cache to free up disk space.",
+    category="System Hub",
+    aliases=["ccache"],
+    owner_only=True
+)
+async def clearcache_cmd(client: Client, message: Message):
+    """Purges the media cache directory."""
+    status_msg = await smart_reply(message, "⏳ *Scanning media cache...*")
+    
+    try:
+        from utils.cache_manager import cache
+        result = cache.clear_cache()
+        
+        if result["success"]:
+            files = result["files_deleted"]
+            freed = result["freed_mb"]
+            await asyncio.sleep(0.5)
+            await status_msg.edit(
+                f"✅ **Cache Cleared Successfully!**\n\n"
+                f"🗑️ *Deleted Files:* `{files}`\n"
+                f"💾 *Space Freed:* `{freed} MB`\n"
+                f"🚀 *Astra Media Engine is clean.*"
+            )
+        else:
+            await status_msg.edit(f"❌ *Cache clearing failed:* {result.get('error')}")
+            
+    except Exception as e:
+        await report_error(client, e, context='Clear cache failure')

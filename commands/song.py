@@ -28,7 +28,7 @@ async def song_handler(client: Client, message: Message):
     if "song" not in query.lower() and "audio" not in query.lower():
         query += " audio song"
 
-    status_msg = await smart_reply(message, f"🎵 **Searching for song:** `{query}`...")
+    status_msg = await smart_reply(message, f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n🎵 **Query:** `{query}`...")
 
     try:
         import yt_dlp
@@ -51,7 +51,7 @@ async def song_handler(client: Client, message: Message):
         title = res.get('title')
         duration = res.get('duration_string') or (f"{int(res['duration']) // 60}:{int(res['duration']) % 60:02d}" if res.get('duration') else "N/A")
         
-        await status_msg.edit(f"✅ **Found:** `{title}` ({duration})\n📥 *Downloading audio...*")
+        await status_msg.edit(f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Found:** `{title}`\n⏱️ **Duration:** `{duration}`\n\n📥 *Routing to Gateway...*")
 
         # Use MediaChannel for download/upload
         from utils.media_channel import MediaChannel
@@ -83,7 +83,7 @@ async def vsong_handler(client: Client, message: Message):
     if "video" not in query.lower():
         query += " full video"
 
-    status_msg = await smart_reply(message, f"🎬 **Searching for video:** `{query}`...")
+    status_msg = await smart_reply(message, f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n🎬 **Query:** `{query}`...")
 
     try:
         import yt_dlp
@@ -106,7 +106,7 @@ async def vsong_handler(client: Client, message: Message):
         title = res.get('title')
         duration = res.get('duration_string') or (f"{int(res['duration']) // 60}:{int(res['duration']) % 60:02d}" if res.get('duration') else "N/A")
         
-        await status_msg.edit(f"✅ **Found:** `{title}` ({duration})\n📥 *Downloading video...*")
+        await status_msg.edit(f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Found:** `{title}`\n⏱️ **Duration:** `{duration}`\n\n📥 *Routing to Gateway...*")
 
         # Use MediaChannel for download/upload
         from utils.media_channel import MediaChannel
