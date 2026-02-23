@@ -24,9 +24,12 @@ async def song_handler(client: Client, message: Message):
         return await smart_reply(message, "❌ **Usage:** `.song <song name>`")
 
     query = " ".join(args)
-    # Refine search query
-    if "song" not in query.lower() and "audio" not in query.lower():
-        query += " audio song"
+    is_url = query.startswith('http://') or query.startswith('https://')
+    
+    # Refine search query if it's not a direct link
+    if not is_url:
+        if "song" not in query.lower() and "audio" not in query.lower():
+            query += " audio song"
 
     status_msg = await smart_reply(message, f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n🎵 **Query:** `{query}`...")
 
@@ -39,16 +42,19 @@ async def song_handler(client: Client, message: Message):
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Search YouTube for the best match
-            result = ydl.extract_info(f"ytsearch1:{query}", download=False)
-            results = result.get('entries', [])
+            if is_url:
+                result = ydl.extract_info(query, download=False)
+                res = result['entries'][0] if 'entries' in result else result
+            else:
+                # Search YouTube for the best match
+                result = ydl.extract_info(f"ytsearch1:{query}", download=False)
+                results = result.get('entries', [])
+                if not results:
+                    return await status_msg.edit(f"❌ No song found for `{query}`.")
+                res = results[0]
         
-        if not results:
-            return await status_msg.edit(f"❌ No song found for `{query}`.")
-        
-        res = results[0]
-        target_url = f"https://www.youtube.com/watch?v={res.get('id')}"
-        title = res.get('title')
+        target_url = res.get('webpage_url') or f"https://www.youtube.com/watch?v={res.get('id')}"
+        title = res.get('title', 'Unknown')
         duration = res.get('duration_string') or (f"{int(res['duration']) // 60}:{int(res['duration']) % 60:02d}" if res.get('duration') else "N/A")
         
         await status_msg.edit(f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Found:** `{title}`\n⏱️ **Duration:** `{duration}`\n\n📥 *Routing to Gateway...*")
@@ -79,9 +85,12 @@ async def vsong_handler(client: Client, message: Message):
         return await smart_reply(message, "❌ **Usage:** `.vsong <video name>`")
 
     query = " ".join(args)
-    # Refine search query
-    if "video" not in query.lower():
-        query += " full video"
+    is_url = query.startswith('http://') or query.startswith('https://')
+    
+    # Refine search query if it's not a direct link
+    if not is_url:
+        if "video" not in query.lower():
+            query += " full video"
 
     status_msg = await smart_reply(message, f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n🎬 **Query:** `{query}`...")
 
@@ -94,16 +103,19 @@ async def vsong_handler(client: Client, message: Message):
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Search YouTube for the best match
-            result = ydl.extract_info(f"ytsearch1:{query}", download=False)
-            results = result.get('entries', [])
+            if is_url:
+                result = ydl.extract_info(query, download=False)
+                res = result['entries'][0] if 'entries' in result else result
+            else:
+                # Search YouTube for the best match
+                result = ydl.extract_info(f"ytsearch1:{query}", download=False)
+                results = result.get('entries', [])
+                if not results:
+                    return await status_msg.edit(f"❌ No video found for `{query}`.")
+                res = results[0]
         
-        if not results:
-            return await status_msg.edit(f"❌ No video found for `{query}`.")
-        
-        res = results[0]
-        target_url = f"https://www.youtube.com/watch?v={res.get('id')}"
-        title = res.get('title')
+        target_url = res.get('webpage_url') or f"https://www.youtube.com/watch?v={res.get('id')}"
+        title = res.get('title', 'Unknown')
         duration = res.get('duration_string') or (f"{int(res['duration']) // 60}:{int(res['duration']) % 60:02d}" if res.get('duration') else "N/A")
         
         await status_msg.edit(f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Found:** `{title}`\n⏱️ **Duration:** `{duration}`\n\n📥 *Routing to Gateway...*")
