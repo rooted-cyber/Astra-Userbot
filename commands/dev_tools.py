@@ -142,3 +142,55 @@ async def delcfg_handler(client: Client, message: Message):
     else:
         await smart_reply(message, f"❌ **Config Not Found:** `{key}`")
 
+@astra_command(
+    name="getcfg",
+    description="🔎 Retrieve the value of a dynamic configuration key.",
+    category="System Hub",
+    usage="<key> (e.g. .getcfg ALIVE_IMG)",
+    owner_only=True
+)
+async def getcfg_handler(client: Client, message: Message):
+    """Retrieves a custom configuration."""
+    args = extract_args(message)
+    if not args:
+        return await smart_reply(message, " ⚠️ Usage: `.getcfg <key>`")
+    
+    key = args[0].upper()
+    val = state.get_config(key)
+    
+    if val is not None:
+        await smart_reply(message, f"🔎 **Config `{key}`:** `{val}`")
+    else:
+        # Fallback check
+        val = state.state.get(key)
+        if val is not None:
+             await smart_reply(message, f"🔎 **Core State `{key}`:** `{val}`")
+        else:
+             await smart_reply(message, f"❌ **Config Not Found:** `{key}`")
+
+@astra_command(
+    name="listcfg",
+    description="📋 List all currently set dynamic configuration keys.",
+    category="System Hub",
+    aliases=["configs", "cfgs"],
+    owner_only=True
+)
+async def listcfg_handler(client: Client, message: Message):
+    """Lists all custom configurations."""
+    configs = state.get_all_configs()
+    
+    if not configs:
+        return await smart_reply(message, "📂 **Configuration:** No dynamic overrides are currently set.")
+    
+    list_text = "📋 **ACTIVE DYNAMIC CONFIGS**\n━━━━━━━━━━━━━━━━━━━━━━\n"
+    for k, v in configs.items():
+        # Mask sensitive keys
+        if "API" in k or "TOKEN" in k or "KEY" in k or "PASSWORD" in k:
+            list_text += f"🔹 `{k}`: `********`\n"
+        else:
+            list_text += f"🔹 `{k}`: `{v}`\n"
+            
+    list_text += "━━━━━━━━━━━━━━━━━━━━━━\n💡 _Use `.delcfg <key>` to remove an override._"
+    
+    await smart_reply(message, list_text)
+
