@@ -76,44 +76,53 @@ async def alive_handler(client: Client, message: Message):
 
         # 4. Handle Media/Text Output
         img_source = config.alive_img
+        b64 = None
+        mimetype = "image/png"
         
-        # Determine if img_source is a URL or local path
-        is_url = img_source.startswith(("http://", "https://"))
-        
-        if is_url or os.path.exists(img_source):
+        async def fetch_image(source: str):
+            nonlocal b64, mimetype
+            is_url = source.startswith(("http://", "https://"))
             try:
-                b64 = None
-                mimetype = "image/png"
-                
                 if is_url:
-                    # Download remote image
                     import requests
-                    response = requests.get(img_source, timeout=10)
+                    response = requests.get(source, timeout=10)
                     if response.status_code == 200:
                         b64 = base64.b64encode(response.content).decode()
                         mimetype = response.headers.get("Content-Type", "image/png")
-                else:
-                    # Read local file
-                    with open(img_source, "rb") as f:
+                        return True
+                    else:
+                        logger.warning(f"Alive Image URL returned {response.status_code}. Falling back to default.")
+                        return False
+                elif os.path.exists(source):
+                    with open(source, "rb") as f:
                         b64 = base64.b64encode(f.read()).decode()
-                        if img_source.endswith(".jpg") or img_source.endswith(".jpeg"):
+                        if source.endswith(".jpg") or source.endswith(".jpeg"):
                             mimetype = "image/jpeg"
-
-                if b64:
-                    # Delete high-latency pin/edit msg if sending media
-                    await status_msg.delete()
-                    
-                    await client.send_media(
-                        message.chat_id,
-                        {"mimetype": mimetype, "data": b64, "filename": "alive.png"},
-                        caption=alive_report,
-                        reply_to=message.id
-                    )
-                    return
+                        return True
             except Exception as e:
                 logger.error(f"Failed to process alive image: {e}")
+            return False
 
-        # Transition high-latency msg to final report
+        # Attempt to fetch custom image
+        success = await fetch_image(img_source)
+        
+        # Fallback to default if custom fails
+        if not success and img_source != os.path.join(config.BASE_DIR, "utils", "ub.png"):
+            await fetch_image(os.path.join(config.BASE_DIR, "utils", "ub.png"))
+
+        if b64:
+            # Delete high-latency pin/edit msg if sending media
+            await status_msg.delete()
+            
+            await client.send_media(
+                message.chat_id,
+                {"mimetype": mimetype, "data": b64, "filename": "alive.png"},
+                caption=alive_report,
+                reply_to=message.id
+            )
+            return
+
+        # Transition high-latency msg to final text-only report if all images fail
         await status_msg.edit(alive_report)
 
     except Exception as e:
