@@ -75,6 +75,7 @@ async def db_tool_handler(client: Client, message: Message):
     name="setcfg",
     description="⚙️ Manage bot configuration dynamically.",
     category="System Hub",
+    aliases=["updatecfg"],
     usage="<key> <value> (e.g. .setcfg FAST_MEDIA on)",
     owner_only=True
 )
@@ -116,3 +117,28 @@ async def setcfg_handler(client: Client, message: Message):
         state.set_config(key, val)
         
     await smart_reply(message, f"✨ **Config Updated:** `{key}` is now `{val}`")
+
+@astra_command(
+    name="delcfg",
+    description="🗑️ Delete a dynamic configuration key.",
+    category="System Hub",
+    usage="<key> (e.g. .delcfg ALIVE_IMG)",
+    owner_only=True
+)
+async def delcfg_handler(client: Client, message: Message):
+    """Deletes a custom configuration from the database."""
+    args = extract_args(message)
+    if not args:
+        return await smart_reply(message, " ⚠️ Usage: `.delcfg <key>`")
+    
+    key = args[0].upper()
+    
+    if key in state.state.get("configs", {}):
+        del state.state["configs"][key]
+        from utils.database import db as db_core
+        import asyncio
+        asyncio.create_task(db_core.set("configs", state.state["configs"]))
+        await smart_reply(message, f"🗑️ **Config Deleted:** `{key}`")
+    else:
+        await smart_reply(message, f"❌ **Config Not Found:** `{key}`")
+
