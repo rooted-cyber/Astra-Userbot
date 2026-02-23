@@ -33,8 +33,8 @@ class Config:
         return state.get_config("BOT_NAME") or os.getenv('BOT_NAME', 'Astra Userbot')
     
     # OWNER_ID is critical for security and administrative commands.
-    # We resolve it from either OWNER_WHATSAPP_ID or BOT_OWNER_ID.
-    OWNER_ID = os.getenv('OWNER_WHATSAPP_ID') or os.getenv('BOT_OWNER_ID')
+    # We resolve it from either OWNER_WHATSAPP_ID, BOT_OWNER_ID, or PHONE_NUMBER.
+    OWNER_ID = os.getenv('OWNER_WHATSAPP_ID') or os.getenv('BOT_OWNER_ID') or os.getenv('PHONE_NUMBER')
     @property
     def OWNER_NAME(self) -> str:
         from utils.state import state

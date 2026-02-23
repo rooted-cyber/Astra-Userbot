@@ -80,7 +80,7 @@ def patch_authenticator(client_instance):
 # Global Client Instance
 client = Client(
     session_id=os.getenv("ASTRA_SESSION_ID", "X"),
-    phone=os.getenv("PHONE_NUMBER"),
+    phone=os.getenv("PHONE_NUMBER") or os.getenv("BOT_OWNER_ID"),
     headless=os.getenv("ASTRA_HEADLESS", "True").lower() == "true"
 )
 

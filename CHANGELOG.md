@@ -21,8 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `.pick`: Random participant selection for groups.
     - `.tagadmin`: Instant notification for all group administrators.
     - `.sd`: Self-destructing message timer for temporary content.
-- **Identity Restoration**:
-    - Full restoration of professional copyright and MIT license headers to all core modules.
 - **Search Optimization**:
     - Enhanced Google & DuckDuckGo plugins to display 150+ character rich snippets and infoboxes for all top 5 results.
 
