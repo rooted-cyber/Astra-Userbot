@@ -22,11 +22,11 @@ async def afk_handler(client: Client, message: Message):
         args_list = extract_args(message)
         
         from utils.state import state
-        reason = " ".join(args_list) if args_list else "I'm busy right now."
+        reason = " ".join(args_list) if args_list else "Currently away."
         state.set_afk(True, reason)
-        await smart_reply(message, f" 🌙 *AFK Mode Enabled*\n*Reason:* {reason}")
+        await smart_reply(message, f"🌙 **Astra AFK Mode Enabled**\n━━━━━━━━━━━━━━━━━━━━\n💬 **Reason:** `{reason}`")
     except Exception as e:
-        await smart_reply(message, f" ❌ Error: {str(e)}")
+        await smart_reply(message, f"❌ **System Error:** {str(e)}")
         await report_error(client, e, context='Command afk failed')
 
 @Client.on_message(Filters.all & Filters.me)
@@ -35,8 +35,11 @@ async def afk_off_handler(client: Client, message: Message):
     try:
         from utils.state import state
         if state.get_afk()["is_afk"]:
+            # Don't disable if the user is explicitly setting AFK
+            if message.body and message.body.lower().startswith(f"{state.get_prefix()}afk"):
+                return
             state.set_afk(False)
-            await smart_reply(message, " *Welcome back! AFK mode disabled automatically.*")
+            await smart_reply(message, "☀️ **Welcome back!** AFK mode disabled automatically.")
     except Exception:
         pass
 
@@ -57,6 +60,6 @@ async def afk_mention_responder(client: Client, message: Message):
             is_tagged = True
             
         if not message.is_group or is_tagged:
-            await smart_reply(message, f" *I am currently AFK*\n\n*Reason:* {afk_state['reason']}")
+            await smart_reply(message, f"🌙 **Astra User is AFK**\n━━━━━━━━━━━━━━━━━━━━\n💬 **Reason:** `{afk_state['reason']}`")
     except Exception:
         pass

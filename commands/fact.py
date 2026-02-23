@@ -34,11 +34,11 @@ async def fact_handler(client: Client, message: Message):
         async with aiohttp.ClientSession() as session:
             async with session.get(FACT_API_URL, timeout=10) as resp:
                 if resp.status != 200:
-                    return await smart_reply(message, " ⚠️ Trivia service is offline. Try again later.")
+                    return await smart_reply(message, "⚠️ **Astra Knowledge Base:** Trivia service offline.")
                 
                 data = await resp.json()
-                await smart_reply(message, f"💡 *Did you know?*\n\n{data['text']}")
+                await smart_reply(message, f"💡 **Astra Fact Generator**\n━━━━━━━━━━━━━━━━━━━━\n{data['text']}")
 
     except Exception as e:
-        await smart_reply(message, " ⚠️ Failed to fetch a fact.")
+        await smart_reply(message, "⚠️ **Astra Knowledge Base:** Failed to fetch fact.")
         await report_error(client, e, context='Fact command delivery failure')

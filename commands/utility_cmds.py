@@ -44,9 +44,9 @@ async def carbon_handler(client: Client, message: Message):
             code = " ".join(args_list)
             
         if not code:
-            return await smart_reply(message, " 💻 **Carbon Utility**\n\nReply to code or text.")
+            return await smart_reply(message, "💻 **Astra Carbon Utility**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Usage:** Reply to code or paste text.")
 
-        status_msg = await smart_reply(message, " 🎨 *Generating Carbon image...*")
+        status_msg = await smart_reply(message, "🎨 **Astra Carbon Utility**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Generating high-res image...*")
         
         # Carbonara API
         url = "https://carbonara.solopov.dev/api/cook"
@@ -67,10 +67,10 @@ async def carbon_handler(client: Client, message: Message):
                         "data": b64_data,
                         "filename": "carbon.jpg"
                     }
-                    await client.send_media(message.chat_id, media, caption="💻 **Code Snippet**")
+                    await client.send_media(message.chat_id, media, caption="💻 **Astra Code Snippet**")
                     await status_msg.delete()
                 else:
-                    await safe_edit(status_msg, " ⚠️ Failed to generate image.")
+                    await safe_edit(status_msg, "❌ **Astra Carbon:** Failed to generate image.")
 
     except Exception as e:
         await report_error(client, e, context='Carbon command failure')
@@ -92,14 +92,14 @@ async def quotly_handler(client: Client, message: Message):
     """
     try:
         if not message.has_quoted_msg:
-            return await smart_reply(message, " 🗨️ Reply to a message to quote it.")
+            return await smart_reply(message, "🗨️ **Astra Quotly**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Usage:** Reply to a message to quote it.")
 
         args = extract_args(message)
         count = 1
         if args and args[0].isdigit():
             count = min(int(args[0]), 10) # Cap at 10 for performance
 
-        status_msg = await smart_reply(message, f" 🎨 *Making quote {'(x' + str(count) + ')' if count > 1 else ''}...*")
+        status_msg = await smart_reply(message, f"🎨 **Astra Quotly**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Rendering sequence {'(x' + str(count) + ')' if count > 1 else ''}...*")
         
         start_quoted = message.quoted
         messages_to_quote = []
@@ -177,7 +177,7 @@ async def quotly_handler(client: Client, message: Message):
                         )
                         await status_msg.delete()
                         return
-        await safe_edit(status_msg, " ⚠️ Failed to create quote sequence.")
+        await safe_edit(status_msg, "❌ **Astra Quotly:** Failed to render sequence.")
 
     except Exception as e:
         await report_error(client, e, context='Quotly multi-message failure')

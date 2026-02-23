@@ -26,7 +26,7 @@ async def weather_handler(client: Client, message: Message):
         args_list = extract_args(message)
         city = " ".join(args_list) or "London"
         
-        status_msg = await smart_reply(message, f"☁️ Checking weather for `{city}`...")
+        status_msg = await smart_reply(message, f"☁️ **Astra Weather Radar**\n━━━━━━━━━━━━━━━━━━━━\n🔍 **Target:** `{city}`...")
         
         # wttr.in endpoints
         text_url = f"https://wttr.in/{city}?format=%C+%t+%w+%h+%m"
@@ -38,11 +38,12 @@ async def weather_handler(client: Client, message: Message):
             async with session.get(text_url, timeout=10) as resp:
                 if resp.status != 200:
                     time.sleep(0.5)
-                    return await status_msg.edit(" ⚠️ Failed to retrieve weather data.")
+                    return await status_msg.edit("❌ **Astra Weather Radar:** Failed to retrieve weather data.")
                 data = await resp.text()
             
             weather_report = (
-                f"🌍 **Weather: {city.capitalize()}**\n\n"
+                f"🌍 **Astra Weather: {city.capitalize()}**\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
                 f"{data}\n\n"
                 f"_Powered by wttr.in_"
             )
@@ -62,12 +63,12 @@ async def weather_handler(client: Client, message: Message):
                         await client.send_media(message.chat_id, media, caption=weather_report)
                         return await status_msg.delete()
                     except Exception as upload_err:
-                        return await status_msg.edit(f"❌ **Upload Error:** Failed to send weather image. ({str(upload_err)})")
+                        return await status_msg.edit(f"❌ **Astra Weather:** Failed to send image. ({str(upload_err)})")
 
             # Fallback to text only
             time.sleep(0.5)
             await status_msg.edit(weather_report)
 
     except Exception as e:
-        await smart_reply(message, " ⚠️ Weather lookup failed.")
+        await smart_reply(message, f"❌ **Astra Weather Error:** {str(e)}")
         await report_error(client, e, context='Weather command failure')

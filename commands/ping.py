@@ -26,7 +26,7 @@ async def ping_handler(client: Client, message: Message):
         start_time = time.time()
         
         # First edit without delay
-        status_msg = await message.reply("📡 *ASTRA CONNECTIVITY TEST*\n*Status:* `Measuring Latency...`")
+        status_msg = await message.reply("📡 **ASTRA CONNECTIVITY TEST**\n━━━━━━━━━━━━━━━━━━━━\n🔍 **Status:** `Measuring...`")
         
         end_time = time.time()
         latency = round((end_time - start_time) * 1000)

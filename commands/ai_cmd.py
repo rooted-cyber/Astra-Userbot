@@ -32,7 +32,7 @@ async def ai_handler(client: Client, message: Message):
                 prompt = quoted.body
 
         if not prompt:
-            return await smart_reply(message, " 📋 Please provide a prompt or reply to a message. Example: `.ai What is the capital of France?`")
+            return await smart_reply(message, "📋 **Usage:** Please provide a prompt or reply to a message.\n*Example:* `.ai What is the capital of France?`")
 
         from config import config
         api_key = config.GEMINI_API_KEY
@@ -42,16 +42,17 @@ async def ai_handler(client: Client, message: Message):
         from google import genai
         gen_client = genai.Client(api_key=api_key)
 
-        status_msg = await smart_reply(message, " ✨ *AI is thinking...*")
+        status_msg = await smart_reply(message, "✨ **Astra AI**\n━━━━━━━━━━━━━━━━━━━━\n🧠 *Thinking...*")
         
         import asyncio
         # Run in a thread if it's blocking
         response = await asyncio.to_thread(gen_client.models.generate_content, model='gemini-3-flash-preview', contents=prompt)
 
         if response and response.text:
-            await status_msg.edit(response.text)
+            text = f"✨ **Astra AI**\n━━━━━━━━━━━━━━━━━━━━\n{response.text}"
+            await status_msg.edit(text)
         else:
-            await status_msg.edit(" AI returned an empty response.")
+            await status_msg.edit("❌ **Astra AI:** Returned an empty response.")
     except Exception as e:
         await smart_reply(message, f" ❌ Error: {str(e)}")
         await report_error(client, e, context='Command ai failed')

@@ -28,7 +28,7 @@ async def ss_handler(client: Client, message: Message):
     if not url.startswith('http'):
         url = 'https://' + url
         
-    status_msg = await smart_reply(message, f"📸 **Capturing screenshot of:** `{url}`...")
+    status_msg = await smart_reply(message, f"📸 **Astra Web Capture**\n━━━━━━━━━━━━━━━━━━━━\n🌐 **Target:** `{url}`...")
 
     try:
         # Using a reliable public screenshot service
@@ -54,15 +54,15 @@ async def ss_handler(client: Client, message: Message):
                         await client.send_media(message.chat_id, media, caption=f"📸 **Screenshot:** {url}")
                         await status_msg.delete()
                     except Exception as upload_err:
-                        await status_msg.edit(f"❌ **Upload Error:** Failed to send screenshot. ({str(upload_err)})")
+                        await status_msg.edit(f"❌ **Astra Web Capture:** Failed to send screenshot. ({str(upload_err)})")
                     return
                 elif resp.status == 429:
-                    return await status_msg.edit("❌ **Rate Limited:** Too many screenshot requests. Try again in a minute.")
+                    return await status_msg.edit("❌ **Astra Web Capture:** Rate Limited. Try again later.")
                 
-        await status_msg.edit("⚠️ Failed to capture screenshot. Make sure the URL is valid.")
+        await status_msg.edit("⚠️ **Astra Web Capture:** Failed to capture screenshot. Invalid URL?")
 
     except Exception as e:
-        await status_msg.edit(f"❌ **Screenshot Error:** {str(e)}")
+        await status_msg.edit(f"❌ **System Error:** {str(e)}")
 
 @astra_command(
     name="purge",
@@ -82,7 +82,7 @@ async def purge_handler(client: Client, message: Message):
         count = int(args[0]) if args and args[0].isdigit() else 10
         count = min(count, 100) # Limit to 100 for safety
 
-        status_msg = await smart_reply(message, f"🗑️ **Purging {count} messages...**")
+        status_msg = await smart_reply(message, f"🗑️ **Astra Purge Utility**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Deleting {count} messages...*")
 
         # Fetch messages after the quoted one
         # Note: purged messages must be the bot's own or if the bot is admin
@@ -109,7 +109,7 @@ async def purge_handler(client: Client, message: Message):
             except:
                 pass
         
-        await status_msg.edit(f"✅ Successfully purged **{deleted_count}** messages.")
+        await status_msg.edit(f"✅ **Astra Purge Utility**\n━━━━━━━━━━━━━━━━━━━━\n🗑️ *Successfully purged* **{deleted_count}** *messages.*")
         await asyncio.sleep(3)
         await status_msg.delete()
 

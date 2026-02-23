@@ -24,7 +24,7 @@ async def anime_handler(client: Client, message: Message):
         return await smart_reply(message, "❌ **Usage:** `.anime <anime name>`")
 
     query = " ".join(args)
-    status_msg = await smart_reply(message, f"⛩️ **Searching for Anime:** `{query}`...")
+    status_msg = await smart_reply(message, f"⛩️ **Astra Anime Search**\n━━━━━━━━━━━━━━━━━━━━\n🔍 **Query:** `{query}`...")
 
     try:
         # Jikan API v4 (Public MyAnimeList API)
