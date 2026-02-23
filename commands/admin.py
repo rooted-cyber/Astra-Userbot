@@ -13,7 +13,7 @@ from utils.plugin_utils import load_plugin, unload_plugin, PLUGIN_HANDLES
 @astra_command(
     name="admin",
     description="Group administration commands.",
-    category="Group Management",
+    category="Group Admin",
     aliases=["group", "g"],
     usage="<kick|add|promote|demote|tagall|create|leave> [@user|title] (e.g. .admin kick @1234567890)",
     owner_only=True

@@ -36,12 +36,13 @@ async def help_handler(client: Client, message: Message):
         curr_prefix = state.get_prefix()
         args = extract_args(message)
 
-        # 1. Indexing / Caching Logic (Permanent Startup Cache)
+        # 1. Indexing / Caching Logic (Consolidated Categories)
         global HELP_CACHE
         if not HELP_CACHE["categories"]:
             HELP_CACHE["categories"] = {}
             for cmd_entry in COMMANDS_METADATA:
-                cat = cmd_entry.get('category', 'Utility')
+                cat = cmd_entry.get('category', 'Core Tools')
+                
                 if cat not in HELP_CACHE["categories"]:
                     HELP_CACHE["categories"][cat] = []
                 HELP_CACHE["categories"][cat].append(cmd_entry)
@@ -50,13 +51,13 @@ async def help_handler(client: Client, message: Message):
 
         def get_icon(cat_name: str):
             c_low = cat_name.lower()
-            if any(x in c_low for x in ["media", "instagram", "youtube", "twitter", "spotify", "pinterest", "facebook", "reddit", "soundcloud"]): return "🎥"
-            if any(x in c_low for x in ["utility", "tools", "essentials", "general"]): return "🛠️"
-            if any(x in c_low for x in ["admin", "group", "protect", "management"]): return "🛡️"
-            if any(x in c_low for x in ["system", "mgmt", "bot", "owner", "sudo"]): return "👑"
-            if any(x in c_low for x in ["fun", "meme", "game", "quiz", "social"]): return "🎭"
-            if any(x in c_low for x in ["ocr", "whois", "pdf", "search"]): return "🔎"
-            if "ai" in c_low: return "🤖"
+            if "media" in c_low: return "🎬"
+            if "core" in c_low: return "🛠️"
+            if "group" in c_low: return "👥"
+            if "system" in c_low: return "⚙️"
+            if "owner" in c_low: return "👑"
+            if "fun" in c_low: return "🎭" 
+            if "ai" in c_low: return "🧠"
             return "📦"
 
         # 2. Handle Queries (Command or Category)
@@ -102,13 +103,12 @@ async def help_handler(client: Client, message: Message):
             
             return await smart_reply(message, f"❌ `{query}` not found as command or category.")
 
-        # 3. Main Menu (Nested Category -> Command View)
+        # 3. Main Menu (Clean Category Grid)
         sorted_cats = sorted(categories.keys())
         menu_text = (
-            f"🚀 **ASTRA USERBOT {config.VERSION_NAME}**\n"
+            f"⚡ **ASTRA USERBOT {config.VERSION_NAME}**\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"💠 **Prefix:** `{curr_prefix}`    💠 **Owner:** `Yes`\n"
-            f"💠 **Categories:** `{len(categories)}`   💠 **Cmds:** `{len(COMMANDS_METADATA)}`\n"
+            f"💠 **Prefix:** `{curr_prefix}`   💠 **Cmds:** `{len(COMMANDS_METADATA)}`\n"
             f"━━━━━━━━━━━━━━━━━━━━\n\n"
         )
 
@@ -117,8 +117,7 @@ async def help_handler(client: Client, message: Message):
             menu_text += f"{get_icon(cat)} **{cat.upper()}**\n"
             
             # Formatted command list (clean strings)
-            # We join them into a compact readable line
-            cmds_str = "  ".join([f"`{name}`" for name in cmd_names])
+            cmds_str = " · ".join([f"`{name}`" for name in cmd_names])
             menu_text += f"╰ {cmds_str}\n\n"
 
         menu_text += (

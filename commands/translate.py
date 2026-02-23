@@ -3,77 +3,69 @@
 # Copyright (c) 2026 Aman Kumar Pandey
 # https://github.com/paman7647/Astra-Userbot
 # Licensed under the MIT License.
-# See LICENSE file in the project root for full license text.
 # -----------------------------------------------------------
 
-"""
-Linguistic Utility: Translation
--------------------------------
-Instant text translation using Google Translate's single-fetch API.
-Supports 100+ languages with automatic source detection.
-"""
-
 import aiohttp
-from . import *
+from urllib.parse import quote
 from . import *
 
 @astra_command(
-    name="translate",
-    description="Translate text or replies to another language.",
-    category="Astra Essentials",
-    aliases=["tr"],
-    usage="[lang_code] <text/reply> (e.g. .translate en Hello)",
+    name="tr",
+    description="Translate text to another language.",
+    category="Core Tools",
+    aliases=["translate"],
+    usage="<lang_code> [text] (or reply to a message)",
     is_public=True
 )
 async def translate_handler(client: Client, message: Message):
-    """
-    Handles translation logic by detecting target language and resolving 
-    source text from arguments or quoted messages.
-    """
-    try:
-        args_list = extract_args(message)
-        text = ""
-        target_lang = "en" # Default to English
-
-        # 1. Resolve Text & Target Lang
-        if message.has_quoted_msg:
-            quoted = message.quoted
-            text = quoted.body
-            if args_list: 
-                target_lang = args_list[0].lower()
-        else:
-            if not args_list:
-                return await smart_reply(message, " 📋 **Translation Utility**\n\nPlease provide text or reply to a message.")
+    """Translation plugin using Google Translate API."""
+    args = extract_args(message)
     
-            # Check if first arg is a language code (2 chars)
-            if len(args_list[0]) == 2 and len(args_list) > 1:
-                target_lang = args_list[0].lower()
-                text = " ".join(args_list[1:])
-            else:
-                text = " ".join(args_list)
+    # Defaults
+    dest_lang = "en"
+    text_to_translate = ""
+    
+    if message.has_quoted_msg:
+        # If replying, the first arg is the target language
+        dest_lang = args[0] if args else "en"
+        quoted = await message.get_quoted_msg()
+        text_to_translate = quoted.body
+    elif len(args) >= 2:
+        # .tr hi hello world -> target: hi, text: hello world
+        dest_lang = args[0]
+        text_to_translate = " ".join(args[1:])
+    elif len(args) == 1:
+        # .tr hello -> target: en (default), text: hello
+        text_to_translate = args[0]
+    else:
+        return await smart_reply(message, "❌ **Usage:** `.tr <lang_code> <text>` or reply with `.tr <lang_code>`")
 
-        if not text:
-            return await smart_reply(message, " ⚠️ No translatable text found.")
+    status_msg = await smart_reply(message, f"🌏 **Translating to:** `{dest_lang}`...")
 
-        # 2. API Execution
-        status_msg = await smart_reply(message, " 🌍 *Translating...*")
-        url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={text}"
-
+    try:
+        # Google Translate mobile API (no key required for small requests)
+        api_url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={dest_lang}&dt=t&q={quote(text_to_translate)}"
+        
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=10) as resp:
-                if resp.status != 200:
-                    return await safe_edit(status_msg, " ⚠️ Translation service is unreachable.")
+            async with session.get(api_url, timeout=10) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    translated_text = "".join([part[0] for part in data[0]])
+                    src_lang = data[2]
+                    
+                    text = (
+                        f"🌏 **TRANSLATION ENGINE**\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"📥 **From:** `{src_lang.upper()}`\n"
+                        f"📤 **To:** `{dest_lang.upper()}`\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n\n"
+                        f"{translated_text}\n\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"🚀 *Powered by Astra*"
+                    )
+                    return await status_msg.edit(text)
                 
-                data = await resp.json()
-                translated = "".join([part[0] for part in data[0]])
-                
-                report = (
-                    f"🌍 **Astra Translate**\n\n"
-                    f"*Target:* `{target_lang.upper()}`\n\n"
-                    f"{translated}"
-                )
-                await status_msg.edit(report)
+        await status_msg.edit("⚠️ Translation service is currently unavailable.")
 
     except Exception as e:
-        await smart_reply(message, f" ⚠️ Translation failed: {str(e)}")
-        await report_error(client, e, context='Translation command failure')
+        await status_msg.edit(f"❌ **Translation Error:** {str(e)}")

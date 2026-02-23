@@ -15,7 +15,7 @@ from . import *
 @astra_command(
     name="ping",
     description="Description: Measure the round-trip latency (RTT) between the Astra engine and WhatsApp's globally distributed servers. This command performs a real-time connectivity test to ensure optimal responsiveness and identifies potential network bottlenecks.\nSyntax: .ping\nExample: .ping",
-    category="System & Bot",
+    category="Core Tools",
     aliases=["p"],
     usage=".ping (checks latency)",
     is_public=True

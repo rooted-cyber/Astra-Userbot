@@ -7,10 +7,9 @@
 # -----------------------------------------------------------
 
 """
-Essential Utilities: Paste, Carbon, Quotly
+Essential Utilities: Carbon, Quotly
 ------------------------------------------
 A suite of tools for developers and power users.
-- Paste: Upload text to pastebin.
 - Carbon: Generate beautiful code images.
 - Quotly: Create sticker quotes from messages.
 """
@@ -20,54 +19,6 @@ import base64
 import time
 from utils.helpers import get_contact_name, safe_edit
 from . import *
-
-# --- PASTEBIN UTILITY ---
-@astra_command(
-    name="paste",
-    description="Upload text to dpaste.org (Pastebin).",
-    category="Astra Essentials",
-    aliases=["bin"],
-    usage="<text/reply> (reply to a message or provide text)",
-    is_public=True
-)
-async def paste_handler(client: Client, message: Message):
-    """
-    Uploads text to dpaste.org and returns a viewing link.
-    """
-    try:
-        args_list = extract_args(message)
-        content = ""
-        
-        if message.has_quoted_msg:
-            content = message.quoted.body
-        elif args_list:
-            content = " ".join(args_list)
-            
-        if not content:
-            return await smart_reply(message, " 📋 **Paste Utility**\n\nReply to text or provide arguments.")
-
-        status_msg = await smart_reply(message, " ⏳ *Uploading to dpaste...*")
-        
-        # Using dpaste.org API (Simple POST, returns URL)
-        url = "https://dpaste.org/api/"
-        payload = {"content": content, "expiry_days": 7}
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=payload) as resp:
-                if resp.status == 200:
-                    paste_url = await resp.text()
-                    
-                    await safe_edit(
-                        status_msg,
-                        f"🗒️ **Paste Uploaded!**\n\n"
-                        f"🔗 **Link:** [View Paste]({paste_url})\n"
-                        f"⏳ **Expires:** 7 days"
-                    )
-                else:
-                    await safe_edit(status_msg, " ⚠️ Upload failed. dpaste.org returned error.")
-
-    except Exception as e:
-        await report_error(client, e, context='Paste command failure')
 
 
 # --- CARBON CODE IMAGE ---

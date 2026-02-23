@@ -3,15 +3,7 @@
 # Copyright (c) 2026 Aman Kumar Pandey
 # https://github.com/paman7647/Astra-Userbot
 # Licensed under the MIT License.
-# See LICENSE file in the project root for full license text.
 # -----------------------------------------------------------
-
-"""
-Information Utility: Wikipedia
------------------------------
-Searches Wikipedia and retrieves summarized content with direct article links.
-Supports rich media previews when available.
-"""
 
 import aiohttp
 import base64
@@ -37,9 +29,10 @@ async def wiki_handler(client: Client, message: Message):
             return await smart_reply(message, " 📚 **Wikipedia Search**\n\nPlease provide a search term.")
 
         query = " ".join(args_list)
-        status_msg = await smart_reply(message, f" 🔍 *Searching Wikipedia for '{query}'...*")
+        status_msg = await smart_reply(message, f"📚 Searching Wikipedia for `{query}`...")
         
-        async with aiohttp.ClientSession() as session:
+        headers = {"User-Agent": "AstraUserbot/1.0 (https://github.com/paman7647/Astra-Userbot; contact@example.com) aiohttp/3.8"}
+        async with aiohttp.ClientSession(headers=headers) as session:
             # 1. Search for titles
             search_url = f"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={query}&format=json"
             async with session.get(search_url, timeout=10) as resp:

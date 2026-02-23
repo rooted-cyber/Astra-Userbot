@@ -29,8 +29,13 @@ class MediaChannel:
         self.last_update = 0
         self.update_interval = 0.5  # Dynamic high-speed updates (0.5s)
 
-    async def _update_status(self, text: str, force: bool = False):
+    async def _update_status(self, text: str, force: bool = False, is_progress: bool = False):
         """Throttled status updates for smooth UI."""
+        from utils.state import state
+        # Silent mode (FAST_MEDIA) bypasses progress updates
+        if is_progress and state.get_config("FAST_MEDIA"):
+            return
+
         now = time.time()
         if force or (now - self.last_update >= self.update_interval):
             await safe_edit(self.status_msg, text)
@@ -82,7 +87,8 @@ class MediaChannel:
                         f"📥 *Downloading:* {bar}\n"
                         f"📋 *Size:* `{size}`\n"
                         f"⚡ *Speed:* `{speed}`\n"
-                        f"⏳ *Remaining:* `{eta}`"
+                        f"⏳ *Remaining:* `{eta}`",
+                        is_progress=True
                     )
 
             # Success Capture
@@ -125,7 +131,8 @@ class MediaChannel:
                 f"✨ *{metadata['title']}*\n"
                 f"🌐 *Platform:* {metadata['platform']}\n\n"
                 f"📤 *Uploading:* {bar}\n"
-                f"⚡ *Speed:* `{speed_text}`"
+                f"⚡ *Speed:* `{speed_text}`",
+                is_progress=True
             )
 
         caption = (

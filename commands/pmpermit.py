@@ -13,7 +13,7 @@ from . import *
 @astra_command(
     name="pmpermit",
     description="Toggle PM Protection or permit/deny users",
-    category="Owner Utility",
+    category="Owner Tools",
     aliases=[],
     usage="<on|off|approve|deny> [user_id] (e.g. .pmpermit approve @123)",
     owner_only=True

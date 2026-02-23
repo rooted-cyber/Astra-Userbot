@@ -147,7 +147,7 @@ class StateManager:
     def get_prefix(self) -> str:
         """Resolves the current command prefix. Defaults to configuration value."""
         from config import config
-        return self.state.get("prefix") or config.PREFIX
+        return self.state.get("prefix") or getattr(config, "_DEFAULT_PREFIX", ".")
 
     def set_prefix(self, prefix: str):
         """Updates the global command prefix for the bot."""

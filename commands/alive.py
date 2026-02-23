@@ -17,7 +17,7 @@ from config import config
 @astra_command(
     name="alive",
     description="Check bot responsiveness and view detailed system status.",
-    category="System & Bot",
+    category="Core Tools",
     aliases=[],
     usage=".alive",
     owner_only=True

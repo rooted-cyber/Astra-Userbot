@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.1b3] - Astra Beta 3 - 2026-02-23
+
+### Added
+- **Power Features Suite**:
+    - `.tr`: Multi-language translation using Google Translate.
+    - `.anime`: Comprehensive anime info retrieval via Jikan API.
+    - `.movie`: Detailed movie/series lookup via OMDb API.
+    - `.sticker`: Advanced sticker maker from images/videos.
+    - `.ss`: Full-page website screenshots via thum.io.
+    - `.purge`: High-speed bulk message deletion (with safety replacer).
+- **Text & Group Utilities (Phase 2)**:
+    - `.fancy`: Convert text into decorative fonts (mono, bold, script).
+    - `.morse` & `.binary`: High-speed encodings for power users.
+    - `.pick`: Random participant selection for groups.
+    - `.tagadmin`: Instant notification for all group administrators.
+    - `.sd`: Self-destructing message timer for temporary content.
+- **Identity Restoration**:
+    - Full restoration of professional copyright and MIT license headers to all core modules.
+- **Search Optimization**:
+    - Enhanced Google & DuckDuckGo plugins to display 150+ character rich snippets and infoboxes for all top 5 results.
+
+### Fixed
+- **Paste Utility**: Temporarily removed `.paste` command due to upstream service (dpaste/nekobin) instability.
+- **API Resilience**: Updated user-agents for Wikipedia and Weather plugins to comply with modern API standards and ensure 100% uptime.
+
+### Changed
+- Refactored `help.py` to consolidate 12 command categories into 7 streamlined groups (Core Tools, Dev Tools, Fun, Group Admin, etc.).
+- Updated progress bars to use modern circular markers (●/○) for a premium look.
+
 ## [0.0.1b2] - Astra Beta 2 - 2026-02-22
 
 ### Added

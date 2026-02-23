@@ -29,16 +29,16 @@ async def currency_handler(client: Client, message: Message):
 
         status_msg = await smart_reply(message, f" 💱 *Fetching rates for {base} to {target}...*")
 
-        # Using a free, high-performance API (Exchangerate.host or similar)
-        url = f"https://api.exchangerate.host/convert?from={base}&to={target}&amount={amount}"
+        # Using Frankfurter API (Free, no API key required)
+        url = f"https://api.frankfurter.app/latest?amount={amount}&from={base}&to={target}"
         
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
                 if resp.status == 200:
                     data = await resp.json()
-                    if data.get('success') and data.get('result') is not None:
-                        res = data['result']
-                        rate = data['info']['rate']
+                    if 'rates' in data and target in data['rates']:
+                        res = data['rates'][target]
+                        rate = res / float(amount)
                         
                         text = (
                             f"💰 **CURRENCY CONVERSION**\n"

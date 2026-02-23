@@ -35,7 +35,7 @@ async def ai_handler(client: Client, message: Message):
             return await smart_reply(message, " 📋 Please provide a prompt or reply to a message. Example: `.ai What is the capital of France?`")
 
         from config import config
-        api_key = os.getenv("GEMINI_API_KEY") or getattr(config, 'GEMINI_API_KEY', None)
+        api_key = config.GEMINI_API_KEY
         if not api_key:
             return await smart_reply(message, " ❌ Gemini API key not found. Please set `GEMINI_API_KEY` environment variable.")
 

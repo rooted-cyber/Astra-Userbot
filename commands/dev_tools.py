@@ -13,7 +13,7 @@ from utils.state import state
 @astra_command(
     name="db",
     description="🛠️ Advanced Database & State Manager. Directly manipulate bot memory.",
-    category="Developer Tools",
+    category="System Hub",
     usage="set <key> <value> | get <key> | list | del <key>",
     owner_only=True
 )
@@ -74,29 +74,41 @@ async def db_tool_handler(client: Client, message: Message):
 @astra_command(
     name="setcfg",
     description="⚙️ Manage bot configuration dynamically.",
-    category="System & Bot",
-    usage="<key> <value>",
+    category="System Hub",
+    usage="<key> <value> (e.g. .setcfg FAST_MEDIA on)",
     owner_only=True
 )
 async def setcfg_handler(client: Client, message: Message):
     """User-friendly frontend for dynamic configuration."""
     args = extract_args(message)
-    if len(args) < 2:
+    if not args:
         # Show help if no args
         help_text = (
             "⚙️ **DYNAMIC CONFIGURATION**\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
             "💡 **Common Keys:**\n"
-            "🔹 `ALIVE_IMG`: URL or local path for .alive\n"
+            "🔹 `FAST_MEDIA`: `on/off` (Hide progress bars)\n"
             "🔹 `BOT_NAME`: Your custom bot brand name\n"
             "🔹 `COMMAND_PREFIX`: Change prefix instantly\n\n"
             f"**Usage:** `{state.get_prefix()}setcfg <key> <value>`"
         )
         return await smart_reply(message, help_text)
 
-    key = args[1].upper()
-    val = " ".join(args[2:])
+    if len(args) < 2:
+        return await smart_reply(message, " ⚠️ Usage: `.setcfg <key> <value>`")
+
+    key = args[0].upper()
+    val_raw = " ".join(args[1:])
     
+    # Map boolean-like strings
+    low_val = val_raw.lower()
+    if low_val in ['on', 'true', 'yes', 'enabled']:
+        val = True
+    elif low_val in ['off', 'false', 'no', 'disabled']:
+        val = False
+    else:
+        val = val_raw
+
     # Logic for specific keys
     if key == "COMMAND_PREFIX":
         state.set_prefix(val)

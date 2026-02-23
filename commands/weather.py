@@ -3,15 +3,7 @@
 # Copyright (c) 2026 Aman Kumar Pandey
 # https://github.com/paman7647/Astra-Userbot
 # Licensed under the MIT License.
-# See LICENSE file in the project root for full license text.
 # -----------------------------------------------------------
-
-"""
-Information Utility: Weather Forecast
--------------------------------------
-Provides real-time weather reports and visual forecast cards using wttr.in.
-Supports worldwide city lookups.
-"""
 
 import time
 import aiohttp
@@ -34,13 +26,14 @@ async def weather_handler(client: Client, message: Message):
         args_list = extract_args(message)
         city = " ".join(args_list) or "London"
         
-        status_msg = await smart_reply(message, f" ☁️ *Checking weather conditions for '{city}'...*")
+        status_msg = await smart_reply(message, f"☁️ Checking weather for `{city}`...")
         
         # wttr.in endpoints
         text_url = f"https://wttr.in/{city}?format=%C+%t+%w+%h+%m"
         img_url = f"https://wttr.in/{city}.png"
 
-        async with aiohttp.ClientSession() as session:
+        headers = {"User-Agent": "curl/7.64.1"}
+        async with aiohttp.ClientSession(headers=headers) as session:
             # 1. Fetch text data
             async with session.get(text_url, timeout=10) as resp:
                 if resp.status != 200:

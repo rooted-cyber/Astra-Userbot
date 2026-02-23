@@ -6,13 +6,6 @@
 # See LICENSE file in the project root for full license text.
 # -----------------------------------------------------------
 
-"""
-Configuration Management
-------------------------
-Handles loading and validation of environment variables for the userbot.
-Uses python-dotenv for local development convenience.
-"""
-
 import os
 import logging
 from typing import List
@@ -27,39 +20,81 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 logger = logging.getLogger("Astra.Config")
 
 class Config:
-    """
-    Central configuration container.
-    Provides typed access to environment variables with sensible defaults.
-    """
+    """Bot config container"""
     
-    # Versioning & Branding
-    # ---------------------
+    # Versioning
     VERSION = "0.0.2b25"
     VERSION_NAME = "Beta 25"
 
-    # Bot Identity & Ownership
-    # ------------------------
-    BOT_NAME = os.getenv('BOT_NAME', 'Astra Userbot')
+    # Bot Identity
+    @property
+    def BOT_NAME(self) -> str:
+        from utils.state import state
+        return state.get_config("BOT_NAME") or os.getenv('BOT_NAME', 'Astra Userbot')
     
     # OWNER_ID is critical for security and administrative commands.
     # We resolve it from either OWNER_WHATSAPP_ID or BOT_OWNER_ID.
     OWNER_ID = os.getenv('OWNER_WHATSAPP_ID') or os.getenv('BOT_OWNER_ID')
-    OWNER_NAME = os.getenv('OWNER_NAME', 'Aman Kumar Pandey')
+    @property
+    def OWNER_NAME(self) -> str:
+        from utils.state import state
+        return state.get_config("OWNER_NAME") or os.getenv('OWNER_NAME', 'Aman Kumar Pandey')
     
-    PREFIX = os.getenv('COMMAND_PREFIX', '.')
-    # Support for multiple common command prefixes
-    PREFIXES = [PREFIX, '!', '/'] if PREFIX not in ['!', '/'] else ['.', '!', '/']
+    _DEFAULT_PREFIX = os.getenv('COMMAND_PREFIX', '.')
 
-    # Operational Feature Flags
-    # -------------------------
-    ENABLE_AI = os.getenv('ENABLE_AI', 'true').lower() == 'true'
-    ENABLE_YOUTUBE = os.getenv('ENABLE_YOUTUBE', 'true').lower() == 'true'
-    ENABLE_INSTAGRAM = os.getenv('ENABLE_INSTAGRAM', 'true').lower() == 'true'
-    ENABLE_PM_PROTECTION = os.getenv('ENABLE_PM_PROTECTION', 'false').lower() == 'true'
-    PM_WARN_LIMIT = int(os.getenv('PM_WARN_LIMIT', '5'))
+    @property
+    def PREFIX(self) -> str:
+        from utils.state import state
+        return state.get_prefix()
+
+    @property
+    def PREFIXES(self) -> List[str]:
+        p = self.PREFIX
+        return [p, '!', '/'] if p not in ['!', '/'] else ['.', '!', '/']
+
+    # Feature Flags
+    @property
+    def ENABLE_AI(self) -> bool:
+        from utils.state import state
+        val = state.get_config("ENABLE_AI")
+        if val is not None: return bool(val)
+        return os.getenv('ENABLE_AI', 'true').lower() == 'true'
+
+    @property
+    def ENABLE_YOUTUBE(self) -> bool:
+        from utils.state import state
+        val = state.get_config("ENABLE_YOUTUBE")
+        if val is not None: return bool(val)
+        return os.getenv('ENABLE_YOUTUBE', 'true').lower() == 'true'
+
+    @property
+    def ENABLE_INSTAGRAM(self) -> bool:
+        from utils.state import state
+        val = state.get_config("ENABLE_INSTAGRAM")
+        if val is not None: return bool(val)
+        return os.getenv('ENABLE_INSTAGRAM', 'true').lower() == 'true'
+
+    @property
+    def ENABLE_PM_PROTECTION(self) -> bool:
+        from utils.state import state
+        val = state.get_config("ENABLE_PM_PROTECTION")
+        if val is not None: return bool(val)
+        return os.getenv('ENABLE_PM_PROTECTION', 'false').lower() == 'true'
+
+    @property
+    def PM_WARN_LIMIT(self) -> int:
+        from utils.state import state
+        val = state.get_config("PM_WARN_LIMIT")
+        if val is not None: return int(val)
+        return int(os.getenv('PM_WARN_LIMIT', '5'))
 
     # Prefix handling: toggle multiple prefix support
-    ALLOW_MULTI_PREFIX = os.getenv('ALLOW_MULTI_PREFIX', 'false').lower() == 'true'
+    @property
+    def ALLOW_MULTI_PREFIX(self) -> bool:
+        from utils.state import state
+        val = state.get_config("ALLOW_MULTI_PREFIX")
+        if val is not None: return bool(val)
+        return os.getenv('ALLOW_MULTI_PREFIX', 'false').lower() == 'true'
     
     # Persistence & Synchronization
     # -----------------------------
@@ -74,12 +109,22 @@ class Config:
 
     # Third-party API Orchestration
     # -----------------------------
-    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-    NEWS_API_KEY = os.getenv('NEWS_GEMINI_API_KEY')
+    @property
+    def GEMINI_API_KEY(self) -> str:
+        from utils.state import state
+        return state.get_config("GEMINI_API_KEY") or os.getenv('GEMINI_API_KEY')
+
+    @property
+    def NEWS_API_KEY(self) -> str:
+        from utils.state import state
+        return state.get_config("NEWS_GEMINI_API_KEY") or os.getenv('NEWS_GEMINI_API_KEY')
 
     # Media Processing & Binary Paths
     # -------------------------------
-    FFMPEG_PATH = os.getenv('FFMPEG_PATH', 'ffmpeg')
+    @property
+    def FFMPEG_PATH(self) -> str:
+        from utils.state import state
+        return state.get_config("FFMPEG_PATH") or os.getenv('FFMPEG_PATH', 'ffmpeg')
     
     # YouTube session handling
     YOUTUBE_COOKIES_FILE = os.getenv('YOUTUBE_COOKIES_FILE')
@@ -87,9 +132,19 @@ class Config:
 
     # Resource Constraints & Timeouts
     # -------------------------------
-    MAX_FILE_SIZE_MB = int(os.getenv('MAX_FILE_SIZE_MB', '2048'))
-    # Request timeout in milliseconds
-    REQUEST_TIMEOUT = int(os.getenv('REQUEST_TIMEOUT', '30000'))
+    @property
+    def MAX_FILE_SIZE_MB(self) -> int:
+        from utils.state import state
+        val = state.get_config("MAX_FILE_SIZE_MB")
+        if val is not None: return int(val)
+        return int(os.getenv('MAX_FILE_SIZE_MB', '2048'))
+
+    @property
+    def REQUEST_TIMEOUT(self) -> int:
+        from utils.state import state
+        val = state.get_config("REQUEST_TIMEOUT")
+        if val is not None: return int(val)
+        return int(os.getenv('REQUEST_TIMEOUT', '30000'))
 
     # Getter methods for Dynamic Configs (v6.0)
     # ----------------------------------------
@@ -101,8 +156,7 @@ class Config:
 
     @property
     def bot_name(self) -> str:
-        from utils.state import state
-        return state.get_config("BOT_NAME") or self.BOT_NAME
+        return self.BOT_NAME
 
     def __init__(self):
         self._validate()
