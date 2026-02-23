@@ -32,6 +32,10 @@ import astra
 from astra import Client, Filters, Message
 from utils.logger import setup_logging, Colors
 
+# 1. Initialize Modern Logging
+setup_logging(SCRIPT_DIR)
+logger = logging.getLogger("AstraBot")
+
 # --- Framework Monkey-Patching (Stability & Rate-Limiting) ---
 def apply_framework_patches():
     """
@@ -52,10 +56,6 @@ def apply_framework_patches():
 
 # Apply patches early
 apply_framework_patches()
-
-# 1. Initialize Modern Logging
-setup_logging(SCRIPT_DIR)
-logger = logging.getLogger("AstraBot")
 
 # Initial configuration load
 from config import config
