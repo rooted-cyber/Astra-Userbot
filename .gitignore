@@ -68,3 +68,7 @@ Thumbs.db
 node_modules/
 npm-debug.log
 yarn-error.log
+
+# Sensitive/Temp
+pairing_code.txt
+astra_full_debug.txt

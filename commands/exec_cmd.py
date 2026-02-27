@@ -16,7 +16,7 @@ from . import *  # Astra helpers (astra_command, extract_args, smart_reply, repo
 LANG_EXECUTORS = {
     # ------------------------ Python ------------------------
     "py": {
-        "aliases": ["python", "python3", "py"],
+        "aliases": ["python", "python3", "py", "p", "py3"],
         "binary": "python3",
         "ext": ".py",
         "run_cmd": lambda bin, f: f"{bin} {f}",
@@ -24,7 +24,7 @@ LANG_EXECUTORS = {
 
     # ------------------------ JavaScript ---------------------
     "js": {
-        "aliases": ["javascript", "node", "js"],
+        "aliases": ["javascript", "node", "js", "j", "nodejs"],
         "binary": "node",
         "ext": ".js",
         "run_cmd": lambda bin, f: f"{bin} {f}",
@@ -80,7 +80,7 @@ LANG_EXECUTORS = {
 
     # ------------------------ Golang -------------------------
     "go": {
-        "aliases": ["go"],
+        "aliases": ["go", "golang"],
         "binary": "go",
         "ext": ".go",
         "run_cmd": lambda bin, f: f"go run {f}",
@@ -104,7 +104,7 @@ LANG_EXECUTORS = {
 
     # ------------------------ C++ ----------------------------
     "cpp": {
-        "aliases": ["cpp", "g++"],
+        "aliases": ["cpp", "g++", "c++"],
         "binary": "g++",
         "ext": ".cpp",
         "run_cmd": lambda bin, f: f"g++ {f} -o /tmp/a.out && /tmp/a.out",
@@ -177,16 +177,30 @@ def security_filter(code: str) -> Optional[str]:
 async def multi_lang_exec_handler(client: Client, message: Message):
     """Execute code in the selected programming language."""
     try:
-        args = extract_args(message)
-
-        if len(args) < 2:
+        if not message.body or " " not in message.body:
             return await smart_reply(
                 message,
                 "⚠️ Usage:\n`.run <language> <code>`\nExample: `.run py print(5)`",
             )
 
-        lang = args[0].lower()
-        code = " ".join(args[1:])
+        # Extract language and code block precisely
+        # Format: .run <lang> <code>
+        parts = message.body.split(None, 2)
+        if len(parts) < 3:
+            return await smart_reply(
+                message,
+                "⚠️ Usage:\n`.run <language> <code>`\nExample: `.run py print(5)`",
+            )
+
+        lang = parts[1].lower()
+        code = parts[2]
+
+        # Automatic Markdown Code Block Stripping
+        import re
+        if code.startswith("```"):
+            # Find the first newline or end of the opening backticks
+            code = re.sub(r"^```[a-zA-Z0-9+_]*\n?", "", code)
+            code = re.sub(r"\n?```$", "", code)
 
         # Identify language
         selected = None

@@ -23,6 +23,11 @@ async def enforce_pm_protection(client: Client, message: Message):
     Enforces PM protection by checking if the sender is permitted.
     If not, it issues warnings or blocks depending on the configuration.
     """
+    # Safeguard: Wait for state to be ready to avoid using default values
+    # if the bot just started and messages are flowing in.
+    if not state.initialized:
+        await state.initialize()
+
     if not config.ENABLE_PM_PROTECTION:
         return True
 
