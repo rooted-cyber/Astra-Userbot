@@ -7,6 +7,7 @@ import shutil
 import os
 import uuid
 import platform
+import re
 from typing import Optional, Union, Dict
 from . import *  # Astra helpers (astra_command, extract_args, smart_reply, report_error)
 
@@ -71,7 +72,7 @@ LANG_EXECUTORS = {
         "binary": "gcc",
         "package": {"apt": "gcc", "brew": "gcc"},
         "ext": ".c",
-        "run_cmd": lambda bin, f: f"gcc {f} -o /tmp/a.out && /tmp/a.out",
+        "run_cmd": lambda bin, f: f"gcc -std=c11 -O2 {f} -o /tmp/a.out -lpthread -lm && /tmp/a.out",
     },
 
     # ------------------------ C++ ----------------------------
@@ -82,7 +83,7 @@ LANG_EXECUTORS = {
         "binary": "g++",
         "package": {"apt": "g++", "brew": "gcc"},
         "ext": ".cpp",
-        "run_cmd": lambda bin, f: f"g++ {f} -o /tmp/a.out && /tmp/a.out",
+        "run_cmd": lambda bin, f: f"g++ -std=c++17 -O2 {f} -o /tmp/a.out -lpthread -lm && /tmp/a.out",
     },
 
     # ------------------------ Rust ---------------------------
@@ -93,7 +94,7 @@ LANG_EXECUTORS = {
         "binary": "rustc",
         "package": {"apt": "rustc", "brew": "rust"},
         "ext": ".rs",
-        "run_cmd": lambda bin, f: f"rustc {f} -o /tmp/a.out && /tmp/a.out",
+        "run_cmd": lambda bin, f: f"rustc -C opt-level=2 {f} -o /tmp/a.out && /tmp/a.out",
     },
 
     # ------------------------ Golang -------------------------
@@ -148,7 +149,7 @@ LANG_EXECUTORS = {
         "binary": "swift",
         "package": {"apt": "swiftlang", "brew": "swift"},
         "ext": ".swift",
-        "run_cmd": lambda bin, f: f"{bin} {f}",
+        "run_cmd": lambda bin, f: f"swift -O {f}",
     },
 
     # ------------------------ C# / Mono ----------------------
@@ -194,6 +195,20 @@ def get_package_name(data: dict) -> Optional[str]:
         return pkg.get("brew")
     return list(pkg.values())[0] if pkg else None
 
+def normalize_code(code: str) -> str:
+    """Replaces smart quotes and other common autocompleted characters."""
+    replacements = {
+        '“': '"', '”': '"',  # Smart double quotes
+        '〝': '"', '〞': '"',  # Other variations
+        '‘': "'", '’': "'",  # Smart single quotes
+        '‛': "'",
+        '—': '--',            # Em dash
+        '–': '-',             # En dash
+    }
+    for old, new in replacements.items():
+        code = code.replace(old, new)
+    return code
+
 
 # -----------------------------------------------------------
 # PRIVACY PROTECTION (v6.0)
@@ -226,7 +241,7 @@ def security_filter(code: str) -> Optional[str]:
 
 @astra_command(
     name="run",
-    description="🚀 Universal Multi-Language Executor. Supports popular languages like Python, JS, Java, and Rust.",
+    description="🚀 Pro Universal Multi-Language Executor. Supports C11, C++17, and high-performance snippets.",
     category="Owner Utility",
     aliases=["exec-lang", "code"],
     usage=(
@@ -251,7 +266,6 @@ async def multi_lang_exec_handler(client: Client, message: Message):
             )
 
         # Extract language and code block precisely
-        # Format: .run <lang> <code>
         parts = message.body.split(None, 2)
         if len(parts) < 3:
             return await smart_reply(
@@ -262,10 +276,11 @@ async def multi_lang_exec_handler(client: Client, message: Message):
         lang = parts[1].lower()
         code = parts[2]
 
+        # 🧹 Pre-processing
+        code = normalize_code(code)
+
         # Automatic Markdown Code Block Stripping
-        import re
         if code.startswith("```"):
-            # Find the first newline or end of the opening backticks
             code = re.sub(r"^```[a-zA-Z0-9+_]*\n?", "", code)
             code = re.sub(r"\n?```$", "", code)
 
@@ -286,7 +301,6 @@ async def multi_lang_exec_handler(client: Client, message: Message):
 
         # ----------------- SECURITY CHECK (v6.0) -----------------
         from utils.state import state
-        # is_full_dev = skip everything. is_i_dev = bypass if violation.
         is_full_dev = state.state.get("FULL_DEV", False)
         is_i_dev = state.state.get("I_DEV", False)
         
@@ -297,7 +311,7 @@ async def multi_lang_exec_handler(client: Client, message: Message):
                     f"🚨 **SECURITY RESTRICTION** 🚨\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
                     f"🛑 **Blocked:** Potential privacy leak (`{violation}`).\n\n"
-                    f"🛠️ **Developer?** If you know what you are doing, set `I_DEV` to `True` to bypass this filter.\n"
+                    f"🛠️ **Developer?** Set `I_DEV` to `True` to bypass this filter.\n"
                     f"💡 *Command:* `.setdb I_DEV True`\n\n"
                     f"🔥 **Global Bypass:** Set `FULL_DEV` to `True` for zero restrictions.\n"
                     f"━━━━━━━━━━━━━━━━━━━━"
@@ -319,10 +333,17 @@ async def multi_lang_exec_handler(client: Client, message: Message):
             )
             return
 
-        # Save code to temp file
-        filename = f"/tmp/astra_{uuid.uuid4().hex}{selected['ext']}"
+        # ----------------- FILENAME & CLASS HANDLING -----------------
+        if lang in ["java", "kotlin"]:
+            match = re.search(r"(?:public\s+)?class\s+(\w+)", code)
+            base_name = match.group(1) if match else f"Astra_{uuid.uuid4().hex[:8]}"
+        else:
+            base_name = f"astra_{uuid.uuid4().hex}"
+
+        filename = f"/tmp/{base_name}{selected['ext']}"
         with open(filename, "w") as f:
             f.write(code)
+        # -------------------------------------------------------------
 
         # Execute
         run_cmd = selected["run_cmd"](binary, filename)
@@ -333,9 +354,14 @@ async def multi_lang_exec_handler(client: Client, message: Message):
             stderr=asyncio.subprocess.PIPE,
         )
 
-        stdout, stderr = await process.communicate()
-        stdout_str = stdout.decode() if stdout else ""
-        stderr_str = stderr.decode() if stderr else ""
+        try:
+            # ⏳ Enforce 60s timeout for advanced code
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60.0)
+            stdout_str = stdout.decode().strip() if stdout else ""
+            stderr_str = stderr.decode().strip() if stderr else ""
+        except asyncio.TimeoutError:
+            process.kill()
+            return await status_msg.edit(f"⏱️ *Execution Timeout (60s):* `{name}` process took too long and was terminated.")
 
         # ----------------- OUTPUT SECURITY CHECK (v6.1) -----------------
         if not is_full_dev:
@@ -344,18 +370,24 @@ async def multi_lang_exec_handler(client: Client, message: Message):
                 output_warning = (
                     f"🚨 **OUTPUT RESTRICTED** 🚨\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"🛡️ **System Guard:** Sensitive data (`{out_violation}`) detected in output and was suppressed.\n\n"
-                    f"🛠️ **Developer?** Set `I_DEV` to `True` to see raw output or `FULL_DEV` for global bypass.\n"
+                    f"🛡️ **System Guard:** Sensitive data (`{out_violation}`) detected in output.\n\n"
+                    f"🛠️ **Developer?** Set `I_DEV` to `True` or `FULL_DEV` to bypass.\n"
                     f"━━━━━━━━━━━━━━━━━━━━"
                 )
                 return await smart_reply(message, output_warning)
         # -----------------------------------------------------------------
 
+        # 📏 Smart Output Truncation (Telegram Limit Handling)
+        def truncate(text, limit=1800):
+            if len(text) > limit:
+                return text[:limit] + f"\n... (truncated {len(text)-limit} chars)"
+            return text
+
         output = ""
         if stdout_str:
-            output += f"✅ *Output ({name}):*\n```\n{stdout_str}\n```\n"
+            output += f"✅ *Output ({name}):*\n```\n{truncate(stdout_str)}\n```\n"
         if stderr_str:
-            output += f"❌ *Error ({name}):*\n```\n{stderr_str}\n```"
+            output += f"❌ *Error ({name}):*\n```\n{truncate(stderr_str)}\n```"
 
         if not output.strip():
             output = f"✅ {name} Execution Complete (No Output)."
@@ -368,7 +400,7 @@ async def multi_lang_exec_handler(client: Client, message: Message):
 
     except Exception as e:
         await smart_reply(message, f"❌ Error: {str(e)}")
-        await report_error(client, e, context="multi-lang exec failed")
+        await report_error(client, e, context="multi_lang exec failed")
 
 
 @astra_command(
@@ -387,12 +419,9 @@ async def install_deps_handler(client: Client, message: Message):
 
         system = platform.system().lower()
         if system == "linux":
-            # Auto-update if needed (using -y to avoid prompts)
             update_cmd = "apt-get update -y"
             base_cmd = "apt-get install -y"
         elif system == "darwin":
-            # Brew update is slow, only recommended if explicitly requested or if it's been a while
-            # But for "auto" as requested, we'll prefix it.
             update_cmd = "brew update"
             base_cmd = "brew install"
         else:
@@ -404,7 +433,6 @@ async def install_deps_handler(client: Client, message: Message):
         elif args[0].lower() == "missing":
             targets = [data for data in LANG_EXECUTORS.values() if data.get("package") and not is_installed(data["binary"])]
         else:
-            # List of languages
             for arg in args:
                 arg = arg.lower()
                 for key, data in LANG_EXECUTORS.items():
@@ -415,15 +443,7 @@ async def install_deps_handler(client: Client, message: Message):
         if not targets:
             return await smart_reply(message, "✅ All requested environments are already set up.")
 
-        # Resolve package names for the current OS
-        packages = []
-        for t in targets:
-            pname = get_package_name(t)
-            if pname:
-                packages.append(pname)
-        
-        # Deduplicate
-        packages = list(dict.fromkeys(packages))
+        packages = list(dict.fromkeys([get_package_name(t) for t in targets if get_package_name(t)]))
         
         if not packages:
             return await smart_reply(message, "❌ No package mapping found for selections.")
@@ -431,7 +451,6 @@ async def install_deps_handler(client: Client, message: Message):
         pkg_str = ", ".join(packages)
         status_msg = await smart_reply(message, f"⏳ *Executing installation...*\nOS: `{system.capitalize()}`\nTargets: `{pkg_str}`")
         
-        # Combine update and install
         cmd = f"{update_cmd} && {base_cmd} {' '.join(packages)}"
         
         process = await asyncio.create_subprocess_shell(
@@ -441,9 +460,7 @@ async def install_deps_handler(client: Client, message: Message):
         )
         
         stdout, stderr = await process.communicate()
-        success = process.returncode == 0
-        
-        if success:
+        if process.returncode == 0:
             await status_msg.edit(f"✅ *Installation Successful!*\nPackages: `{pkg_str}`\n\nYou can now use these environments.")
         else:
             err = stderr.decode() if stderr else "Check logs for details."
