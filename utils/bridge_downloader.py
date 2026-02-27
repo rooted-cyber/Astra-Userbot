@@ -30,20 +30,19 @@ class AstraBridge:
             if not target.is_media:
                 return None
 
-            # 1. Attempt Native Framework Download
-            try:
-                data = await client.download_media(target)
-                if data and len(data) > 100:
-                    logger.info("Native download_media succeeded.")
-                    return data
-            except Exception as e:
-                logger.debug(f"Native download_media failed: {e}")
-
-            # 2. Injection Fallback: Extraction via Browser Bridge
-            # We use client.bridge.call("eval", ...) to inject our custom blob extractor.
-            # This uses WhatsApp's internal store to get the decrypted media blob.
+            # 1. Attempt Native Framework Download with slight delay/retry
+            for _ in range(2):
+                try:
+                    data = await client.download_media(target)
+                    if data and len(data) > 100:
+                        return data
+                except Exception as e:
+                    logger.debug(f"Native download_media attempt failed: {e}")
+                await asyncio.sleep(1)
             
-            logger.info(f"Triggering bridge-level extraction for message: {target.id}")
+            # 2. Injection Fallback: Extraction via Browser Bridge
+            # We use client.bridge.call("evaluate", ...) to inject our custom blob extractor.
+            # This uses WhatsApp's internal store to get the decrypted media blob.
             
             # The JS logic:
             # - Finds the message in the store using WhatsApp modules (mR)
@@ -55,10 +54,10 @@ class AstraBridge:
             (async () => {{
                 try {{
                     const msgId = "{target.id}";
-                    if (!window.mR) throw new Error("WhatsApp Web Modules (mR) not found");
+                    if (!window.mR) throw new Error("mR not found");
                     
                     const msg = window.mR.findAndStore("Msg")[0].get(msgId);
-                    if (!msg) throw new Error("Message not found in internal store");
+                    if (!msg) throw new Error("Msg not found");
                     
                     // Trigger download if required (not downloading, not present)
                     const mediaDownload = window.mR.findAndStore("MediaDownload")[0];
@@ -70,10 +69,10 @@ class AstraBridge:
                     
                     // Attempt to get blob URL
                     const blobUrl = msg.mediaData?.mediaObject?.getBlobUrl();
-                    if (!blobUrl) throw new Error("No blob URL available for this media");
+                    if (!blobUrl) throw new Error("No blob URL");
                     
                     const blob = await window.mR.findAndStore("MediaBlob")[0].getBlob(blobUrl);
-                    if (!blob) throw new Error("Blob retrieval failed from internal cache");
+                    if (!blob) throw new Error("Blob failed");
                     
                     return new Promise((resolve, reject) => {{
                         const reader = new FileReader();
@@ -87,16 +86,19 @@ class AstraBridge:
             }})();
             """
             
-            # Note: client.bridge.call("eval", script) is a common pattern in 
+            # Note: client.bridge.call("evaluate", script) is a common pattern in 
             # bridge-based frameworks for running arbitrary JS.
-            b64_data = await client.bridge.call("eval", js_script)
-            
-            if isinstance(b64_data, dict) and "error" in b64_data:
-                logger.error(f"Bridge extraction failed: {b64_data['error']}")
-                return None
-            
-            if b64_data:
-                return base64.b64decode(b64_data)
+            try:
+                b64_data = await client.bridge.call("evaluate", js_script)
+                
+                if isinstance(b64_data, dict) and "error" in b64_data:
+                    logger.debug(f"Bridge extraction failed: {b64_data['error']}")
+                    return None
+                
+                if b64_data and isinstance(b64_data, str):
+                    return base64.b64decode(b64_data)
+            except Exception as bridge_err:
+                logger.debug(f"Bridge call failed: {bridge_err}")
                 
         except Exception as e:
             logger.error(f"Fatal error in Universal Bridge Downloader: {e}")

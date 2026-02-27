@@ -32,9 +32,6 @@ async def ss_handler(client: Client, message: Message):
 
     try:
         # Fallback Chain for maximum reliability
-        # 1. PageShot (Modern, High Accuracy)
-        # 2. WordPress Mshots (Stable Fallback)
-        # 3. Thum.io (Speed Fallback)
         providers = [
             f"https://pageshot.site/api/render?url={url}&width=1280&height=720&format=jpeg",
             f"https://s.wordpress.com/mshots/v1/{url}?w=1280&h=720",
@@ -48,36 +45,32 @@ async def ss_handler(client: Client, message: Message):
             for i, prov_url in enumerate(providers):
                 try:
                     name = provider_names[i]
-                    logger.debug(f"📸 Trying {name}...")
-                    await status_msg.edit(f"📸 **Astra Web Capture**\n━━━━━━━━━━━━━━━━━━━━\n🌐 **Target:** `{url}`\n⚙️ **Engine:** `{name}`...")
+                    try: await status_msg.edit(f"📸 **Astra Web Capture**\n━━━━━━━━━━━━━━━━━━━━\n🌐 **Target:** `{url}`\n⚙️ **Engine:** `{name}`...")
+                    except: pass
                     
                     async with session.get(prov_url, timeout=25) as resp:
                         if resp.status == 200:
                             data = await resp.read()
-                            # Validation: Check if it's a real image and not a tiny placeholder/error
-                            if len(data) > 5000: # Usually > 5KB for a real screenshot
+                            if len(data) > 10000:
                                 img_data = data
                                 break
-                            else:
-                                logger.debug(f"{name} returned suspiciously small data ({len(data)} bytes)")
-                except Exception as prov_err:
-                    logger.debug(f"Provider {provider_names[i]} failed: {prov_err}")
+                except:
                     continue
 
         if img_data:
             b64_data = base64.b64encode(img_data).decode('utf-8')
-            media = {
-                "mimetype": "image/jpeg",
-                "data": b64_data,
-                "filename": "screenshot.jpg"
-            }
+            media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "screenshot.jpg"}
             await client.send_media(message.chat_id, media, caption=f"📸 **Screenshot:** {url}")
-            return await status_msg.delete()
+            try: await status_msg.delete()
+            except: pass
+            return
         
-        await status_msg.edit("⚠️ **Astra Web Capture:** All capture engines failed. The site might be heavily protected or offline.")
+        try: await status_msg.edit("⚠️ **Astra Web Capture:** All capture engines failed. The site might be heavily protected or offline.")
+        except: pass
 
     except Exception as e:
-        await status_msg.edit(f"❌ **System Error:** {str(e)}")
+        try: await status_msg.edit(f"❌ **System Error:** {str(e)}")
+        except: pass
 
 @astra_command(
     name="purge",
@@ -104,7 +97,7 @@ async def purge_handler(client: Client, message: Message):
         # On WhatsApp, you can usually only delete your own messages for everyone
         # or others' if you are admin.
         
-        messages = await client.chat.fetch_messages(
+        messages = await client.fetch_messages(
             message.chat_id.serialized if hasattr(message.chat_id, "serialized") else str(message.chat_id),
             limit=count,
             message_id=message.quoted.id,
@@ -114,19 +107,21 @@ async def purge_handler(client: Client, message: Message):
         to_delete = [message.quoted.id] + [msg.id for msg in messages]
         
         # WhatsApp Web Bridge usually has a bulk delete or we loop
-        # For safety and compatibility with current bridge patterns:
         deleted_count = 0
         for msg_id in to_delete:
             try:
-                # We try to use a generic delete if available on client
-                await client.chat.delete_messages(message.chat_id, [msg_id])
+                # Use client.delete_message directly as found in dir(Client)
+                await client.delete_message(message.chat_id, msg_id)
                 deleted_count += 1
             except:
                 pass
         
-        await status_msg.edit(f"✅ **Astra Purge Utility**\n━━━━━━━━━━━━━━━━━━━━\n🗑️ *Successfully purged* **{deleted_count}** *messages.*")
+        try: await status_msg.edit(f"✅ **Astra Purge Utility**\n━━━━━━━━━━━━━━━━━━━━\n🗑️ *Successfully purged* **{deleted_count}** *messages.*")
+        except: pass
         await asyncio.sleep(3)
-        await status_msg.delete()
+        try: await status_msg.delete()
+        except: pass
 
     except Exception as e:
-        await smart_reply(message, f"❌ **Purge Error:** {str(e)}")
+        try: await smart_reply(message, f"❌ **Purge Error:** {str(e)}")
+        except: pass

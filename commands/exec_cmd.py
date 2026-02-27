@@ -293,22 +293,14 @@ async def multi_lang_exec_handler(client: Client, message: Message):
 
         # ----------------- ADVANCED PARSING -----------------
         # 1. Parse Input (-i or --input)
-        stdin_data = ""
-        input_marker = None
-        if " --input " in full_payload: input_marker = " --input "
-        elif " -i " in full_payload: input_marker = " -i "
-        
         if input_marker:
             code_and_t, raw_input = full_payload.rsplit(input_marker, 1)
-            # Hierarchical Splitting (User Request)
-            # Use ,, or | as a line separator if present, otherwise fall back to ,
-            if ",," in raw_input:
-                stdin_data = "\n".join([i.strip() for i in raw_input.split(",,")])
-            elif "|" in raw_input:
-                stdin_data = "\n".join([i.strip() for i in raw_input.split("|")])
-            else:
-                stdin_data = "\n".join([i.strip() for i in raw_input.split(",")])
+            # Hierarchical Splitting (Universal Newline Delimiter)
+            # Every delimiter is flattened to a newline for robust scanf/input() consumption
+            stdin_data = raw_input.replace(",,", "\n").replace("|", "\n").replace(",", "\n")
+            stdin_data = "\n".join([i.strip() for i in stdin_data.split("\n")])
         else:
+            stdin_data = ""
             code_and_t = full_payload
 
         # 2. Parse Timeout (-t)
