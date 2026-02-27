@@ -25,6 +25,7 @@ class Config:
     # Versioning
     VERSION = "0.0.3b1"
     VERSION_NAME = "Beta 1 (v0.0.3)"
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
     # Bot Identity
     @property

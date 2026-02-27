@@ -20,3 +20,5 @@ from utils.plugin_utils import (
     unload_plugin,
     PLUGIN_HANDLES
 )
+import logging
+logger = logging.getLogger("Plugins")
