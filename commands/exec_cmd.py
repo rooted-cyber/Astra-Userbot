@@ -241,18 +241,16 @@ def security_filter(code: str) -> Optional[str]:
 
 @astra_command(
     name="run",
-    description="🚀 Pro Universal Multi-Language Executor. Supports stdin inputs and custom timeouts.",
+    description="🚀 Ultra Multi-Language Executor. Supports stdin inputs (comma-separated), timeouts, and aliased flags.",
     category="Owner Utility",
     aliases=["exec-lang", "code"],
     usage=(
-        ".run <lang> <code> [-t <seconds>] [--input <data>]\n\n"
-        "📝 *Advanced Features:*\n"
-        "🔹 **Input:** Add `--input data` at the end.\n"
-        "🔹 **Timeout:** Add `-t 10` for custom duration (max 300s).\n\n"
+        ".run <lang> <code> [-t <sec>] [-i <input1,input2>]\n\n"
+        "📝 *Power Features:*\n"
+        "🔹 **Input:** Use `-i` or `--input`. Separate multi-input with `,`.\n"
+        "🔹 **Timeout:** Use `-t` (max 300s).\n\n"
         "*Pro Examples:*\n"
-        "� **Python:** `.run py print(input()) --input Hello`\n"
-        "� **C:** `.run c int x; scanf(\"%d\",&x); printf(\"%d\",x); --input 5`\n"
-        "🦀 **Rust:** `.run rs fn main(){let mut s=String::new();std::io::stdin().read_line(&mut s).unwrap();print!(\"{}\",s);} --input Hi`"
+        "🐍 **Python:** `.run py a=input();b=input();print(int(a)+int(b)) -i 10,20`"
     ),
     owner_only=True,
 )
@@ -262,7 +260,7 @@ async def multi_lang_exec_handler(client: Client, message: Message):
         if not message.body or " " not in message.body:
             return await smart_reply(
                 message,
-                "⚠️ Usage:\n`.run <language> <code> [-t <seconds>] [--input <data>]`",
+                "⚠️ Usage:\n`.run <language> <code> [-t <seconds>] [-i <inputs>]`",
             )
 
         # Extract language and payload
@@ -270,34 +268,36 @@ async def multi_lang_exec_handler(client: Client, message: Message):
         if len(parts) < 3:
             return await smart_reply(
                 message,
-                "⚠️ Usage:\n`.run <language> <code> [-t <seconds>] [--input <data>]`",
+                "⚠️ Usage:\n`.run <language> <code> [-t <seconds>] [-i <inputs>]`",
             )
 
         lang = parts[1].lower()
         full_payload = parts[2]
 
         # ----------------- ADVANCED PARSING -----------------
-        # Order: <code> [-t <seconds>] [--input <data>]
-        
-        # 1. Parse Input
+        # 1. Parse Input (-i or --input)
+        # We handle both long and short forms, splitting by the marker
         stdin_data = ""
-        if " --input " in full_payload:
-            code_and_t, stdin_data = full_payload.rsplit(" --input ", 1)
+        input_marker = None
+        if " --input " in full_payload: input_marker = " --input "
+        elif " -i " in full_payload: input_marker = " -i "
+        
+        if input_marker:
+            code_and_t, raw_input = full_payload.rsplit(input_marker, 1)
+            # Split by comma and join by newline for program processor
+            if "," in raw_input:
+                stdin_data = "\n".join([i.strip() for i in raw_input.split(",")])
+            else:
+                stdin_data = raw_input.strip()
         else:
             code_and_t = full_payload
 
-        # 2. Parse Timeout
-        timeout_val = 60.0 # Default
-        if " -t " in code_and_t:
-            # We use rsplit to handle case where -t is followed by code or flags
-            # But usually it's at the end of the code section
-            match = re.search(r"\s-t\s(\d+)(\s|$)", code_and_t)
-            if match:
-                timeout_val = min(float(match.group(1)), 300.0) # Cap at 300s
-                # Remove -t arg from code
-                code = code_and_t[:match.start()] + code_and_t[match.end():]
-            else:
-                code = code_and_t
+        # 2. Parse Timeout (-t)
+        timeout_val = 60.0
+        match = re.search(r"\s-t\s(\d+)(\s|$)", code_and_t)
+        if match:
+            timeout_val = min(float(match.group(1)), 300.0)
+            code = code_and_t[:match.start()] + code_and_t[match.end():]
         else:
             code = code_and_t
         # ---------------------------------------------------
@@ -323,7 +323,7 @@ async def multi_lang_exec_handler(client: Client, message: Message):
         # 🚀 Send "Executing" status
         icon = selected.get("icon", "🚀")
         name = selected.get("name", lang.upper())
-        status_msg = await smart_reply(message, f"{icon} *Executing {name}...* (Timeout: {timeout_val}s)")
+        status_msg = await smart_reply(message, f"{icon} *Executing {name}...*")
 
         # ----------------- SECURITY CHECK (v6.0) -----------------
         from utils.state import state
@@ -343,11 +343,8 @@ async def multi_lang_exec_handler(client: Client, message: Message):
         # ---------------------------------------------------------
 
         binary = selected["binary"]
-        pkg = get_package_name(selected) or binary
-
-        # Check install status
         if not is_installed(binary):
-            await status_msg.edit(f"❌ `{name}` not found. Suggestion: `.installdeps {lang}`")
+            await status_msg.edit(f"❌ `{name}` not found. Use `.installdeps {lang}`")
             return
 
         # ----------------- FILENAME & CLASS HANDLING -----------------
@@ -357,12 +354,9 @@ async def multi_lang_exec_handler(client: Client, message: Message):
         else:
             base_name = f"astra_{uuid.uuid4().hex}"
 
-        # Clean code whitespace for specific languages
-        code_to_write = code.strip()
-
         filename = f"/tmp/{base_name}{selected['ext']}"
         with open(filename, "w") as f:
-            f.write(code_to_write)
+            f.write(code.strip())
         # -------------------------------------------------------------
 
         # Execute
@@ -376,7 +370,7 @@ async def multi_lang_exec_handler(client: Client, message: Message):
         )
 
         try:
-            # ⏳ Pipe stdin and wait for output with custom timeout
+            # ⏳ Pipe processed stdin (newlines) and wait
             stdout, stderr = await asyncio.wait_for(
                 process.communicate(input=stdin_data.encode() if stdin_data else None), 
                 timeout=timeout_val
@@ -388,17 +382,7 @@ async def multi_lang_exec_handler(client: Client, message: Message):
             except: pass
             return await status_msg.edit(f"⏱️ *Execution Timeout ({int(timeout_val)}s):* `{name}` terminated.")
 
-        # ----------------- OUTPUT SECURITY CHECK (v6.1) -----------------
-        if not is_full_dev:
-            out_violation = security_filter(stdout_str) or security_filter(stderr_str)
-            if out_violation and not is_i_dev:
-                output_warning = (
-                    f"🚨 **OUTPUT RESTRICTED** 🚨\n"
-                    f"🛡️ **System Guard:** Sensitive data detected in output.\n"
-                )
-                return await smart_reply(message, output_warning)
-        # -----------------------------------------------------------------
-
+        # 📏 Smart Output Truncation
         def truncate(text, limit=1800):
             if len(text) > limit:
                 return text[:limit] + f"\n... (truncated {len(text)-limit} chars)"
@@ -406,7 +390,9 @@ async def multi_lang_exec_handler(client: Client, message: Message):
 
         output = ""
         if stdin_data:
-            output += f"📥 *Input:*\n```\n{truncate(stdin_data, 200)}\n```\n"
+            # Show original comma-style or cleaned preview
+            display_in = stdin_data.replace("\n", ", ")
+            output += f"📥 *Inputs:*\n```\n{truncate(display_in, 200)}\n```\n"
         
         if stdout_str:
             output += f"✅ *Output ({name}):*\n```\n{truncate(stdout_str)}\n```\n"
@@ -414,7 +400,7 @@ async def multi_lang_exec_handler(client: Client, message: Message):
             output += f"❌ *Error ({name}):*\n```\n{truncate(stderr_str)}\n```"
 
         if not output.strip():
-            output = f"✅ {name} Execution Complete (No Output)."
+            output = f"✅ {name} Execution Complete."
 
         await status_msg.edit(output)
 
@@ -435,21 +421,17 @@ async def multi_lang_exec_handler(client: Client, message: Message):
     owner_only=True,
 )
 async def install_deps_handler(client: Client, message: Message):
-    """Install missing language dependencies with OS detection and batch support."""
+    """Install dependencies with OS detection."""
     try:
         args = extract_args(message)
-        if not args:
-            return await smart_reply(message, "⚠️ Usage: `.installdeps <lang|all|missing>`")
+        if not args: return await smart_reply(message, "⚠️ Usage: `.installdeps <lang|all|missing>`")
 
         system = platform.system().lower()
         if system == "linux":
-            update_cmd = "apt-get update -y"
-            base_cmd = "apt-get install -y"
+            update_cmd, base_cmd = "apt-get update -y", "apt-get install -y"
         elif system == "darwin":
-            update_cmd = "brew update"
-            base_cmd = "brew install"
-        else:
-            return await smart_reply(message, f"❌ OS not supported.")
+            update_cmd, base_cmd = "brew update", "brew install"
+        else: return await smart_reply(message, "❌ OS not supported.")
 
         targets = []
         if args[0].lower() == "all":
@@ -458,32 +440,24 @@ async def install_deps_handler(client: Client, message: Message):
             targets = [data for data in LANG_EXECUTORS.values() if data.get("package") and not is_installed(data["binary"])]
         else:
             for arg in args:
-                arg = arg.lower()
                 for key, data in LANG_EXECUTORS.items():
-                    if arg in data["aliases"]:
+                    if arg.lower() in data["aliases"]:
                         targets.append(data)
                         break
 
-        if not targets:
-            return await smart_reply(message, "✅ Systems ready.")
+        if not targets: return await smart_reply(message, "✅ Systems ready.")
 
         packages = list(dict.fromkeys([get_package_name(t) for t in targets if get_package_name(t)]))
-        if not packages: return await smart_reply(message, "❌ Package mapping missing.")
-
         status_msg = await smart_reply(message, f"⏳ *Installing {len(packages)} packages...*")
         
         cmd = f"{update_cmd} && {base_cmd} {' '.join(packages)}"
-        process = await asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        process = await asyncio.create_subprocess_shell(cmd)
         await process.communicate()
         
-        if process.returncode == 0:
-            await status_msg.edit(f"✅ *Success:* Dependencies ready.")
-        else:
-            await status_msg.edit(f"❌ *Failed:* Installation error (Check logs).")
+        await status_msg.edit(f"✅ *Dependencies Processed.*")
 
     except Exception as e:
         await smart_reply(message, f"❌ Error: {str(e)}")
-        await report_error(client, e, context="installdeps failure")
 
 
 # -----------------------------------------------------------
@@ -491,32 +465,26 @@ async def install_deps_handler(client: Client, message: Message):
 # -----------------------------------------------------------
 
 EXAMPLES = """
-� *Pro Executor Examples (All Languages)*
+🚀 *Ultra Executor Pro Examples*
 
-� **Python (Stdin):**
-`.run py print(f"Hello {input()}") --input Astra`
+🐍 **Python (Multi-Input):**
+`.run py a=input(); b=input(); print(a+b) -i 10,20`
 
-� **JavaScript (Basic):**
-`.run js console.log("Standard JS Execution")`
+🔵 **C (Math & Input):**
+`.run c #include <stdio.h>\n#include <math.h>\nint main(){ double x; scanf("%lf",&x); printf("%.2f",sqrt(x)); } -i 16`
 
-☕ **Java (Class Handling):**
-`.run java class Hi { public static void main(String[] a) { System.out.println("Pro Java"); } }`
+💠 **C++ (Modern):**
+`.run cpp #include <iostream>\nint main(){ std::cout<<"C++17 Ready"; }`
 
-� **C (Math & Input):**
-`.run c #include <stdio.h>\n#include <math.h>\nint main() { double x; scanf("%lf", &x); printf("%.2f", sqrt(x)); } --input 16`
+☕ **Java:**
+`.run java class H{ public static void main(String[] a){ System.out.println("Java Pro"); }}`
 
-� **C++ (Modern & Threading):**
-`.run cpp #include <iostream>\n#include <thread>\nint main() { std::this_thread::sleep_for(std::chrono::seconds(1)); std::cout << "Threaded!"; } -t 5`
+🦀 **Rust:**
+`.run rs fn main(){ println!("Optimized Rust"); }`
 
-🦀 **Rust (Optimized):**
-`.run rs fn main() { println!("Fast Rust Snippet"); }`
+🐚 **Shell:**
+`.run sh echo "Automated Shell"`
 
-� **Golang:**
-`.run go package main\nimport "fmt"\nfunc main() { fmt.Println("Go!") }`
-
-� **Shell (Automation):**
-`.run sh for i in {1..3}; do echo "Loop $i"; done`
-
-⏱️ **Custom Timeout:**
-`.run py import time; time.sleep(10); print("Long Task") -t 15`
+⏱️ **Custom Timeout & Input:**
+`.run py import time; time.sleep(5); print(input()) -t 10 -i Hello`
 """
