@@ -31,77 +31,33 @@ class AstraBridge:
                 return None
 
             # 1. Attempt Native Framework Download with slight delay/retry
-            for _ in range(2):
+            # Passing target.id (string) is the correct 'direct' way.
+            for attempt in range(3):
                 try:
-                    data = await client.download_media(target)
-                    if data and len(data) > 100:
-                        return data
+                    # Use target.id to ensure framework-level string expectations are met
+                    data_b64 = await client.download_media(target.id)
+                    if data_b64:
+                        return base64.b64decode(data_b64)
                 except Exception as e:
-                    logger.debug(f"Native download_media attempt failed: {e}")
-                await asyncio.sleep(1)
-            
-            # 2. Injection Fallback: Extraction via Browser Bridge
-            # We use client.bridge.call("evaluate", ...) to inject our custom blob extractor.
-            # This uses WhatsApp's internal store to get the decrypted media blob.
-            
-            # The JS logic:
-            # - Finds the message in the store using WhatsApp modules (mR)
-            # - Leverages window.mR.findAndStore to locate internal controllers
-            # - Ensures the media is downloaded locally in the browser
-            # - Converts the resulting blob to base64
-            
-            js_script = f"""
-            (async () => {{
-                try {{
-                    const msgId = "{target.id}";
-                    if (!window.mR) throw new Error("mR not found");
-                    
-                    const msg = window.mR.findAndStore("Msg")[0].get(msgId);
-                    if (!msg) throw new Error("Msg not found");
-                    
-                    // Trigger download if required (not downloading, not present)
-                    const mediaDownload = window.mR.findAndStore("MediaDownload")[0];
-                    if (msg.mediaData && msg.mediaData.mediaStage !== "REMOVING" && msg.mediaData.mediaStage !== "INIT") {{
-                        if (mediaDownload && typeof mediaDownload.downloadMediaMessage === "function") {{
-                            await mediaDownload.downloadMediaMessage(msg);
-                        }}
-                    }}
-                    
-                    // Attempt to get blob URL
-                    const blobUrl = msg.mediaData?.mediaObject?.getBlobUrl();
-                    if (!blobUrl) throw new Error("No blob URL");
-                    
-                    const blob = await window.mR.findAndStore("MediaBlob")[0].getBlob(blobUrl);
-                    if (!blob) throw new Error("Blob failed");
-                    
-                    return new Promise((resolve, reject) => {{
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                        reader.onerror = () => reject(new Error("FileReader failed"));
-                        reader.readAsDataURL(blob);
-                    }});
-                }} catch (e) {{
-                    return {{ error: e.message }};
-                }}
-            }})();
-            """
-            
-            # Note: client.bridge.call("evaluate", script) is a common pattern in 
-            # bridge-based frameworks for running arbitrary JS.
-            try:
-                b64_data = await client.bridge.call("evaluate", js_script)
+                    logger.debug(f"Direct download attempt {attempt+1} failed: {e}")
                 
-                if isinstance(b64_data, dict) and "error" in b64_data:
-                    logger.debug(f"Bridge extraction failed: {b64_data['error']}")
-                    return None
-                
-                if b64_data and isinstance(b64_data, str):
-                    return base64.b64decode(b64_data)
-            except Exception as bridge_err:
-                logger.debug(f"Bridge call failed: {bridge_err}")
-                
+                # Optional: Try saving to file if b64 retrieval fails
+                try:
+                    file_path = await client.media.download(target)
+                    if file_path and os.path.exists(file_path):
+                        with open(file_path, "rb") as f:
+                            data = f.read()
+                        os.remove(file_path) # Cleanup
+                        return data
+                except:
+                    pass
+
+                await asyncio.sleep(1.5)
+            
         except Exception as e:
-            logger.error(f"Fatal error in Universal Bridge Downloader: {e}")
+            logger.error(f"Fatal error in Direct Downloader: {e}")
+            
+        return None
             
         return None
 
