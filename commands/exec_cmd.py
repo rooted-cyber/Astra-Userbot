@@ -72,7 +72,7 @@ LANG_EXECUTORS = {
         "binary": "gcc",
         "package": {"apt": "gcc", "brew": "gcc"},
         "ext": ".c",
-        "run_cmd": lambda bin, f: f"gcc -std=c11 -O2 {f} -o /tmp/a.out -lpthread -lm && /tmp/a.out",
+        "run_cmd": lambda bin, f: f"gcc -std=c11 -O2 {f} -o /tmp/a.out -lpthread -lm -Wno-unused-result && /tmp/a.out",
     },
 
     # ------------------------ C++ ----------------------------
@@ -83,7 +83,7 @@ LANG_EXECUTORS = {
         "binary": "g++",
         "package": {"apt": "g++", "brew": "gcc"},
         "ext": ".cpp",
-        "run_cmd": lambda bin, f: f"g++ -std=c++17 -O2 {f} -o /tmp/a.out -lpthread -lm && /tmp/a.out",
+        "run_cmd": lambda bin, f: f"g++ -std=c++17 -O2 {f} -o /tmp/a.out -lpthread -lm -Wno-unused-result && /tmp/a.out",
     },
 
     # ------------------------ Rust ---------------------------
@@ -301,9 +301,11 @@ async def multi_lang_exec_handler(client: Client, message: Message):
         if input_marker:
             code_and_t, raw_input = full_payload.rsplit(input_marker, 1)
             # Hierarchical Splitting (User Request)
-            # Use ,, as a line separator if present, otherwise fall back to ,
+            # Use ,, or | as a line separator if present, otherwise fall back to ,
             if ",," in raw_input:
                 stdin_data = "\n".join([i.strip() for i in raw_input.split(",,")])
+            elif "|" in raw_input:
+                stdin_data = "\n".join([i.strip() for i in raw_input.split("|")])
             else:
                 stdin_data = "\n".join([i.strip() for i in raw_input.split(",")])
         else:

@@ -31,35 +31,50 @@ async def ss_handler(client: Client, message: Message):
     status_msg = await smart_reply(message, f"📸 **Astra Web Capture**\n━━━━━━━━━━━━━━━━━━━━\n🌐 **Target:** `{url}`...")
 
     try:
-        # Using a reliable public screenshot service
-        # thum.io is fast and free for basic usage
-        ss_url = f"https://image.thum.io/get/width/1200/crop/800/noAnimate/{url}"
+        # Fallback Chain for maximum reliability
+        # 1. PageShot (Modern, High Accuracy)
+        # 2. WordPress Mshots (Stable Fallback)
+        # 3. Thum.io (Speed Fallback)
+        providers = [
+            f"https://pageshot.site/api/render?url={url}&width=1280&height=720&format=jpeg",
+            f"https://s.wordpress.com/mshots/v1/{url}?w=1280&h=720",
+            f"https://image.thum.io/get/width/1280/crop/720/noAnimate/{url}"
+        ]
+        
+        provider_names = ["PageShot", "WordPress", "Thum.io"]
+        img_data = None
         
         async with aiohttp.ClientSession() as session:
-            async with session.get(ss_url, timeout=20) as resp:
-                if resp.status == 200:
-                    img_data = await resp.read()
-                    # Check if it actually returned an image
-                    if len(img_data) < 1000:
-                        return await status_msg.edit("⚠️ Screenshot service returned an invalid image. The site might be blocking us.")
-                        
-                    b64_data = base64.b64encode(img_data).decode('utf-8')
+            for i, prov_url in enumerate(providers):
+                try:
+                    name = provider_names[i]
+                    logger.debug(f"📸 Trying {name}...")
+                    await status_msg.edit(f"📸 **Astra Web Capture**\n━━━━━━━━━━━━━━━━━━━━\n🌐 **Target:** `{url}`\n⚙️ **Engine:** `{name}`...")
                     
-                    media = {
-                        "mimetype": "image/jpeg",
-                        "data": b64_data,
-                        "filename": "screenshot.jpg"
-                    }
-                    try:
-                        await client.send_media(message.chat_id, media, caption=f"📸 **Screenshot:** {url}")
-                        await status_msg.delete()
-                    except Exception as upload_err:
-                        await status_msg.edit(f"❌ **Astra Web Capture:** Failed to send screenshot. ({str(upload_err)})")
-                    return
-                elif resp.status == 429:
-                    return await status_msg.edit("❌ **Astra Web Capture:** Rate Limited. Try again later.")
-                
-        await status_msg.edit("⚠️ **Astra Web Capture:** Failed to capture screenshot. Invalid URL?")
+                    async with session.get(prov_url, timeout=25) as resp:
+                        if resp.status == 200:
+                            data = await resp.read()
+                            # Validation: Check if it's a real image and not a tiny placeholder/error
+                            if len(data) > 5000: # Usually > 5KB for a real screenshot
+                                img_data = data
+                                break
+                            else:
+                                logger.debug(f"{name} returned suspiciously small data ({len(data)} bytes)")
+                except Exception as prov_err:
+                    logger.debug(f"Provider {provider_names[i]} failed: {prov_err}")
+                    continue
+
+        if img_data:
+            b64_data = base64.b64encode(img_data).decode('utf-8')
+            media = {
+                "mimetype": "image/jpeg",
+                "data": b64_data,
+                "filename": "screenshot.jpg"
+            }
+            await client.send_media(message.chat_id, media, caption=f"📸 **Screenshot:** {url}")
+            return await status_msg.delete()
+        
+        await status_msg.edit("⚠️ **Astra Web Capture:** All capture engines failed. The site might be heavily protected or offline.")
 
     except Exception as e:
         await status_msg.edit(f"❌ **System Error:** {str(e)}")

@@ -46,30 +46,39 @@ class AstraBridge:
             logger.info(f"Triggering bridge-level extraction for message: {target.id}")
             
             # The JS logic:
-            # - Finds the message in the store
+            # - Finds the message in the store using WhatsApp modules (mR)
+            # - Leverages window.mR.findAndStore to locate internal controllers
             # - Ensures the media is downloaded locally in the browser
             # - Converts the resulting blob to base64
-            # - Returns the data
             
             js_script = f"""
             (async () => {{
                 try {{
                     const msgId = "{target.id}";
-                    const msg = window.mR.findAndStore("Msg")[0].get(msgId);
-                    if (!msg) throw new Error("Message not found in store");
+                    if (!window.mR) throw new Error("WhatsApp Web Modules (mR) not found");
                     
-                    // Trigger download if not already cached
-                    if (msg.mediaData.mediaStage !== "REMOVING" && msg.mediaData.mediaStage !== "EXPIRED") {{
-                        await window.mR.findAndStore("MediaDownload")[0].downloadMediaMessage(msg);
+                    const msg = window.mR.findAndStore("Msg")[0].get(msgId);
+                    if (!msg) throw new Error("Message not found in internal store");
+                    
+                    // Trigger download if required (not downloading, not present)
+                    const mediaDownload = window.mR.findAndStore("MediaDownload")[0];
+                    if (msg.mediaData && msg.mediaData.mediaStage !== "REMOVING" && msg.mediaData.mediaStage !== "INIT") {{
+                        if (mediaDownload && typeof mediaDownload.downloadMediaMessage === "function") {{
+                            await mediaDownload.downloadMediaMessage(msg);
+                        }}
                     }}
                     
-                    const blob = await window.mR.findAndStore("MediaBlob")[0].getBlob(msg.mediaData.mediaObject.getBlobUrl());
-                    if (!blob) throw new Error("Blob retrieval failed");
+                    // Attempt to get blob URL
+                    const blobUrl = msg.mediaData?.mediaObject?.getBlobUrl();
+                    if (!blobUrl) throw new Error("No blob URL available for this media");
                     
-                    const reader = new FileReader();
+                    const blob = await window.mR.findAndStore("MediaBlob")[0].getBlob(blobUrl);
+                    if (!blob) throw new Error("Blob retrieval failed from internal cache");
+                    
                     return new Promise((resolve, reject) => {{
+                        const reader = new FileReader();
                         reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                        reader.onerror = reject;
+                        reader.onerror = () => reject(new Error("FileReader failed"));
                         reader.readAsDataURL(blob);
                     }});
                 }} catch (e) {{
