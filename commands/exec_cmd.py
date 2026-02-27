@@ -241,16 +241,17 @@ def security_filter(code: str) -> Optional[str]:
 
 @astra_command(
     name="run",
-    description="🚀 Ultra Multi-Language Executor. Supports stdin inputs (comma-separated), timeouts, and aliased flags.",
+    description="🚀 Ultra Multi-Language Executor. Supports Super Stdin (,,), timeouts, and aliased flags.",
     category="Owner Utility",
     aliases=["exec-lang", "code"],
     usage=(
-        ".run <lang> <code> [-t <sec>] [-i <input1,input2>]\n\n"
-        "📝 *Power Features:*\n"
-        "🔹 **Input:** Use `-i` or `--input`. Separate multi-input with `,`.\n"
-        "🔹 **Timeout:** Use `-t` (max 300s).\n\n"
-        "*Pro Examples:*\n"
-        "🐍 **Python:** `.run py a=input();b=input();print(int(a)+int(b)) -i 10,20`"
+        ".run <lang> <code> [-t <sec>] [-i <input1,,input2>]\n\n"
+        "📝 *Super Stdin:*\n"
+        "🔹 **Lines:** Use `,,` (double comma) to separate input lines.\n"
+        "🔹 **Literal:** Use `,` (single comma) for data as-is.\n"
+        "🔹 **Example:** `-i csv,header ,, row1,data` (Two lines of input)\n\n"
+        "*Pro Example:*\n"
+        "🐍 **Python:** `.run py a=input();b=input();print(a,b) -i val1,,val2`"
     ),
     owner_only=True,
 )
@@ -260,7 +261,7 @@ async def multi_lang_exec_handler(client: Client, message: Message):
         if not message.body or " " not in message.body:
             return await smart_reply(
                 message,
-                "⚠️ Usage:\n`.run <language> <code> [-t <seconds>] [-i <inputs>]`",
+                "⚠️ Usage:\n`.run <language> <code> [-t <seconds>] [-i <inputs>]`\n\n💡 Use `,,` for multi-inputs/datasets.",
             )
 
         # Extract language and payload
@@ -276,7 +277,6 @@ async def multi_lang_exec_handler(client: Client, message: Message):
 
         # ----------------- ADVANCED PARSING -----------------
         # 1. Parse Input (-i or --input)
-        # We handle both long and short forms, splitting by the marker
         stdin_data = ""
         input_marker = None
         if " --input " in full_payload: input_marker = " --input "
@@ -284,11 +284,12 @@ async def multi_lang_exec_handler(client: Client, message: Message):
         
         if input_marker:
             code_and_t, raw_input = full_payload.rsplit(input_marker, 1)
-            # Split by comma and join by newline for program processor
-            if "," in raw_input:
-                stdin_data = "\n".join([i.strip() for i in raw_input.split(",")])
+            # Hierarchical Splitting (User Request)
+            # Use ,, as a line separator if present, otherwise fall back to ,
+            if ",," in raw_input:
+                stdin_data = "\n".join([i.strip() for i in raw_input.split(",,")])
             else:
-                stdin_data = raw_input.strip()
+                stdin_data = "\n".join([i.strip() for i in raw_input.split(",")])
         else:
             code_and_t = full_payload
 
@@ -344,7 +345,7 @@ async def multi_lang_exec_handler(client: Client, message: Message):
 
         binary = selected["binary"]
         if not is_installed(binary):
-            await status_msg.edit(f"❌ `{name}` not found. Use `.installdeps {lang}`")
+            await status_msg.edit(f"❌ `{name}` not found. Suggestion: `.installdeps {lang}`")
             return
 
         # ----------------- FILENAME & CLASS HANDLING -----------------
@@ -370,7 +371,7 @@ async def multi_lang_exec_handler(client: Client, message: Message):
         )
 
         try:
-            # ⏳ Pipe processed stdin (newlines) and wait
+            # ⏳ Pipe processed stdin (hierarchical) and wait
             stdout, stderr = await asyncio.wait_for(
                 process.communicate(input=stdin_data.encode() if stdin_data else None), 
                 timeout=timeout_val
@@ -390,9 +391,9 @@ async def multi_lang_exec_handler(client: Client, message: Message):
 
         output = ""
         if stdin_data:
-            # Show original comma-style or cleaned preview
-            display_in = stdin_data.replace("\n", ", ")
-            output += f"📥 *Inputs:*\n```\n{truncate(display_in, 200)}\n```\n"
+            # Display preview of hierarchical inputs
+            display_in = stdin_data.replace("\n", " | ")
+            output += f"📥 *Inputs:* `{truncate(display_in, 100)}`\n"
         
         if stdout_str:
             output += f"✅ *Output ({name}):*\n```\n{truncate(stdout_str)}\n```\n"
@@ -465,26 +466,21 @@ async def install_deps_handler(client: Client, message: Message):
 # -----------------------------------------------------------
 
 EXAMPLES = """
-🚀 *Ultra Executor Pro Examples*
+🚀 *Ultra Executor v3.0 Examples*
 
-🐍 **Python (Multi-Input):**
-`.run py a=input(); b=input(); print(a+b) -i 10,20`
+🐍 **Python (Super Stdin):**
+`.run py a=input(); b=input(); print(a,"&",b) -i val,comma ,, val2`
+*(Inputs: "val,comma" and "val2")*
 
-🔵 **C (Math & Input):**
-`.run c #include <stdio.h>\n#include <math.h>\nint main(){ double x; scanf("%lf",&x); printf("%.2f",sqrt(x)); } -i 16`
+🔵 **C (Datasets):**
+`.run c #include <stdio.h>\nint main(){ char s[50], s2[50]; scanf("%s %s", s, s2); printf("%s|%s",s,s2); } -i 1,2 ,, 3,4`
 
 💠 **C++ (Modern):**
-`.run cpp #include <iostream>\nint main(){ std::cout<<"C++17 Ready"; }`
+`.run cpp #include <iostream>\nint main(){ std::cout<<"C++17 Pro"; }`
 
-☕ **Java:**
-`.run java class H{ public static void main(String[] a){ System.out.println("Java Pro"); }}`
+🐚 **Shell (Automation):**
+`.run sh for i in {1..3}; do echo "Step $i"; done`
 
-🦀 **Rust:**
-`.run rs fn main(){ println!("Optimized Rust"); }`
-
-🐚 **Shell:**
-`.run sh echo "Automated Shell"`
-
-⏱️ **Custom Timeout & Input:**
-`.run py import time; time.sleep(5); print(input()) -t 10 -i Hello`
+⏱️ **Custom Timeout:**
+`.run py import time; time.sleep(5); print("Done") -t 10`
 """
