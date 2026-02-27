@@ -6,13 +6,16 @@ import asyncio
 import shutil
 import os
 import uuid
-from typing import Optional
+import platform
+from typing import Optional, Union, Dict
 from . import *  # Astra helpers (astra_command, extract_args, smart_reply, report_error)
 
 # -----------------------------------------------------------
 # LANGUAGE DEFINITIONS (CORE / MOST USED)
 # -----------------------------------------------------------
 
+# Package mapping notes: linux (apt) vs darwin (brew)
+# Verified package names for Ubuntu 22.04/24.04 and macOS
 LANG_EXECUTORS = {
     # ------------------------ Python ------------------------
     "py": {
@@ -20,7 +23,7 @@ LANG_EXECUTORS = {
         "icon": "🐍",
         "aliases": ["python", "python3", "py", "p", "py3"],
         "binary": "python3",
-        "package": "python3",
+        "package": {"apt": "python3", "brew": "python3"},
         "ext": ".py",
         "run_cmd": lambda bin, f: f"{bin} {f}",
     },
@@ -31,7 +34,7 @@ LANG_EXECUTORS = {
         "icon": "🟨",
         "aliases": ["javascript", "node", "js", "j", "nodejs"],
         "binary": "node",
-        "package": "nodejs",
+        "package": {"apt": "nodejs", "brew": "node"},
         "ext": ".js",
         "run_cmd": lambda bin, f: f"{bin} {f}",
     },
@@ -42,7 +45,7 @@ LANG_EXECUTORS = {
         "icon": "🟦",
         "aliases": ["typescript", "ts"],
         "binary": "tsc",
-        "package": "typescript",
+        "package": {"apt": "node-typescript", "brew": "typescript"},
         "ext": ".ts",
         "run_cmd": lambda bin, f: f"tsc {f} --outFile /tmp/a.js && node /tmp/a.js",
     },
@@ -53,7 +56,7 @@ LANG_EXECUTORS = {
         "icon": "☕",
         "aliases": ["java", "javac"],
         "binary": "javac",
-        "package": "default-jdk",
+        "package": {"apt": "default-jdk", "brew": "openjdk"},
         "ext": ".java",
         "run_cmd": lambda bin, f: (
             f"javac {f} -d /tmp && java -cp /tmp {os.path.basename(f).replace('.java','')}"
@@ -66,7 +69,7 @@ LANG_EXECUTORS = {
         "icon": "🔵",
         "aliases": ["c", "gcc"],
         "binary": "gcc",
-        "package": "gcc",
+        "package": {"apt": "gcc", "brew": "gcc"},
         "ext": ".c",
         "run_cmd": lambda bin, f: f"gcc {f} -o /tmp/a.out && /tmp/a.out",
     },
@@ -77,7 +80,7 @@ LANG_EXECUTORS = {
         "icon": "💠",
         "aliases": ["cpp", "g++", "c++"],
         "binary": "g++",
-        "package": "g++",
+        "package": {"apt": "g++", "brew": "gcc"},
         "ext": ".cpp",
         "run_cmd": lambda bin, f: f"g++ {f} -o /tmp/a.out && /tmp/a.out",
     },
@@ -88,7 +91,7 @@ LANG_EXECUTORS = {
         "icon": "🦀",
         "aliases": ["rust", "rs", "rustc"],
         "binary": "rustc",
-        "package": "rustc",
+        "package": {"apt": "rustc", "brew": "rust"},
         "ext": ".rs",
         "run_cmd": lambda bin, f: f"rustc {f} -o /tmp/a.out && /tmp/a.out",
     },
@@ -99,7 +102,7 @@ LANG_EXECUTORS = {
         "icon": "🐹",
         "aliases": ["go", "golang"],
         "binary": "go",
-        "package": "golang-go",
+        "package": {"apt": "golang-go", "brew": "go"},
         "ext": ".go",
         "run_cmd": lambda bin, f: f"go run {f}",
     },
@@ -110,7 +113,7 @@ LANG_EXECUTORS = {
         "icon": "🐘",
         "aliases": ["php"],
         "binary": "php",
-        "package": "php-cli",
+        "package": {"apt": "php-cli", "brew": "php"},
         "ext": ".php",
         "run_cmd": lambda bin, f: f"{bin} {f}",
     },
@@ -121,7 +124,7 @@ LANG_EXECUTORS = {
         "icon": "💎",
         "aliases": ["ruby", "rb"],
         "binary": "ruby",
-        "package": "ruby-full",
+        "package": {"apt": "ruby-full", "brew": "ruby"},
         "ext": ".rb",
         "run_cmd": lambda bin, f: f"{bin} {f}",
     },
@@ -132,7 +135,7 @@ LANG_EXECUTORS = {
         "icon": "💜",
         "aliases": ["kotlin", "kt"],
         "binary": "kotlinc",
-        "package": "kotlinc",
+        "package": {"apt": "kotlin", "brew": "kotlin"},
         "ext": ".kt",
         "run_cmd": lambda bin, f: f"kotlinc {f} -include-runtime -d /tmp/a.jar && java -jar /tmp/a.jar",
     },
@@ -143,7 +146,7 @@ LANG_EXECUTORS = {
         "icon": "🍎",
         "aliases": ["swift"],
         "binary": "swift",
-        "package": "swift",
+        "package": {"apt": "swiftlang", "brew": "swift"},
         "ext": ".swift",
         "run_cmd": lambda bin, f: f"{bin} {f}",
     },
@@ -154,7 +157,7 @@ LANG_EXECUTORS = {
         "icon": "🗄️",
         "aliases": ["csharp", "cs"],
         "binary": "mcs",
-        "package": "mono-complete",
+        "package": {"apt": "mono-complete", "brew": "mono"},
         "ext": ".cs",
         "run_cmd": lambda bin, f: f"mcs {f} -out:/tmp/a.exe && mono /tmp/a.exe",
     },
@@ -165,7 +168,7 @@ LANG_EXECUTORS = {
         "icon": "🐚",
         "aliases": ["sh", "shell", "bash", "zsh"],
         "binary": "bash",
-        "package": "bash",
+        "package": {"apt": "bash", "brew": "bash"},
         "ext": ".sh",
         "run_cmd": lambda bin, f: f"{bin} {f}",
     },
@@ -175,6 +178,21 @@ LANG_EXECUTORS = {
 def is_installed(binary: str) -> bool:
     """Check if required binary is installed."""
     return shutil.which(binary) is not None
+
+def get_package_name(data: dict) -> Optional[str]:
+    """Resolve package name based on OS."""
+    pkg = data.get("package")
+    if not pkg: 
+        return None
+    if isinstance(pkg, str):
+        return pkg
+    
+    sys_name = platform.system().lower()
+    if sys_name == "linux":
+        return pkg.get("apt")
+    elif sys_name == "darwin":
+        return pkg.get("brew")
+    return list(pkg.values())[0] if pkg else None
 
 
 # -----------------------------------------------------------
@@ -288,11 +306,10 @@ async def multi_lang_exec_handler(client: Client, message: Message):
         # ---------------------------------------------------------
 
         binary = selected["binary"]
-        pkg = selected.get("package", binary)
+        pkg = get_package_name(selected) or binary
 
         # Check install status
         if not is_installed(binary):
-            import platform
             system = platform.system().lower()
             suggest_cmd = f"apt install {pkg} -y" if system == "linux" else f"brew install {pkg}"
             
@@ -364,15 +381,19 @@ async def multi_lang_exec_handler(client: Client, message: Message):
 async def install_deps_handler(client: Client, message: Message):
     """Install missing language dependencies with OS detection and batch support."""
     try:
-        import platform
         args = extract_args(message)
         if not args:
             return await smart_reply(message, "⚠️ Usage: `.installdeps <lang|all|missing>`")
 
         system = platform.system().lower()
         if system == "linux":
-            base_cmd = "apt-get update && apt-get install -y"
+            # Auto-update if needed (using -y to avoid prompts)
+            update_cmd = "apt-get update -y"
+            base_cmd = "apt-get install -y"
         elif system == "darwin":
+            # Brew update is slow, only recommended if explicitly requested or if it's been a while
+            # But for "auto" as requested, we'll prefix it.
+            update_cmd = "brew update"
             base_cmd = "brew install"
         else:
             return await smart_reply(message, f"❌ Auto-install not supported on `{system}`. Please install missing packages manually.")
@@ -394,8 +415,15 @@ async def install_deps_handler(client: Client, message: Message):
         if not targets:
             return await smart_reply(message, "✅ All requested environments are already set up.")
 
-        # Deduplicate packages
-        packages = list(dict.fromkeys([t["package"] for t in targets if t.get("package")]))
+        # Resolve package names for the current OS
+        packages = []
+        for t in targets:
+            pname = get_package_name(t)
+            if pname:
+                packages.append(pname)
+        
+        # Deduplicate
+        packages = list(dict.fromkeys(packages))
         
         if not packages:
             return await smart_reply(message, "❌ No package mapping found for selections.")
@@ -403,7 +431,8 @@ async def install_deps_handler(client: Client, message: Message):
         pkg_str = ", ".join(packages)
         status_msg = await smart_reply(message, f"⏳ *Executing installation...*\nOS: `{system.capitalize()}`\nTargets: `{pkg_str}`")
         
-        cmd = f"{base_cmd} {' '.join(packages)}"
+        # Combine update and install
+        cmd = f"{update_cmd} && {base_cmd} {' '.join(packages)}"
         
         process = await asyncio.create_subprocess_shell(
             cmd,
