@@ -246,12 +246,13 @@ def security_filter(code: str) -> Optional[str]:
     aliases=["exec-lang", "code"],
     usage=(
         ".run <lang> <code> [-t <sec>] [-i <input1,,input2>]\n\n"
-        "📝 *Super Stdin:*\n"
-        "🔹 **Lines:** Use `,,` (double comma) to separate input lines.\n"
-        "🔹 **Literal:** Use `,` (single comma) for data as-is.\n"
-        "🔹 **Example:** `-i csv,header ,, row1,data` (Two lines of input)\n\n"
-        "*Pro Example:*\n"
-        "🐍 **Python:** `.run py a=input();b=input();print(a,b) -i val1,,val2`"
+        "📝 *Power Features:*\n"
+        "🔹 **Input:** Use `-i` or `--input`. Separate multi-input with `,`.\n"
+        "🔹 **Timeout:** Use `-t` (max 300s).\n\n"
+        "*Pro Examples:*\n"
+        "🐍 *Python:* `.run py a=input();b=input();print(int(a)+int(b)) -i 10,20`\n"
+        "━━\n"
+        "🔵 **C:** `.run c int x; scanf(\"%d\",&x); printf(\"%d\",x); -i 5`"
     ),
     owner_only=True,
 )
@@ -468,8 +469,9 @@ async def install_deps_handler(client: Client, message: Message):
 EXAMPLES = """
 🚀 *Master Executor v3.0 - Supreme Examples*
 
-🐍 **Python (Super Stdin):**
-`.run py a=input(); b=input(); print(a,"&",b) -i val,comma ,, val2`
+🐍 *Python:* 
+`.run py a=input();b=input();print(int(a)+int(b)) -i 10,20`
+━━
 
 🟨 **JavaScript (Arrow & Async):**
 `.run js console.log(Array.from({length:3},(_,i)=>i+1))`
