@@ -9,6 +9,7 @@ import os
 import base64
 import asyncio
 from . import *
+from utils.bridge_downloader import bridge_downloader
 
 @astra_command(
     name="sticker",
@@ -29,8 +30,8 @@ async def sticker_handler(client: Client, message: Message):
 
         status_msg = await smart_reply(message, "✨ **Making your sticker...**")
 
-        # Download media to bytes
-        media_data = await client.download_media(target)
+        # Download media via high-reliability Bridge
+        media_data = await bridge_downloader.download_media(client, message)
         if not media_data:
             return await status_msg.edit("❌ Failed to download media.")
 

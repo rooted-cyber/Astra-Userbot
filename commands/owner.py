@@ -12,6 +12,7 @@ Commands to update profile info, bio, pfp, and status stories.
 """
 
 from . import *
+from utils.bridge_downloader import bridge_downloader
 import os
 import base64
 import time
@@ -74,9 +75,12 @@ async def setpfp_handler(client: Client, message: Message):
     status_msg = await smart_reply(message, " ⏳ *Updating profile picture...*")
     
     try:
-        # PFP Update usually requires a bridge method or direct Job call
-        # We'll use a direct bridge call for maximum reliability
-        media_b64 = await client.media.download_media(message.quoted.id if message.quoted else message.quoted_message_id)
+        # Use high-reliability bridge downloader
+        media_data = await bridge_downloader.download_media(client, message)
+        if not media_data:
+            return await status_msg.edit(" ❌ Failed to extract media from message.")
+            
+        media_b64 = base64.b64encode(media_data).decode('utf-8')
         
         # Call API method
         success = await client.account.update_profile_pic(media_b64)
@@ -105,7 +109,12 @@ async def setgpic_handler(client: Client, message: Message):
     status_msg = await smart_reply(message, " ⏳ *Updating group picture...*")
     
     try:
-        media_b64 = await client.media.download_media(message.quoted.id if message.quoted else message.quoted_message_id)
+        # Use high-reliability bridge downloader
+        media_data = await bridge_downloader.download_media(client, message)
+        if not media_data:
+            return await status_msg.edit(" ❌ Failed to extract media from message.")
+
+        media_b64 = base64.b64encode(media_data).decode('utf-8')
         success = await client.group.update_profile_pic(message.chat_id, media_b64)
         
         if success:
