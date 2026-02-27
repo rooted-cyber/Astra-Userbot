@@ -60,10 +60,24 @@ async def ss_handler(client: Client, message: Message):
         if img_data:
             b64_data = base64.b64encode(img_data).decode('utf-8')
             media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "screenshot.jpg"}
-            await client.send_media(message.chat_id, media, caption=f"📸 **Screenshot:** {url}")
-            try: await status_msg.delete()
-            except: pass
-            return
+            
+            sent = False
+            try:
+                await client.send_media(message.chat_id, media, caption=f"📸 **Screenshot:** {url}")
+                sent = True
+            except Exception as media_err:
+                logger.debug(f"Image upload failed: {media_err}. Retrying as document...")
+                try:
+                    # Retry as document/file
+                    await client.send_file(message.chat_id, img_data, filename="screenshot.png", caption=f"📸 **Screenshot (Doc):** {url}")
+                    sent = True
+                except Exception as file_err:
+                    logger.error(f"Screenshot upload totally failed: {file_err}")
+
+            if sent:
+                try: await status_msg.delete()
+                except: pass
+                return
         
         try: await status_msg.edit("⚠️ **Astra Web Capture:** All capture engines failed. The site might be heavily protected or offline.")
         except: pass
