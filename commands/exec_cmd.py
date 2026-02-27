@@ -466,20 +466,46 @@ async def install_deps_handler(client: Client, message: Message):
 # -----------------------------------------------------------
 
 EXAMPLES = """
-🚀 *Ultra Executor v3.0 Examples*
+🚀 *Master Executor v3.0 - Supreme Examples*
 
 🐍 **Python (Super Stdin):**
 `.run py a=input(); b=input(); print(a,"&",b) -i val,comma ,, val2`
-*(Inputs: "val,comma" and "val2")*
+
+🟨 **JavaScript (Arrow & Async):**
+`.run js console.log(Array.from({length:3},(_,i)=>i+1))`
+
+🟦 **TypeScript:**
+`.run ts let x:number=5; console.log(x*x)`
+
+☕ **Java (Hierarchical Multi-Input):**
+`.run java class H{ public static void main(String[] a){ var s=new java.util.Scanner(System.in); System.out.println(s.nextLine()+" | "+s.nextLine()); }} -i Row1,Data ,, Row2,Data`
 
 🔵 **C (Datasets):**
 `.run c #include <stdio.h>\nint main(){ char s[50], s2[50]; scanf("%s %s", s, s2); printf("%s|%s",s,s2); } -i 1,2 ,, 3,4`
 
-💠 **C++ (Modern):**
-`.run cpp #include <iostream>\nint main(){ std::cout<<"C++17 Pro"; }`
+💠 **C++ (Modern Threads):**
+`.run cpp #include <iostream>\n#include <thread>\nint main(){ std::cout<<"C++17 Pro"; }`
 
-🐚 **Shell (Automation):**
+🦀 **Rust (Optimized):**
+`.run rs fn main(){ println!("Optimized Rust Snippet"); }`
+
+🐹 **Golang:**
+`.run go package main\nimport "fmt"\nfunc main(){ fmt.Println("Go!") }`
+
+🐚 **Shell:**
 `.run sh for i in {1..3}; do echo "Step $i"; done`
+
+🐘 **PHP:**
+`.run php <?php echo "PHP ".phpversion();`
+
+💎 **Ruby:**
+`.run ruby puts "Ruby Magic"`
+
+💜 **Kotlin:**
+`.run kt fun main() = println("Kotlin Ready")`
+
+🍎 **Swift:**
+`.run swift print("Swift High-Performance")`
 
 ⏱️ **Custom Timeout:**
 `.run py import time; time.sleep(5); print("Done") -t 10`
