@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.3b2] - Astra Beta 2 (v0.0.3) - 2026-02-27 [LATEST]
+### Changed
+- **Master Executor v3.4**: Expanded command usage to include all supported language abbreviations and pro examples.
+- **Advanced Stdin**: Finalized hierarchical input parsing (,,) for complex dataset automation.
+- **UI Refresh**: Applied professional separators and icons across all status messages.
+
+### Fixed
+- **Minor Fixes and improvements**: Miscellaneous stability enhancements and documentation refinements.
+
 ## [0.0.3b1] - Astra Beta 1 (v0.0.3) - 2026-02-23
 
 ### Added

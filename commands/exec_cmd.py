@@ -245,14 +245,29 @@ def security_filter(code: str) -> Optional[str]:
     category="Owner Utility",
     aliases=["exec-lang", "code"],
     usage=(
-        ".run <lang> <code> [-t <sec>] [-i <input1,,input2>]\n\n"
-        "📝 *Power Features:*\n"
-        "🔹 **Input:** Use `-i` or `--input`. Separate multi-input with `,`.\n"
+        "🚀 **Pro Multi-Language Executor**\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "💻 **Usage:** `.run <lang> <code> [-t <sec>] [-i <inputs>]`\n\n"
+        "📂 **Supported Languages:**\n"
+        "🐍 `python` (py, p, py3)\n"
+        "🟨 `node` (js, j, nodejs)\n"
+        "🟦 `typescript` (ts)\n"
+        "☕ `java` (javac, jv)\n"
+        "🔵 `c` (gcc)\n"
+        "💠 `cpp` (g++, c++)\n"
+        "🦀 `rust` (rs, rustc)\n"
+        "🐹 `go` (golang)\n"
+        "🐘 `php`\n"
+        "💎 `ruby` (rb)\n"
+        "💜 `kotlin` (kt)\n"
+        "🍎 `swift`\n"
+        "🗄️ `csharp` (cs, mono)\n"
+        "🐚 `shell` (sh, bash, zsh)\n\n"
+        "📝 **Power Features:**\n"
+        "🔹 **Input:** Use `-i` or `--input`. Use `,,` for lines.\n"
         "🔹 **Timeout:** Use `-t` (max 300s).\n\n"
         "*Pro Examples:*\n"
-        "🐍 *Python:* `.run py a=input();b=input();print(int(a)+int(b)) -i 10,20`\n"
-        "━━\n"
-        "🔵 **C:** `.run c int x; scanf(\"%d\",&x); printf(\"%d\",x); -i 5`"
+        "🐍 *Python:* `.run py a=input();b=input();print(int(a)+int(b)) -i 10,20`"
     ),
     owner_only=True,
 )
