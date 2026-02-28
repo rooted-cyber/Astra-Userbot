@@ -18,12 +18,12 @@ from utils.database import db
 
 logger = logging.getLogger("Astra.Memes")
 
-# ── Request Config ──────────────────────────
-REQUEST_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+# ── Config ──────────────────────────────────
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=20)
+REDDIT_HEADERS = {
+    'User-Agent': 'AstraUserbot/1.0 (by /u/AstraBot)',
     'Accept': 'application/json'
 }
-REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=15)
 
 # ── Subreddit Lists ────────────────────────
 INDIAN_MEMES = [
@@ -35,7 +35,7 @@ INDIAN_MEMES = [
 
 INDIAN_NSFW_MEMES = [
     'sunraybee', 'okbhaibudbak', 'IndianDankTemplates',
-    'IndianDankMemes'  # IDM also has nsfw content
+    'IndianDankMemes'
 ]
 
 GLOBAL_MEMES = [
@@ -45,248 +45,278 @@ GLOBAL_MEMES = [
 
 GLOBAL_NSFW_MEMES = [
     'HolUp', 'cursedimages', 'ImFinnaGoToHell',
-    'dankmemes', 'memes'  # These also have NSFW tagged posts
+    'dankmemes', 'memes'
 ]
 
-# Combined lists
 ALL_MEMES = INDIAN_MEMES + GLOBAL_MEMES
 ALL_NSFW_MEMES = list(set(INDIAN_NSFW_MEMES + GLOBAL_NSFW_MEMES))
 
 # ── Database Helpers ────────────────────────
 
-async def is_meme_seen(post_id: str) -> bool:
-    """Checks if a meme has already been shown."""
+async def _db_ok() -> bool:
+    try: return db.sqlite_conn is not None
+    except: return False
+
+async def cleanup_old_seen(hours: int = 24):
+    """Purge seen entries older than N hours so memes recycle."""
     try:
-        cursor = await db.sqlite_conn.execute("SELECT 1 FROM seen_memes WHERE post_id = ?", (post_id,))
-        return await cursor.fetchone() is not None
-    except Exception:
-        return False
+        if not await _db_ok(): return
+        cutoff = int(time.time()) - (hours * 3600)
+        await db.sqlite_conn.execute("DELETE FROM seen_memes WHERE fetched_at < ?", (cutoff,))
+        await db.sqlite_conn.commit()
+    except Exception: pass
+
+async def is_meme_seen(post_id: str) -> bool:
+    try:
+        if not await _db_ok(): return False
+        cur = await db.sqlite_conn.execute("SELECT 1 FROM seen_memes WHERE post_id = ?", (post_id,))
+        return await cur.fetchone() is not None
+    except: return False
 
 async def mark_meme_seen(post_id: str, subreddit: str):
-    """Marks a meme as seen in the database."""
     try:
+        if not await _db_ok(): return
         await db.sqlite_conn.execute(
             "INSERT OR IGNORE INTO seen_memes (post_id, subreddit, fetched_at) VALUES (?, ?, ?)",
             (post_id, subreddit, int(time.time()))
         )
         await db.sqlite_conn.commit()
     except Exception as e:
-        logger.debug(f"mark_meme_seen error: {e}")
+        logger.debug(f"mark_seen: {e}")
 
-# ── Core Fetching Engine ────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# SOURCE 1: MEME-API (Primary — fast, reliable)
+# Uses meme-api.com which proxies Reddit server-side
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-def _is_valid_image_url(url: str) -> bool:
-    """Check if a URL points to a direct image."""
-    low = url.lower()
-    if any(low.endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']):
-        return True
-    # Imgur fix: bare imgur links without extension
-    if 'imgur.com' in low and '/a/' not in low and '/gallery/' not in low:
-        return True
-    # i.redd.it is always a direct image
-    if 'i.redd.it' in low:
-        return True
-    return False
-
-def _fix_url(url: str) -> str:
-    """Fix common URL issues."""
-    # Imgur without extension
-    if 'imgur.com' in url and not url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
-        if '/a/' not in url and '/gallery/' not in url:
-            return url + '.jpg'
-    return url
-
-def _is_video_post(pdata: dict, url: str) -> bool:
-    """Accurate video detection."""
-    return bool(
-        pdata.get('is_video') or 
-        pdata.get('post_hint') == 'video' or
-        pdata.get('post_hint') == 'rich:video' or
-        url.lower().endswith(('.mp4', '.gifv', '.mkv', '.webm')) or
-        'v.redd.it' in url
-    )
-
-def _get_video_url(pdata: dict) -> Optional[str]:
-    """Extract the best video URL from a reddit post."""
-    # Reddit native video
-    media = pdata.get('media') or {}
-    rv = media.get('reddit_video') or {}
-    if rv.get('fallback_url'):
-        return rv['fallback_url']
-    
-    # Crosspost source
-    crosspost = pdata.get('crosspost_parent_list', [])
-    if crosspost:
-        cp_media = crosspost[0].get('media') or {}
-        cp_rv = cp_media.get('reddit_video') or {}
-        if cp_rv.get('fallback_url'):
-            return cp_rv['fallback_url']
-    
-    # Direct URL fallback
-    url = pdata.get('url', '')
-    if url.lower().endswith(('.mp4', '.gifv', '.webm')):
-        return url
-    if 'v.redd.it' in url:
-        return url
-    
-    return None
-
-async def fetch_reddit_meme(
-    subreddits: List[str], 
-    video_only: bool = False, 
-    nsfw: bool = False, 
-    allow_text: bool = False
-) -> Optional[Dict]:
-    """
-    Fetches a fresh meme from Reddit with duplicate prevention and high variety.
-    Scans multiple sort methods (hot, new, top, rising) across multiple subreddits.
-    """
-    if not subreddits:
-        return None
-    
+async def _fetch_via_meme_api(subreddits: List[str], nsfw: bool = False) -> Optional[Dict]:
+    """Fetch from meme-api.com — handles Reddit scraping server-side."""
     subs = list(subreddits)
     random.shuffle(subs)
     
-    sort_methods = ['hot', 'new', 'top', 'rising']
-    random.shuffle(sort_methods)
-    
-    async with aiohttp.ClientSession(headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT) as session:
-        for sub in subs:
-            for sort in sort_methods:
+    try:
+        async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
+            for sub in subs[:5]:  # Try max 5 subs
                 try:
-                    params = f"/{sort}.json?limit=100&raw_json=1"
-                    if sort == 'top':
-                        params += "&t=" + random.choice(['day', 'week', 'month', 'year', 'all'])
-                    
-                    url = f"https://www.reddit.com/r/{sub}{params}"
-                    
+                    url = f"https://meme-api.com/gimme/{sub}/10"
                     async with session.get(url) as resp:
                         if resp.status != 200:
                             continue
+                        data = await resp.json()
                         
-                        try:
-                            data = await resp.json()
-                        except Exception:
-                            continue
+                        memes = data.get('memes', [])
+                        if not memes and data.get('url'):
+                            # Single meme response
+                            memes = [data]
                         
-                        posts = data.get('data', {}).get('children', [])
-                        if not posts:
-                            continue
+                        random.shuffle(memes)
                         
-                        random.shuffle(posts)
-                        
-                        for post in posts:
-                            pdata = post.get('data', {})
-                            if not pdata or pdata.get('stickied'):
-                                continue
-                            
-                            post_id = pdata.get('name', '')
-                            if not post_id:
-                                continue
+                        for meme in memes:
+                            post_id = meme.get('postLink', '')
                             if await is_meme_seen(post_id):
                                 continue
                             
                             # NSFW filter
-                            if not nsfw and pdata.get('over_18'):
+                            if not nsfw and meme.get('nsfw'):
                                 continue
                             
-                            post_url = pdata.get('url', '')
-                            is_gallery = 'reddit.com/gallery/' in post_url or pdata.get('is_gallery')
-                            is_video = _is_video_post(pdata, post_url)
-                            is_text = pdata.get('is_self', False)
-                            
-                            # ── TEXT POSTS (stories) ──
-                            if is_text:
-                                if not allow_text:
-                                    continue
-                                text_content = pdata.get('selftext', '')
-                                if len(text_content) < 20:
-                                    continue
-                                return {
-                                    "id": post_id,
-                                    "title": pdata.get('title', ''),
-                                    "subreddit": pdata.get('subreddit', sub),
-                                    "text": text_content,
-                                    "is_video": False,
-                                    "is_nsfw": bool(pdata.get('over_18')),
-                                    "is_text": True
-                                }
-                            
-                            # ── VIDEO POSTS ──
-                            if video_only:
-                                if not is_video:
-                                    continue
-                                vid_url = _get_video_url(pdata)
-                                if not vid_url:
-                                    continue
-                                return {
-                                    "id": post_id,
-                                    "url": vid_url,
-                                    "title": pdata.get('title', ''),
-                                    "subreddit": pdata.get('subreddit', sub),
-                                    "is_video": True,
-                                    "is_nsfw": bool(pdata.get('over_18')),
-                                    "is_text": False
-                                }
-                            
-                            # ── IMAGE POSTS ──
-                            if is_video or is_gallery or is_text:
-                                continue
-                            
-                            fixed_url = _fix_url(post_url)
-                            if not _is_valid_image_url(fixed_url):
+                            media_url = meme.get('url', '')
+                            if not media_url:
                                 continue
                             
                             return {
                                 "id": post_id,
-                                "url": fixed_url,
-                                "title": pdata.get('title', ''),
-                                "subreddit": pdata.get('subreddit', sub),
-                                "is_video": False,
-                                "is_nsfw": bool(pdata.get('over_18')),
+                                "url": media_url,
+                                "title": meme.get('title', 'Meme'),
+                                "subreddit": meme.get('subreddit', sub),
+                                "is_video": media_url.lower().endswith(('.mp4', '.gifv', '.webm')),
+                                "is_nsfw": meme.get('nsfw', False),
                                 "is_text": False
                             }
-                            
                 except Exception as e:
-                    logger.debug(f"fetch_reddit_meme error [{sub}/{sort}]: {e}")
+                    logger.debug(f"meme-api error [{sub}]: {e}")
                     continue
+    except Exception as e:
+        logger.debug(f"meme-api session error: {e}")
     
+    return None
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# SOURCE 2: DIRECT REDDIT (Fallback)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+def _is_video_post(pdata: dict, url: str) -> bool:
+    return bool(
+        pdata.get('is_video') or 
+        pdata.get('post_hint') == 'video' or
+        'v.redd.it' in url or
+        url.lower().endswith(('.mp4', '.gifv', '.webm'))
+    )
+
+def _get_video_url(pdata: dict) -> Optional[str]:
+    for src in [pdata.get('media'), pdata.get('secure_media')]:
+        if src and src.get('reddit_video', {}).get('fallback_url'):
+            return src['reddit_video']['fallback_url']
+    for cp in pdata.get('crosspost_parent_list', []):
+        for src in [cp.get('media'), cp.get('secure_media')]:
+            if src and src.get('reddit_video', {}).get('fallback_url'):
+                return src['reddit_video']['fallback_url']
+    url = pdata.get('url', '')
+    if 'v.redd.it' in url or url.lower().endswith(('.mp4', '.gifv')):
+        return url
+    return None
+
+async def _fetch_via_reddit(
+    subreddits: List[str], video_only: bool = False, 
+    nsfw: bool = False, allow_text: bool = False
+) -> Optional[Dict]:
+    """Direct Reddit JSON fallback."""
+    subs = list(subreddits)
+    random.shuffle(subs)
+    sorts = ['hot', 'new', 'top']
+    random.shuffle(sorts)
+    
+    try:
+        async with aiohttp.ClientSession(headers=REDDIT_HEADERS, timeout=REQUEST_TIMEOUT) as session:
+            for sub in subs[:5]:
+                for sort in sorts:
+                    try:
+                        params = f"/{sort}.json?limit=50&raw_json=1"
+                        if sort == 'top':
+                            params += "&t=" + random.choice(['day', 'week', 'month'])
+                        
+                        async with session.get(f"https://www.reddit.com/r/{sub}{params}") as resp:
+                            if resp.status != 200:
+                                continue
+                            data = await resp.json()
+                        
+                        posts = data.get('data', {}).get('children', [])
+                        if not posts: continue
+                        random.shuffle(posts)
+                        
+                        for post in posts:
+                            p = post.get('data', {})
+                            if not p or p.get('stickied'): continue
+                            
+                            pid = p.get('name', '')
+                            if not pid or await is_meme_seen(pid): continue
+                            if not nsfw and p.get('over_18'): continue
+                            
+                            url = p.get('url', '')
+                            is_vid = _is_video_post(p, url)
+                            is_text = p.get('is_self', False)
+                            is_gallery = p.get('is_gallery') or 'reddit.com/gallery/' in url
+                            
+                            # Text posts (stories)
+                            if is_text:
+                                if not allow_text: continue
+                                text = p.get('selftext', '')
+                                if len(text) < 20: continue
+                                return {
+                                    "id": pid, "title": p.get('title', ''),
+                                    "subreddit": p.get('subreddit', sub),
+                                    "text": text, "is_video": False,
+                                    "is_nsfw": bool(p.get('over_18')), "is_text": True
+                                }
+                            
+                            # Video posts
+                            if video_only:
+                                if not is_vid: continue
+                                vid_url = _get_video_url(p)
+                                if not vid_url: continue
+                                return {
+                                    "id": pid, "url": vid_url,
+                                    "title": p.get('title', ''),
+                                    "subreddit": p.get('subreddit', sub),
+                                    "is_video": True, "is_nsfw": bool(p.get('over_18')),
+                                    "is_text": False
+                                }
+                            
+                            # Image posts
+                            if is_vid or is_gallery or is_text: continue
+                            low = url.lower()
+                            if not any(low.endswith(e) for e in ['.jpg','.jpeg','.png','.gif','.webp']):
+                                if 'i.redd.it' not in low and 'imgur.com' not in low:
+                                    continue
+                                if 'imgur.com' in url and '/a/' not in url and '/gallery/' not in url:
+                                    url += '.jpg'
+                            
+                            return {
+                                "id": pid, "url": url,
+                                "title": p.get('title', ''),
+                                "subreddit": p.get('subreddit', sub),
+                                "is_video": False, "is_nsfw": bool(p.get('over_18')),
+                                "is_text": False
+                            }
+                    except Exception as e:
+                        logger.debug(f"reddit fallback [{sub}/{sort}]: {e}")
+                        continue
+    except Exception as e:
+        logger.debug(f"reddit session error: {e}")
+    
+    return None
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# UNIFIED FETCHER (tries sources in order)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async def fetch_meme(
+    subreddits: List[str], video_only: bool = False,
+    nsfw: bool = False, allow_text: bool = False
+) -> Optional[Dict]:
+    """Multi-source meme fetcher: meme-api → direct Reddit."""
+    await cleanup_old_seen(24)
+    
+    # Source 1: meme-api.com (fast, reliable — but no video/text filter)
+    if not video_only and not allow_text:
+        result = await _fetch_via_meme_api(subreddits, nsfw=nsfw)
+        if result:
+            return result
+    
+    # Source 2: Direct Reddit (for video_only, text, and as general fallback)
+    result = await _fetch_via_reddit(subreddits, video_only=video_only, nsfw=nsfw, allow_text=allow_text)
+    if result:
+        return result
+    
+    # Source 3: meme-api with broader subs as last resort
+    if not video_only and not allow_text:
+        fallback_subs = ['memes', 'dankmemes', 'funny']
+        result = await _fetch_via_meme_api(fallback_subs, nsfw=nsfw)
+        if result:
+            return result
+    
+    logger.warning(f"All sources exhausted. video={video_only} nsfw={nsfw} text={allow_text}")
     return None
 
 # ── Media Sender ────────────────────────────
 
 async def send_meme_media(client, chat_id, meme_data, reply_to):
     """Downloads and sends the meme media to chat."""
-    # Text-only stories
     if meme_data.get('is_text'):
         caption = f"📖 *{meme_data['title']}*\n\n{meme_data['text']}\n\n📍 *Sub:* r/{meme_data['subreddit']}"
-        if meme_data.get('is_nsfw'):
-            caption = "🔞 " + caption
-        if len(caption) > 4000:
-            caption = caption[:3997] + "..."
+        if meme_data.get('is_nsfw'): caption = "🔞 " + caption
+        if len(caption) > 4000: caption = caption[:3997] + "..."
         await client.send_message(chat_id, caption, reply_to=reply_to)
         return True
 
-    # Download media
     try:
-        async with aiohttp.ClientSession(headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT) as session:
+        async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
             async with session.get(meme_data['url']) as resp:
                 if resp.status != 200:
+                    logger.warning(f"Media download HTTP {resp.status}: {meme_data['url']}")
                     return False
                 img_data = await resp.read()
                 content_type = resp.headers.get('Content-Type', 'image/jpeg')
     except Exception as e:
-        logger.debug(f"Media download error: {e}")
+        logger.warning(f"Media download error: {e}")
         return False
 
     b64_data = base64.b64encode(img_data).decode('utf-8')
-    
-    # Determine ext from content type
     ext_map = {
         'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif',
-        'image/webp': 'webp', 'video/mp4': 'mp4', 'video/webm': 'webm'
+        'image/webp': 'webp', 'video/mp4': 'mp4'
     }
-    ext = ext_map.get(content_type, content_type.split('/')[-1] if '/' in content_type else 'jpg')
+    ext = ext_map.get(content_type, 'jpg')
     
     media = {
         "mimetype": content_type,
@@ -295,32 +325,40 @@ async def send_meme_media(client, chat_id, meme_data, reply_to):
     }
 
     caption = f"🔥 *{meme_data['title']}*\n\n📍 *Sub:* r/{meme_data['subreddit']}"
-    if meme_data.get('is_nsfw'):
-        caption = "🔞 " + caption
-
+    if meme_data.get('is_nsfw'): caption = "🔞 " + caption
     await client.send_media(chat_id, media, caption=caption, reply_to=reply_to)
     return True
 
-# ── Generic handler helper (DRY) ───────────
+# ── Generic Handler (DRY) ──────────────────
 
 async def _meme_handler(client, message, subs, label, fallback_subs=None, **kwargs):
-    """Generic meme handler to reduce code duplication."""
+    """Generic meme command handler."""
     status_msg = await smart_reply(message, f"*{label}*")
     
-    meme = await fetch_reddit_meme(subs, **kwargs)
-    
-    # Fallback if primary list returned nothing
-    if not meme and fallback_subs:
-        meme = await fetch_reddit_meme(fallback_subs, **kwargs)
-    
-    if meme:
-        if await send_meme_media(client, message.chat_id, meme, message.id):
-            await mark_meme_seen(meme['id'], meme['subreddit'])
-            await status_msg.delete()
+    try:
+        meme = await fetch_meme(subs, **kwargs)
+        
+        if not meme and fallback_subs:
+            meme = await fetch_meme(fallback_subs, **kwargs)
+        
+        if meme:
+            ok = await send_meme_media(client, message.chat_id, meme, message.id)
+            if ok:
+                await mark_meme_seen(meme['id'], meme['subreddit'])
+                await status_msg.delete()
+            else:
+                await safe_edit(status_msg, f"❌ Media download failed.\n📎 URL: `{meme.get('url', '?')[:80]}`")
         else:
-            await safe_edit(status_msg, "❌ Media download failed.")
-    else:
-        await safe_edit(status_msg, "❌ No fresh content found. Try again!")
+            subs_tried = ', '.join(subs[:3])
+            mode = []
+            if kwargs.get('video_only'): mode.append('video')
+            if kwargs.get('nsfw'): mode.append('nsfw')
+            if kwargs.get('allow_text'): mode.append('text')
+            mode_str = '+'.join(mode) if mode else 'image'
+            await safe_edit(status_msg, f"❌ No fresh content found.\n🔍 Subs: `{subs_tried}`\n📂 Mode: `{mode_str}`\n💡 Try again or use a different command.")
+    except Exception as e:
+        logger.error(f"_meme_handler error: {e}")
+        await safe_edit(status_msg, f"❌ Meme Error: `{str(e)[:100]}`")
 
 # ── Command Handlers ───────────────────────
 
@@ -334,7 +372,7 @@ async def idmdmes_handler(client: Client, message: Message):
 
 @astra_command(name="meme", description="Get a random global meme", category="Fun & Memes", usage=".meme")
 async def meme_handler(client: Client, message: Message):
-    await _meme_handler(client, message, ALL_MEMES, "🌎 Fetching global meme...")
+    await _meme_handler(client, message, ALL_MEMES, "🌍 Fetching global meme...")
 
 @astra_command(name="dmeme", description="Get a NSFW/Dark global meme", category="Fun & Memes", usage=".dmeme")
 async def dmeme_handler(client: Client, message: Message):
@@ -357,7 +395,7 @@ async def idm_handler(client: Client, message: Message):
     args = extract_args(message)
     video_only = "-v" in args
     label = f"🇮🇳 {'🎥 ' if video_only else ''}Fetching IDM meme..."
-    await _meme_handler(client, message, ['IndianDankMemes'], label, video_only=video_only)
+    await _meme_handler(client, message, ['IndianDankMemes'], label, fallback_subs=INDIAN_MEMES, video_only=video_only)
 
 @astra_command(name="phakh", description="Get a story from r/PataHaiAajKyaHua", aliases=["story"], category="Fun & Memes", usage=".phakh")
 async def phakh_handler(client: Client, message: Message):
@@ -377,4 +415,4 @@ async def ivmeme_handler(client: Client, message: Message):
 
 @astra_command(name="idmv", description="Get a safe video from r/IndianDankMemes", category="Fun & Memes", usage=".idmv")
 async def idmv_handler(client: Client, message: Message):
-    await _meme_handler(client, message, ['IndianDankMemes'], "🇮🇳🎥 Fetching IDM video...", video_only=True)
+    await _meme_handler(client, message, ['IndianDankMemes'], "🇮🇳🎥 Fetching IDM video...", fallback_subs=INDIAN_MEMES, video_only=True)

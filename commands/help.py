@@ -43,12 +43,12 @@ CATEGORY_MAP = {
 # Icons per unified category
 CATEGORY_ICONS = {
     "AI & Search":        "🧠",
-    "Tools & Utilities":  "🛠️",
+    "Tools & Utilities":  "🔧",
     "Fun & Memes":        "🎭",
     "Media & Downloads":  "🎬",
     "Group Management":   "👥",
     "Owner":              "👑",
-    "System":             "⚙️",
+    "System":             "🔩",
 }
 
 # Sort order for main menu
@@ -176,7 +176,7 @@ async def help_handler(client: Client, message: Message):
                     f"╚═══════════════════════╝\n\n"
                     f"  💠 *Command:*  `{pfx}{cmd['name']}`\n"
                     f"  ℹ️ *Info:*  _{cmd['description']}_\n"
-                    f"  � *Category:*  {normalize_category(cmd.get('category', ''))}\n"
+                    f"  📁 *Category:*  {normalize_category(cmd.get('category', ''))}\n"
                     f"  📦 *Plugin:*  `{mod_name}`\n"
                 )
                 if cmd.get('aliases'):
@@ -208,8 +208,8 @@ async def help_handler(client: Client, message: Message):
             f"║   ⚡ *ASTRA USERBOT*  ⚡\n"
             f"║   {config.VERSION_NAME}\n"
             f"╚═══════════════════════╝\n\n"
-            f"  � *Owner:*  `{config.OWNER_ID}`\n"
-            f"  � *Prefix:*  `{pfx}`    � *Commands:*  `{total}`\n\n"
+            f"  👤 *Owner:*  `{config.OWNER_ID}`\n"
+            f"  📌 *Prefix:*  `{pfx}`    📊 *Commands:*  `{total}`\n\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         )
 
