@@ -136,7 +136,7 @@ async def help_handler(client: Client, message: Message):
                 txt += (
                     f"\n┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n"
                     f"  📂 Categories: {', '.join(cats_in_mod)}\n"
-                    f"  � Total: *{len(cmds)}* commands\n"
+                    f"  📊 Total: *{len(cmds)}* commands\n"
                     f"┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n"
                     f"💡 `{pfx}help <cmd>` for usage details"
                 )
@@ -158,7 +158,7 @@ async def help_handler(client: Client, message: Message):
                     txt += f"  ▸ `{pfx}{c['name']}`  —  _{c['description'][:45]}_\n"
                 txt += (
                     f"\n┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n"
-                    f"  � Total: *{len(cmds)}* commands\n"
+                    f"  📊 Total: *{len(cmds)}* commands\n"
                     f"┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n"
                     f"💡 `{pfx}help <cmd>` for usage details"
                 )
