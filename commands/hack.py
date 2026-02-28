@@ -21,7 +21,7 @@ from . import *
 @astra_command(
     name="hack",
     description="Simulate a hacking attack on a user or chat.",
-    category="Fun & Games",
+    category="Fun & Memes",
     aliases=["hacker"],
     usage="<target> (e.g. @user or number)",
     is_public=True

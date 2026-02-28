@@ -12,7 +12,7 @@ from . import *
 @astra_command(
     name="song",
     description="Search and download audio from YouTube.",
-    category="Downloader",
+    category="Media & Downloads",
     aliases=["music"],
     usage="<song name>",
     is_public=True
@@ -72,7 +72,7 @@ async def song_handler(client: Client, message: Message):
 @astra_command(
     name="vsong",
     description="Search and download video from YouTube.",
-    category="Downloader",
+    category="Media & Downloads",
     aliases=["video"],
     usage="<video name>",
     is_public=True

@@ -12,7 +12,7 @@ from . import *
 @astra_command(
     name="anime",
     description="Search for anime information on MyAnimeList.",
-    category="Core Tools",
+    category="Tools & Utilities",
     aliases=["mal"],
     usage="<anime name> (e.g. .anime Naruto)",
     is_public=True
@@ -31,7 +31,7 @@ async def anime_handler(client: Client, message: Message):
         api_url = f"https://api.jikan.moe/v4/anime?q={query}&limit=1"
         
         async with aiohttp.ClientSession() as session:
-            async with session.get(api_url, timeout=10) as resp:
+            async with session.get(api_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     results = data.get('data', [])

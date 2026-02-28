@@ -19,7 +19,7 @@ from . import *
 @astra_command(
     name="spam",
     description="Flood the chat with messages.",
-    category="Owner Utility",
+    category="Owner",
     aliases=[],
     usage="<count> <text> (e.g. .spam 5 hello)",
     owner_only=True # Safety: Only owner/sudo can spam
@@ -55,7 +55,7 @@ async def spam_handler(client: Client, message: Message):
 @astra_command(
     name="dspam",
     description="Flood the chat with delayed messages.",
-    category="Owner Utility",
+    category="Owner",
     aliases=["delayspam"],
     usage="<delay_sec> <count> <text> (e.g. .dspam 1 5 hi)",
     owner_only=True

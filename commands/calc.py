@@ -19,7 +19,7 @@ from . import *
 @astra_command(
     name="calc",
     description="Solve complex mathematical expressions.",
-    category="Astra Essentials",
+    category="Tools & Utilities",
     aliases=["math", "calculate"],
     usage="<expression> (e.g. 2+2)",
     is_public=True

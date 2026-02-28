@@ -14,7 +14,7 @@ from . import *
 @astra_command(
     name="wiki",
     description="Search Wikipedia for information on any topic.",
-    category="Astra Essentials",
+    category="Tools & Utilities",
     aliases=["wikipedia"],
     usage="<query> (search term)",
     is_public=True
@@ -35,7 +35,7 @@ async def wiki_handler(client: Client, message: Message):
         async with aiohttp.ClientSession(headers=headers) as session:
             # 1. Search for titles
             search_url = f"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={query}&format=json"
-            async with session.get(search_url, timeout=10) as resp:
+            async with session.get(search_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 search_data = await resp.json()
         
             if not search_data['query']['search']:
@@ -46,7 +46,7 @@ async def wiki_handler(client: Client, message: Message):
     
             # 2. Fetch specialized summary
             summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{best_match.replace(' ', '_')}"
-            async with session.get(summary_url, timeout=10) as resp:
+            async with session.get(summary_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status != 200:
                     time.sleep(0.5)
                     return await status_msg.edit(" ⚠️ Failed to retrieve article summary.")

@@ -12,7 +12,7 @@ from utils.state import state
 @astra_command(
     name="mute",
     description="Mute or unmute group notifications/commands (Bot internal)",
-    category="Group Admin",
+    category="Group Management",
     aliases=["unmute"],
     usage="<on|off> (enable or disable mute)",
     owner_only=False

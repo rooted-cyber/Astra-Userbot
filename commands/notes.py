@@ -11,7 +11,7 @@ from . import *
 @astra_command(
     name="notes",
     description="Manage your notes/snippets.",
-    category="Astra Essentials",
+    category="Tools & Utilities",
     aliases=["note", "save", "get"],
     usage="save <keyword> <content> | get <keyword> | del <keyword> | list (ex: save note1 hello)",
     owner_only=True

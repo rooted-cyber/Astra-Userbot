@@ -25,8 +25,8 @@ from . import *
 @astra_command(
     name="carbon",
     description="Create a beautiful code snippet image.",
-    category="Astra Essentials",
-    aliases=["code"],
+    category="Tools & Utilities",
+    aliases=["snippet"],
     usage="<text/reply> (reply to code or paste text)",
     is_public=True
 )
@@ -80,7 +80,7 @@ async def carbon_handler(client: Client, message: Message):
 @astra_command(
     name="quotly",
     description="Create a sticker quote from a message.",
-    category="Fun",
+    category="Fun & Memes",
     aliases=["q", "quote"],
     usage="(reply to message) (optionally .quotly 3 to quote 3 msgs)",
     is_public=True

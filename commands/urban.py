@@ -12,7 +12,7 @@ from . import *
 @astra_command(
     name="urban",
     description="Search Urban Dictionary for definitions.",
-    category="Core Tools",
+    category="Tools & Utilities",
     aliases=["ud", "slang"],
     usage="<word> (e.g. .urban chill)",
     is_public=True
@@ -30,7 +30,7 @@ async def urban_handler(client: Client, message: Message):
         api_url = f"http://api.urbandictionary.com/v0/define?term={quote_plus(word)}"
         
         async with aiohttp.ClientSession() as session:
-            async with session.get(api_url, timeout=10) as resp:
+            async with session.get(api_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     results = data.get('list', [])

@@ -20,7 +20,7 @@ from utils.helpers import get_progress_bar
 @astra_command(
     name="twitter",
     description="Download Twitter/X video",
-    category="Media Engine",
+    category="Media & Downloads",
     aliases=["tw", "x"],
     usage="<url> (Twitter/X status link)",
     owner_only=False

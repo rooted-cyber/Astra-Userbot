@@ -20,7 +20,7 @@ from utils.helpers import get_progress_bar
 @astra_command(
     name="instagram",
     description="Download Instagram post/reel",
-    category="Media Engine",
+    category="Media & Downloads",
     aliases=["ig", "reel"],
     usage="<url> (Instagram post/reel link)",
     owner_only=False

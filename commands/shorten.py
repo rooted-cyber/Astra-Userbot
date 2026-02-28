@@ -11,7 +11,7 @@ from . import *
 @astra_command(
     name="shorten",
     description="Shorten long URLs using tinyurl.",
-    category="Core Tools",
+    category="Tools & Utilities",
     aliases=["short", "urlshort"],
     usage="<url> (e.g. .shorten https://github.com/paman7647/Astra-Userbot)",
     is_public=True
@@ -32,7 +32,7 @@ async def shorten_handler(client: Client, message: Message):
         api_url = f"http://tinyurl.com/api-create.php?url={url}"
         
         async with aiohttp.ClientSession() as session:
-            async with session.get(api_url, timeout=10) as resp:
+            async with session.get(api_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status == 200:
                     short_url = await resp.text()
                     text = (

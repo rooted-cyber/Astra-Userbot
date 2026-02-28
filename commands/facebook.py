@@ -11,7 +11,7 @@ from utils.media_channel import MediaChannel
 @astra_command(
     name="facebook",
     description="Download Facebook video",
-    category="Media Engine",
+    category="Media & Downloads",
     aliases=["fb"],
     usage="<url> (Facebook video link)",
     owner_only=False

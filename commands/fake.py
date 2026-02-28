@@ -21,7 +21,7 @@ from utils.helpers import safe_edit
 @astra_command(
     name="fake",
     description="Generate a fake identity.",
-    category="Fun & Games",
+    category="Fun & Memes",
     aliases=["identity", "fakeperson"],
     usage=".fake (generate random identity)",
     is_public=True

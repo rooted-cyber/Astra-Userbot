@@ -21,7 +21,7 @@ JOKE_API_URL = "https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,religious,po
 @astra_command(
     name="joke",
     description="Fetch a random, family-friendly joke.",
-    category="Fun & Games",
+    category="Fun & Memes",
     aliases=["haha"],
     usage=".joke (no arguments)",
     is_public=True
@@ -33,7 +33,7 @@ async def joke_handler(client: Client, message: Message):
     """
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(JOKE_API_URL, timeout=10) as resp:
+            async with session.get(JOKE_API_URL, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status != 200:
                     return await smart_reply(message, " ⚠️ Joke service is currently unavailable.")
                 

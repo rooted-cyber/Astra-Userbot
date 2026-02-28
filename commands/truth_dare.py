@@ -39,7 +39,7 @@ async def fetch_prompt(mode: str) -> str:
     url = f"https://api.truthordarebot.xyz/v1/{mode}"
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=3) as resp:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=3)) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     return data.get("question")
@@ -50,7 +50,7 @@ async def fetch_prompt(mode: str) -> str:
 @astra_command(
     name="truth",
     description="Classic Truth or Dare game for social fun.",
-    category="Fun & Games",
+    category="Fun & Memes",
     aliases=["dare", "td"],
     usage="<truth|dare> (e.g. truth or dare)",
     is_public=True

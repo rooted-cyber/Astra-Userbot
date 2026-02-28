@@ -21,7 +21,7 @@ import asyncio
 @astra_command(
     name="sudo",
     description="Grant or revoke administrative (sudo) privileges for a user.",
-    category="Owner Tools",
+    category="Owner",
     aliases=["promote", "demote"],
     usage="<add|rem> [reply or user_id] (e.g. .sudo add @1234567890)",
     owner_only=True

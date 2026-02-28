@@ -17,7 +17,7 @@ from config import config
 @astra_command(
     name="alive",
     description="Check bot responsiveness and view detailed system status.",
-    category="Core Tools",
+    category="Tools & Utilities",
     aliases=[],
     usage=".alive",
     owner_only=True
@@ -84,15 +84,17 @@ async def alive_handler(client: Client, message: Message):
             is_url = source.startswith(("http://", "https://"))
             try:
                 if is_url:
-                    import requests
-                    response = requests.get(source, timeout=10)
-                    if response.status_code == 200:
-                        b64 = base64.b64encode(response.content).decode()
-                        mimetype = response.headers.get("Content-Type", "image/png")
-                        return True
-                    else:
-                        logger.warning(f"Alive Image URL returned {response.status_code}. Falling back to default.")
-                        return False
+                    import aiohttp
+                    async with aiohttp.ClientSession() as img_session:
+                        async with img_session.get(source, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                            if response.status == 200:
+                                data = await response.read()
+                                b64 = base64.b64encode(data).decode()
+                                mimetype = response.headers.get("Content-Type", "image/png")
+                                return True
+                            else:
+                                logger.warning(f"Alive Image URL returned {response.status}. Falling back to default.")
+                                return False
                 elif os.path.exists(source):
                     with open(source, "rb") as f:
                         b64 = base64.b64encode(f.read()).decode()

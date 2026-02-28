@@ -13,7 +13,7 @@ from . import *
 @astra_command(
     name="ai",
     description="Chat with Google Gemini AI",
-    category="AI Intelligence",
+    category="AI & Search",
     aliases=["chat", "ask", "gemini"],
     usage="<prompt> (e.g. 'Hello AI!')",
     owner_only=False

@@ -20,7 +20,7 @@ from utils.helpers import get_progress_bar
 @astra_command(
     name="pinterest",
     description="Download Pinterest media",
-    category="Media Engine",
+    category="Media & Downloads",
     aliases=["pin"],
     usage="<url> (Pinterest media link)",
     owner_only=False

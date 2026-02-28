@@ -242,7 +242,7 @@ def security_filter(code: str) -> Optional[str]:
 @astra_command(
     name="run",
     description="🚀 Ultra Multi-Language Executor. Supports Super Stdin (,,), timeouts, and aliased flags.",
-    category="Owner Utility",
+    category="Owner",
     aliases=["exec-lang", "code"],
     usage=(
         "🚀 **Pro Multi-Language Executor**\n"
@@ -431,7 +431,7 @@ async def multi_lang_exec_handler(client: Client, message: Message):
 @astra_command(
     name="installdeps",
     description="🛠️ Install missing language dependencies.",
-    category="Owner Utility",
+    category="Owner",
     usage=".installdeps <lang|all|missing>",
     owner_only=True,
 )

@@ -11,7 +11,7 @@ from utils.media_channel import MediaChannel
 @astra_command(
     name="soundcloud",
     description="Download SoundCloud track",
-    category="Media Engine",
+    category="Media & Downloads",
     aliases=["sc"],
     usage="<url> (SoundCloud track link)",
     owner_only=False

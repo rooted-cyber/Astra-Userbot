@@ -12,7 +12,7 @@ from . import *
 @astra_command(
     name="pick",
     description="Pick a random user from the group.",
-    category="Group Admin",
+    category="Group Management",
     aliases=["randomuser"],
     usage="",
     is_public=True
@@ -40,7 +40,7 @@ async def pick_handler(client: Client, message: Message):
 @astra_command(
     name="tagadmin",
     description="Tag all group admins.",
-    category="Group Admin",
+    category="Group Management",
     aliases=["admins"],
     usage="",
     is_public=True
@@ -71,7 +71,7 @@ async def tagadmin_handler(client: Client, message: Message):
 @astra_command(
     name="sd",
     description="Send a self-destructing message.",
-    category="Core Tools",
+    category="Tools & Utilities",
     aliases=["selfdestruct"],
     usage="<seconds> <text> (e.g. .sd 5 secret)",
     owner_only=True

@@ -11,7 +11,7 @@ from . import *
 @astra_command(
     name="afk",
     description="Set AFK status.",
-    category="Astra Essentials",
+    category="Tools & Utilities",
     aliases=[],
     usage="[reason] (optional; e.g. 'dinner')",
     owner_only=True

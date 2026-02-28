@@ -12,7 +12,7 @@ from . import *
 @astra_command(
     name="ytsearch",
     description="Search for videos on YouTube and get links.",
-    category="Media Engine",
+    category="Media & Downloads",
     aliases=["yts"],
     usage="<query> (e.g. .yts never gonna give you up)",
     is_public=True

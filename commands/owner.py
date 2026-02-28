@@ -19,7 +19,7 @@ import time
 @astra_command(
     name="setname",
     description="Update your profile display name.",
-    category="Owner Tools",
+    category="Owner",
     usage="<new_name> (e.g. John Doe)",
     owner_only=True
 )
@@ -40,7 +40,7 @@ async def setname_handler(client: Client, message: Message):
 @astra_command(
     name="bio",
     description="Update your profile 'About' (Bio) text.",
-    category="Owner Tools",
+    category="Owner",
     aliases=["setbio", "setabout"],
     usage="<text> (e.g. Available)",
     owner_only=True
@@ -64,7 +64,7 @@ async def setbio_handler(client: Client, message: Message):
 @astra_command(
     name="setpfp",
     description="Update your profile picture.",
-    category="Owner Tools",
+    category="Owner",
     usage="(reply to image) (e.g. .setpfp reply)",
     owner_only=True
 )
@@ -95,7 +95,7 @@ async def setpfp_handler(client: Client, message: Message):
 @astra_command(
     name="setgpic",
     description="Update the current group's picture.",
-    category="Owner Tools",
+    category="Owner",
     aliases=["setgrouppfp"],
     usage="(reply to image) (e.g. .setgpic reply)",
     owner_only=True
@@ -127,7 +127,7 @@ async def setgpic_handler(client: Client, message: Message):
 @astra_command(
     name="privacy",
     description="View or update your privacy settings.",
-    category="Owner Tools",
+    category="Owner",
     usage="[category value] (e.g. last_seen all)",
     owner_only=True
 )

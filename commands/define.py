@@ -18,7 +18,7 @@ from . import *
 @astra_command(
     name="define",
     description="Look up the definition and phonetics of an English word.",
-    category="Astra Essentials",
+    category="Tools & Utilities",
     aliases=["dict", "meaning"],
     usage="<word> (e.g. automobile)",
     is_public=True
@@ -34,7 +34,7 @@ async def define_handler(client: Client, message: Message):
 
         word = args_list[0].lower()
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}", timeout=10) as resp:
+            async with session.get(f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}", timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status != 200:
                     return await smart_reply(message, f" ❌ **Word Not Found:** `{word}`")
         

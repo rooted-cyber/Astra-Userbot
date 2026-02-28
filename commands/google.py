@@ -11,7 +11,7 @@ from . import *
 @astra_command(
     name="google",
     description="Search the web with Google.",
-    category="Core Tools",
+    category="Tools & Utilities",
     aliases=["gs", "search"],
     usage="<query> (e.g. .google Astra Userbot)",
     is_public=True

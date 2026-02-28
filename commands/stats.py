@@ -14,7 +14,7 @@ from . import *
 @astra_command(
     name="stats",
     description="Description: View detailed system health, memory usage, and runtime metrics.\nSyntax: .stats\nExample: .stats",
-    category="System & Bot",
+    category="System",
     aliases=["status", "sysinfo"],
     usage=".stats (display bot statistics)",
     is_public=True

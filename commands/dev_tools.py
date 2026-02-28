@@ -13,7 +13,7 @@ from utils.state import state
 @astra_command(
     name="db",
     description="🛠️ Advanced Database & State Manager. Directly manipulate bot memory.",
-    category="System Hub",
+    category="System",
     usage="set <key> <value> | get <key> | list | del <key>",
     owner_only=True
 )
@@ -74,7 +74,7 @@ async def db_tool_handler(client: Client, message: Message):
 @astra_command(
     name="setcfg",
     description="⚙️ Manage bot configuration dynamically.",
-    category="System Hub",
+    category="System",
     aliases=["updatecfg"],
     usage="<key> <value> (e.g. .setcfg FAST_MEDIA on)",
     owner_only=True
@@ -121,7 +121,7 @@ async def setcfg_handler(client: Client, message: Message):
 @astra_command(
     name="delcfg",
     description="🗑️ Delete a dynamic configuration key.",
-    category="System Hub",
+    category="System",
     usage="<key> (e.g. .delcfg ALIVE_IMG)",
     owner_only=True
 )
@@ -145,7 +145,7 @@ async def delcfg_handler(client: Client, message: Message):
 @astra_command(
     name="getcfg",
     description="🔎 Retrieve the value of a dynamic configuration key.",
-    category="System Hub",
+    category="System",
     usage="<key> (e.g. .getcfg ALIVE_IMG)",
     owner_only=True
 )
@@ -171,7 +171,7 @@ async def getcfg_handler(client: Client, message: Message):
 @astra_command(
     name="listcfg",
     description="📋 List all currently set dynamic configuration keys.",
-    category="System Hub",
+    category="System",
     aliases=["configs", "cfgs"],
     owner_only=True
 )
@@ -197,7 +197,7 @@ async def listcfg_handler(client: Client, message: Message):
 @astra_command(
     name="sysvars",
     description="📖 View a list of all official dynamic system configuration keys.",
-    category="System Hub",
+    category="System",
     aliases=["cfghints", "vars"],
     owner_only=True
 )

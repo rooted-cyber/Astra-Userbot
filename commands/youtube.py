@@ -22,7 +22,7 @@ from utils.helpers import get_progress_bar, safe_edit
 @astra_command(
     name="youtube",
     description="Download media from YouTube. Supports auto-search for queries.",
-    category="Media Engine",
+    category="Media & Downloads",
     aliases=["yt", "ytdl"],
     usage="<url|query> [video|audio]\n\n💡 *Tip:* Use `.setcfg FAST_MEDIA on` for high-speed uploads without progress bars.",
     owner_only=False

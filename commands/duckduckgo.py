@@ -11,7 +11,7 @@ from . import *
 @astra_command(
     name="duckduckgo",
     description="Privacy-focused web search using DuckDuckGo.",
-    category="Core Tools",
+    category="Tools & Utilities",
     aliases=["ddg"],
     usage="<query> (e.g. .ddg Astra Bot)",
     is_public=True
@@ -57,8 +57,6 @@ async def ddg_handler(client: Client, message: Message):
 
         text += f"━━━━━━━━━━━━━━━━━━━━"
         return await status_msg.edit(text)
-                
-        await status_msg.edit("⚠️ Failed to fetch search results. Try again later.")
 
     except Exception as e:
         await status_msg.edit(f"❌ **DDG Error:** {str(e)}")

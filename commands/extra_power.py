@@ -13,7 +13,7 @@ from . import *
 @astra_command(
     name="ss",
     description="Take a screenshot of a website.",
-    category="Core Tools",
+    category="Tools & Utilities",
     aliases=["screenshot", "webshot"],
     usage="<url> (e.g. .ss google.com)",
     is_public=True
@@ -48,7 +48,7 @@ async def ss_handler(client: Client, message: Message):
                     try: await status_msg.edit(f"📸 **Astra Web Capture**\n━━━━━━━━━━━━━━━━━━━━\n🌐 **Target:** `{url}`\n⚙️ **Engine:** `{name}`...")
                     except: pass
                     
-                    async with session.get(prov_url, timeout=25) as resp:
+                    async with session.get(prov_url, timeout=aiohttp.ClientTimeout(total=25)) as resp:
                         if resp.status == 200:
                             data = await resp.read()
                             if len(data) > 10000:
@@ -89,7 +89,7 @@ async def ss_handler(client: Client, message: Message):
 @astra_command(
     name="purge",
     description="Delete multiple messages from the current chat.",
-    category="Group Admin",
+    category="Group Management",
     aliases=["del", "purgemsg"],
     usage="[count] (reply to a message to start purging from there)",
     owner_only=True

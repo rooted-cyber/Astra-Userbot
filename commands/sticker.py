@@ -14,7 +14,7 @@ from utils.bridge_downloader import bridge_downloader
 @astra_command(
     name="sticker",
     description="Convert an image or video to a sticker.",
-    category="Core Tools",
+    category="Tools & Utilities",
     aliases=["s", "stkr"],
     usage="(reply to image/video)",
     is_public=True
@@ -54,7 +54,7 @@ async def sticker_handler(client: Client, message: Message):
 @astra_command(
     name="tiny",
     description="Create a tiny sticker (centered image).",
-    category="Core Tools",
+    category="Tools & Utilities",
     usage="(reply to image)",
     is_public=True
 )

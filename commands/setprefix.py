@@ -11,7 +11,7 @@ from . import *
 @astra_command(
     name="setprefix",
     description="Change the command prefix.",
-    category="Owner Utility",
+    category="Owner",
     aliases=[],
     usage="<new_prefix> (e.g. !)",
     owner_only=True

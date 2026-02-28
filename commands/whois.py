@@ -11,7 +11,7 @@ from . import *
 @astra_command(
     name="whois",
     description="Fetch detailed information about a user.",
-    category="Astra Essentials",
+    category="Tools & Utilities",
     aliases=["info", "user"],
     usage="<reply|@mention|phone>",
     owner_only=False

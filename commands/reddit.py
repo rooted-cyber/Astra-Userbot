@@ -11,7 +11,7 @@ from utils.media_channel import MediaChannel
 @astra_command(
     name="reddit",
     description="Download Reddit video",
-    category="Media Engine",
+    category="Media & Downloads",
     aliases=["rd"],
     usage="<url> (Reddit post link)",
     owner_only=False

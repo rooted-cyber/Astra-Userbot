@@ -10,7 +10,7 @@ from . import *
 @astra_command(
     name="hidetag",
     description="Tag everyone in the group without showing mentioned text.",
-    category="Group Admin",
+    category="Group Management",
     aliases=["htag", "ghosttag"],
     usage="[message]",
     owner_only=True

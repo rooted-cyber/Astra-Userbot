@@ -20,7 +20,7 @@ import time
 @astra_command(
     name="fetch",
     description="Fetch message history starting from a replied-to message.",
-    category="Astra Essentials",
+    category="Tools & Utilities",
     aliases=["history", "dump"],
     usage="<limit/reply> (e.g. 10 or reply to a message)",
     is_public=True

@@ -13,7 +13,7 @@ from . import *
 @astra_command(
     name="weather",
     description="Get the current weather forecast for a specific city.",
-    category="Astra Essentials",
+    category="Tools & Utilities",
     aliases=["wttr", "forecast"],
     usage="<city> (e.g. London)",
     is_public=True
@@ -35,7 +35,7 @@ async def weather_handler(client: Client, message: Message):
         headers = {"User-Agent": "curl/7.64.1"}
         async with aiohttp.ClientSession(headers=headers) as session:
             # 1. Fetch text data
-            async with session.get(text_url, timeout=10) as resp:
+            async with session.get(text_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status != 200:
                     time.sleep(0.5)
                     return await status_msg.edit("❌ **Astra Weather Radar:** Failed to retrieve weather data.")
@@ -49,7 +49,7 @@ async def weather_handler(client: Client, message: Message):
             )
 
             # 2. Attempt to fetch and send visual forecast
-            async with session.get(img_url, timeout=15) as img_resp:
+            async with session.get(img_url, timeout=aiohttp.ClientTimeout(total=15)) as img_resp:
                 if img_resp.status == 200:
                     img_data = await img_resp.read()
                     b64_data = base64.b64encode(img_data).decode('utf-8')

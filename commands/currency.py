@@ -11,7 +11,7 @@ from . import *
 @astra_command(
     name="currency",
     description="Real-time currency and crypto converter.",
-    category="Astra Essentials",
+    category="Tools & Utilities",
     aliases=["rate", "conv"],
     usage="<amount> <from> <to> (e.g. .currency 1 USD INR)",
     owner_only=False

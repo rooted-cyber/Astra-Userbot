@@ -19,7 +19,7 @@ from . import *
 @astra_command(
     name="ship",
     description="Check the compatibility match between two souls.",
-    category="Fun & Games",
+    category="Fun & Memes",
     aliases=["match", "love"],
     usage="[@user1] [@user2] (e.g. .ship @alice @bob)",
     is_public=True

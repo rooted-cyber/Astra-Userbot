@@ -21,7 +21,7 @@ NORMAL_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 @astra_command(
     name="fancy",
     description="Convert text into fancy fonts.",
-    category="Core Tools",
+    category="Tools & Utilities",
     usage="<type> <text> (types: mono, bold, script)",
     is_public=True
 )
@@ -43,7 +43,7 @@ async def fancy_handler(client: Client, message: Message):
 @astra_command(
     name="morse",
     description="Convert text to Morse code.",
-    category="Core Tools",
+    category="Tools & Utilities",
     usage="<text>",
     is_public=True
 )
@@ -66,7 +66,7 @@ async def morse_handler(client: Client, message: Message):
 @astra_command(
     name="binary",
     description="Convert text to binary.",
-    category="Core Tools",
+    category="Tools & Utilities",
     usage="<text>",
     is_public=True
 )

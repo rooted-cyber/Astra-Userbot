@@ -11,7 +11,7 @@ from . import *
 @astra_command(
     name="github",
     description="Fetch GitHub repository or user info.",
-    category="Core Tools",
+    category="Tools & Utilities",
     aliases=["repo", "gh"],
     usage="<user/repo> or <username>",
     is_public=True

@@ -12,7 +12,7 @@ from . import *
 @astra_command(
     name="tr",
     description="Translate text to another language.",
-    category="Core Tools",
+    category="Tools & Utilities",
     aliases=["translate"],
     usage="<lang_code> [text] (or reply to a message)",
     is_public=True
@@ -47,7 +47,7 @@ async def translate_handler(client: Client, message: Message):
         api_url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={dest_lang}&dt=t&q={quote(text_to_translate)}"
         
         async with aiohttp.ClientSession() as session:
-            async with session.get(api_url, timeout=10) as resp:
+            async with session.get(api_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     translated_text = "".join([part[0] for part in data[0]])

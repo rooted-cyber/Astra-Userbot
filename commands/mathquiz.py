@@ -18,7 +18,7 @@ from . import *
 @astra_command(
     name="mathquiz",
     description="Challenge the group with a quick randomized math problem.",
-    category="Fun & Games",
+    category="Fun & Memes",
     aliases=["mq"],
     usage=".mathquiz (no arguments)",
     is_public=True

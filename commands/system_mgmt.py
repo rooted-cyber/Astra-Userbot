@@ -17,7 +17,7 @@ from . import *
 @astra_command(
     name="restart",
     description="Restarts the bot process",
-    category="System Hub",
+    category="System",
     owner_only=True
 )
 async def restart_cmd(client: Client, message: Message):
@@ -29,7 +29,7 @@ async def restart_cmd(client: Client, message: Message):
 @astra_command(
     name="shutdown",
     description="Shuts down the bot process",
-    category="System Hub",
+    category="System",
     owner_only=True
 )
 async def shutdown_cmd(client: Client, message: Message):
@@ -41,7 +41,7 @@ async def shutdown_cmd(client: Client, message: Message):
 @astra_command(
     name="update",
     description="Updates the bot from GitHub.",
-    category="System Hub",
+    category="System",
     owner_only=True,
     usage=".update [-b branch] [-f]"
 )
@@ -165,7 +165,7 @@ async def update_cmd(client: Client, message: Message):
 @astra_command(
     name="reload",
     description="Hot-reloads all plugins and project modules.",
-    category="System Hub",
+    category="System",
     owner_only=True
 )
 async def reload_cmd(client: Client, message: Message):
@@ -188,7 +188,7 @@ async def reload_cmd(client: Client, message: Message):
 @astra_command(
     name="logs",
     description="Fetch the recent bot logs or the full log file.",
-    category="System Hub",
+    category="System",
     owner_only=True,
     usage=".logs [full]"
 )
@@ -256,7 +256,7 @@ async def logs_cmd(client: Client, message: Message):
 @astra_command(
     name="clearcache",
     description="🧹 Clears the Astra Media Gateway cache to free up disk space.",
-    category="System Hub",
+    category="System",
     aliases=["ccache"],
     owner_only=True
 )

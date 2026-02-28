@@ -12,7 +12,7 @@ from . import *
 @astra_command(
     name="lyrics",
     description="Fetch lyrics for a song.",
-    category="Core Tools",
+    category="Tools & Utilities",
     aliases=["lyrical"],
     usage="<song name> [artist] (e.g. .lyrics Blinding Lights)",
     is_public=True
@@ -33,7 +33,7 @@ async def lyrics_handler(client: Client, message: Message):
         api_url = f"https://api.lyrics.ovh/suggest/{quote_plus(query)}"
         
         async with aiohttp.ClientSession() as session:
-            async with session.get(api_url, timeout=10) as resp:
+            async with session.get(api_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     suggestions = data.get('data', [])

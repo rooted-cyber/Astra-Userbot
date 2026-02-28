@@ -12,7 +12,7 @@ from . import *
 @astra_command(
     name="movie",
     description="Search for movie or series information.",
-    category="Core Tools",
+    category="Tools & Utilities",
     aliases=["imdb", "series"],
     usage="<movie name> (e.g. .movie Interstellar)",
     is_public=True
@@ -33,7 +33,7 @@ async def movie_handler(client: Client, message: Message):
         api_url = f"http://www.omdbapi.com/?apikey={api_key}&t={query}"
         
         async with aiohttp.ClientSession() as session:
-            async with session.get(api_url, timeout=10) as resp:
+            async with session.get(api_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     
