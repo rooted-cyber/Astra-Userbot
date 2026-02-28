@@ -204,6 +204,56 @@ def _get_video_url(pdata: dict) -> Optional[str]:
         return url
     return None
 
+async def _fetch_via_reddit_search(subreddits: List[str], nsfw: bool = False) -> Optional[Dict]:
+    """Search for video-specific URLs on Reddit directly."""
+    subs = list(subreddits)
+    random.shuffle(subs)
+    
+    # Target video formats directly
+    queries = ['url:v.redd.it', 'url:mp4', 'url:gifv']
+    random.shuffle(queries)
+    
+    try:
+        async with aiohttp.ClientSession(headers=REDDIT_HEADERS, timeout=REQUEST_TIMEOUT) as session:
+            for sub in subs[:5]:
+                for query in queries:
+                    try:
+                        search_url = f"https://www.reddit.com/r/{sub}/search.json?q={query}&restrict_sr=1&sort=new&limit=25"
+                        async with session.get(search_url) as resp:
+                            if resp.status != 200: continue
+                            data = await resp.json()
+                        
+                        posts = data.get('data', {}).get('children', [])
+                        if not posts: continue
+                        random.shuffle(posts)
+                        
+                        for post in posts:
+                            p = post.get('data', {})
+                            if not p or p.get('stickied'): continue
+                            
+                            pid = p.get('name', '')
+                            if not pid or await is_meme_seen(pid): continue
+                            if not nsfw and p.get('over_18'): continue
+                            
+                            url = p.get('url', '')
+                            if not _is_video_post(p, url): continue
+                            
+                            vid_url = _get_video_url(p)
+                            if not vid_url: continue
+                            
+                            return {
+                                "id": pid, "url": vid_url,
+                                "title": p.get('title', ''),
+                                "subreddit": p.get('subreddit', sub),
+                                "is_video": True, "is_nsfw": bool(p.get('over_18')),
+                                "is_text": False
+                            }
+                    except Exception: continue
+    except Exception as e:
+        logger.debug(f"reddit search error: {e}")
+    
+    return None
+
 async def _fetch_via_reddit(
     subreddits: List[str], video_only: bool = False, 
     nsfw: bool = False, allow_text: bool = False
@@ -302,10 +352,16 @@ async def fetch_meme(
     subreddits: List[str], video_only: bool = False,
     nsfw: bool = False, allow_text: bool = False
 ) -> Optional[Dict]:
-    """Multi-source meme fetcher: meme-api → direct Reddit."""
+    """Multi-source meme fetcher: reddit-search (vids) → meme-api → direct Reddit."""
     await cleanup_old_seen(24)
     
-    # Source 1: meme-api.com (Primary for both Image and Video)
+    # NEW UNIQUE METHOD: Specialized Search for Videos
+    if video_only and not allow_text:
+        result = await _fetch_via_reddit_search(subreddits, nsfw=nsfw)
+        if result:
+            return result
+    
+    # Source 1: meme-api.com (Primary for Image, Secondary for Video)
     if not allow_text:
         result = await _fetch_via_meme_api(subreddits, nsfw=nsfw, video_only=video_only)
         if result:
@@ -316,8 +372,13 @@ async def fetch_meme(
     if result:
         return result
     
-    # Source 3: meme-api with broader subs as last resort
+    # Source 3: Global Fallbacks
     if not allow_text:
+        if video_only:
+            # Try searching global video subs
+            result = await _fetch_via_reddit_search(GLOBAL_VIDEO_MEMES, nsfw=nsfw)
+            if result: return result
+        
         fallback_subs = ALL_VIDEO_MEMES if video_only else ALL_MEMES
         result = await _fetch_via_meme_api(fallback_subs, nsfw=nsfw, video_only=video_only)
         if result:
