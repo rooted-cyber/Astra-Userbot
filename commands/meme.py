@@ -118,13 +118,15 @@ async def _fetch_via_meme_api(subreddits: List[str], nsfw: bool = False, video_o
     count = 20 if video_only else 5
     
     try:
-        async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
+        async with aiohttp.ClientSession(headers=get_reddit_headers(), timeout=REQUEST_TIMEOUT) as session:
             # Phase 1: Try specific subreddits
             for sub in subs[:10]:
                 try:
                     url = f"https://meme-api.com/gimme/{sub}/{count}"
                     async with session.get(url) as resp:
-                        if resp.status != 200: continue
+                        if resp.status != 200:
+                            logger.debug(f"MemeAPI Failed | /r/{sub} | Status: {resp.status}")
+                            continue
                         data = await resp.json()
                         memes = data.get('memes', [])
                         if not memes and data.get('url'): memes = [data]
@@ -172,6 +174,8 @@ async def _fetch_via_meme_api(subreddits: List[str], nsfw: bool = False, video_o
                                         "is_video": True, "is_nsfw": meme.get('nsfw', False),
                                         "is_text": False
                                     }
+                        else:
+                            logger.debug(f"MemeAPI Global Failed | Status: {resp.status}")
                 except Exception: pass
                 
     except Exception as e:
@@ -204,23 +208,39 @@ def _get_video_url(pdata: dict) -> Optional[str]:
         return url
     return None
 
+def get_reddit_headers():
+    """Returns randomized headers to avoid fingerprinting."""
+    browsers = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"
+    ]
+    return {
+        'User-Agent': random.choice(browsers),
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+    }
+
 async def _fetch_via_reddit_search(subreddits: List[str], nsfw: bool = False) -> Optional[Dict]:
     """Search for video-specific URLs on Reddit directly."""
     subs = list(subreddits)
     random.shuffle(subs)
     
-    # Target video formats directly
-    queries = ['url:v.redd.it', 'url:mp4', 'url:gifv']
+    # Target video formats directly, then keywords
+    queries = ['url:v.redd.it', 'url:mp4', 'url:gifv', 'video', 'meme']
     random.shuffle(queries)
     
     try:
-        async with aiohttp.ClientSession(headers=REDDIT_HEADERS, timeout=REQUEST_TIMEOUT) as session:
-            for sub in subs[:5]:
+        async with aiohttp.ClientSession(headers=get_reddit_headers(), timeout=REQUEST_TIMEOUT) as session:
+            for sub in subs[:6]:
                 for query in queries:
                     try:
-                        search_url = f"https://www.reddit.com/r/{sub}/search.json?q={query}&restrict_sr=1&sort=new&limit=25"
+                        search_url = f"https://www.reddit.com/r/{sub}/search.json?q={query}&restrict_sr=1&sort=new&limit=25&raw_json=1"
                         async with session.get(search_url) as resp:
-                            if resp.status != 200: continue
+                            if resp.status != 200:
+                                logger.debug(f"Reddit Search Failed | /r/{sub} | Q:{query} | Status:{resp.status}")
+                                continue
                             data = await resp.json()
                         
                         posts = data.get('data', {}).get('children', [])
@@ -236,7 +256,9 @@ async def _fetch_via_reddit_search(subreddits: List[str], nsfw: bool = False) ->
                             if not nsfw and p.get('over_18'): continue
                             
                             url = p.get('url', '')
-                            if not _is_video_post(p, url): continue
+                            # If it's a video search, we strictly check for video
+                            is_vid = _is_video_post(p, url)
+                            if not is_vid: continue
                             
                             vid_url = _get_video_url(p)
                             if not vid_url: continue
@@ -248,9 +270,11 @@ async def _fetch_via_reddit_search(subreddits: List[str], nsfw: bool = False) ->
                                 "is_video": True, "is_nsfw": bool(p.get('over_18')),
                                 "is_text": False
                             }
-                    except Exception: continue
+                    except Exception as e:
+                        logger.debug(f"reddit search error [{sub}/{query}]: {e}")
+                        continue
     except Exception as e:
-        logger.debug(f"reddit search error: {e}")
+        logger.debug(f"reddit search session error: {e}")
     
     return None
 
@@ -265,7 +289,7 @@ async def _fetch_via_reddit(
     random.shuffle(sorts)
     
     try:
-        async with aiohttp.ClientSession(headers=REDDIT_HEADERS, timeout=REQUEST_TIMEOUT) as session:
+        async with aiohttp.ClientSession(headers=get_reddit_headers(), timeout=REQUEST_TIMEOUT) as session:
             for sub in subs[:5]:
                 for sort in sorts:
                     try:
@@ -275,6 +299,7 @@ async def _fetch_via_reddit(
                         
                         async with session.get(f"https://www.reddit.com/r/{sub}{params}") as resp:
                             if resp.status != 200:
+                                logger.debug(f"Direct Reddit Failed | /r/{sub}/{sort} | Status: {resp.status}")
                                 continue
                             data = await resp.json()
                         
@@ -337,7 +362,7 @@ async def _fetch_via_reddit(
                                 "is_text": False
                             }
                     except Exception as e:
-                        logger.debug(f"reddit fallback [{sub}/{sort}]: {e}")
+                        logger.debug(f"reddit fallback error [{sub}/{sort}]: {e}")
                         continue
     except Exception as e:
         logger.debug(f"reddit session error: {e}")
@@ -454,7 +479,7 @@ async def _meme_handler(client, message, subs, label, fallback_subs=None, **kwar
             if kwargs.get('nsfw'): mode.append('nsfw')
             if kwargs.get('allow_text'): mode.append('text')
             mode_str = '+'.join(mode) if mode else 'image'
-            await safe_edit(status_msg, f"❌ No fresh content found.\n🔍 Subs: `{subs_tried}`\n📂 Mode: `{mode_str}`\n💡 Try again or use a different command.")
+            await safe_edit(status_msg, f"❌ No fresh content found.\n🔍 Subs: `{subs_tried}`\n📂 Mode: `{mode_str}`\n💡 Use `.memedebug` to check if your server's IP is blocked by Reddit.")
     except Exception as e:
         logger.error(f"_meme_handler error: {e}")
         await safe_edit(status_msg, f"❌ Meme Error: `{str(e)[:100]}`")
@@ -515,3 +540,31 @@ async def ivmeme_handler(client: Client, message: Message):
 @astra_command(name="idmv", description="Get a safe video from r/IndianDankMemes", category="Fun & Memes", usage=".idmv")
 async def idmv_handler(client: Client, message: Message):
     await _meme_handler(client, message, ['IndianDankMemes'], "🇮🇳🎥 Fetching IDM video...", fallback_subs=ALL_VIDEO_MEMES, video_only=True)
+
+@astra_command(name="memedebug", description="Diagnose meme fetching issues", category="System", usage=".memedebug")
+async def memedebug_handler(client: Client, message: Message):
+    """Diagnose network issues for memes."""
+    status_msg = await smart_reply(message, "🔍 *Running Diagnostics...*")
+    report = "🛠️ *Astra Meme Diagnostics*\n━━━━━━━━━━━━━━━━━━━━\n"
+    
+    async with aiohttp.ClientSession(headers=get_reddit_headers()) as session:
+        # 1. Test MemeAPI
+        try:
+            async with session.get('https://meme-api.com/gimme/1', timeout=5) as resp:
+                report += f"✅ *MemeAPI:* Status {resp.status}\n"
+        except Exception as e: report += f"❌ *MemeAPI:* {str(e)[:40]}\n"
+        
+        # 2. Test Reddit Connection
+        try:
+            async with session.get('https://www.reddit.com/r/memes/hot.json?limit=1', timeout=5) as resp:
+                report += f"✅ *Reddit API:* Status {resp.status}\n"
+        except Exception as e: report += f"❌ *Reddit API:* {str(e)[:40]}\n"
+        
+        # 3. Test Reddit Search
+        try:
+            async with session.get('https://www.reddit.com/r/memes/search.json?q=meme&limit=1', timeout=5) as resp:
+                report += f"✅ *Reddit Search:* Status {resp.status}\n"
+        except Exception as e: report += f"❌ *Reddit Search:* {str(e)[:40]}\n"
+
+    report += "\n💡 *Tip:* If you see 403 or 429, your IP is likely blocked by Reddit."
+    await safe_edit(status_msg, report)
