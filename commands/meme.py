@@ -43,12 +43,18 @@ GLOBAL_MEMES = [
     'terriblefacebookmemes', 'funny', 'ProgrammerHumor'
 ]
 
+GLOBAL_VIDEO_MEMES = [
+    'MemeVideos', 'VideoMemes', 'perfectlycutscreams', 'unexpected', 
+    'maybemaybemaybe', 'nonononoyes', 'yesyesyesno'
+]
+
 GLOBAL_NSFW_MEMES = [
     'HolUp', 'cursedimages', 'ImFinnaGoToHell',
     'dankmemes', 'memes'
 ]
 
 ALL_MEMES = INDIAN_MEMES + GLOBAL_MEMES
+ALL_VIDEO_MEMES = INDIAN_MEMES + GLOBAL_VIDEO_MEMES
 ALL_NSFW_MEMES = list(set(INDIAN_NSFW_MEMES + GLOBAL_NSFW_MEMES))
 
 # ── Database Helpers ────────────────────────
@@ -89,53 +95,85 @@ async def mark_meme_seen(post_id: str, subreddit: str):
 # Uses meme-api.com which proxies Reddit server-side
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-async def _fetch_via_meme_api(subreddits: List[str], nsfw: bool = False) -> Optional[Dict]:
+def _is_video_post(pdata: dict, url: str) -> bool:
+    """Enhanced video detection."""
+    low_url = url.lower()
+    return bool(
+        pdata.get('is_video') or 
+        pdata.get('post_hint') == 'video' or
+        pdata.get('post_hint') == 'rich:video' or
+        any(ext in low_url for ext in ['.mp4', '.gifv', '.mkv', '.webm', '.mov']) or
+        'v.redd.it' in low_url or
+        'youtube.com/shorts' in low_url or
+        'youtube.com/watch' in low_url or
+        'youtu.be' in low_url
+    )
+
+async def _fetch_via_meme_api(subreddits: List[str], nsfw: bool = False, video_only: bool = False) -> Optional[Dict]:
     """Fetch from meme-api.com — handles Reddit scraping server-side."""
     subs = list(subreddits)
     random.shuffle(subs)
     
+    # Use a safer batch size (20 instead of 50) to avoid 400/403 errors
+    count = 20 if video_only else 5
+    
     try:
         async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
-            for sub in subs[:5]:  # Try max 5 subs
+            # Phase 1: Try specific subreddits
+            for sub in subs[:10]:
                 try:
-                    url = f"https://meme-api.com/gimme/{sub}/10"
+                    url = f"https://meme-api.com/gimme/{sub}/{count}"
                     async with session.get(url) as resp:
-                        if resp.status != 200:
-                            continue
+                        if resp.status != 200: continue
                         data = await resp.json()
-                        
                         memes = data.get('memes', [])
-                        if not memes and data.get('url'):
-                            # Single meme response
-                            memes = [data]
+                        if not memes and data.get('url'): memes = [data]
                         
                         random.shuffle(memes)
-                        
                         for meme in memes:
-                            post_id = meme.get('postLink', '')
-                            if await is_meme_seen(post_id):
-                                continue
+                            pid = meme.get('postLink', '')
+                            if await is_meme_seen(pid): continue
+                            if not nsfw and meme.get('nsfw'): continue
                             
-                            # NSFW filter
-                            if not nsfw and meme.get('nsfw'):
-                                continue
+                            m_url = meme.get('url', '')
+                            if not m_url: continue
                             
-                            media_url = meme.get('url', '')
-                            if not media_url:
-                                continue
+                            is_vid = _is_video_post({}, m_url)
+                            if video_only and not is_vid: continue
                             
                             return {
-                                "id": post_id,
-                                "url": media_url,
+                                "id": pid, "url": m_url,
                                 "title": meme.get('title', 'Meme'),
                                 "subreddit": meme.get('subreddit', sub),
-                                "is_video": media_url.lower().endswith(('.mp4', '.gifv', '.webm')),
-                                "is_nsfw": meme.get('nsfw', False),
+                                "is_video": is_vid, "is_nsfw": meme.get('nsfw', False),
                                 "is_text": False
                             }
-                except Exception as e:
-                    logger.debug(f"meme-api error [{sub}]: {e}")
-                    continue
+                except Exception: continue
+            
+            # Phase 2: Global Fallback for videos if subs failed
+            if video_only:
+                try:
+                    url = f"https://meme-api.com/gimme/50"
+                    async with session.get(url) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            memes = data.get('memes', [])
+                            random.shuffle(memes)
+                            for meme in memes:
+                                pid = meme.get('postLink', '')
+                                if await is_meme_seen(pid): continue
+                                if not nsfw and meme.get('nsfw'): continue
+                                m_url = meme.get('url', '')
+                                if _is_video_post({}, m_url):
+                                    return {
+                                        "id": pid, "url": m_url,
+                                        "title": meme.get('title', 'Meme'),
+                                        "subreddit": meme.get('subreddit', meme.get('subreddit', 'unknown')),
+                                        "is_video": True, "is_nsfw": meme.get('nsfw', False),
+                                        "is_text": False
+                                    }
+                except Exception: pass
+                
     except Exception as e:
         logger.debug(f"meme-api session error: {e}")
     
@@ -267,21 +305,21 @@ async def fetch_meme(
     """Multi-source meme fetcher: meme-api → direct Reddit."""
     await cleanup_old_seen(24)
     
-    # Source 1: meme-api.com (fast, reliable — but no video/text filter)
-    if not video_only and not allow_text:
-        result = await _fetch_via_meme_api(subreddits, nsfw=nsfw)
+    # Source 1: meme-api.com (Primary for both Image and Video)
+    if not allow_text:
+        result = await _fetch_via_meme_api(subreddits, nsfw=nsfw, video_only=video_only)
         if result:
             return result
     
-    # Source 2: Direct Reddit (for video_only, text, and as general fallback)
+    # Source 2: Direct Reddit (Fallback)
     result = await _fetch_via_reddit(subreddits, video_only=video_only, nsfw=nsfw, allow_text=allow_text)
     if result:
         return result
     
     # Source 3: meme-api with broader subs as last resort
-    if not video_only and not allow_text:
-        fallback_subs = ['memes', 'dankmemes', 'funny']
-        result = await _fetch_via_meme_api(fallback_subs, nsfw=nsfw)
+    if not allow_text:
+        fallback_subs = ALL_VIDEO_MEMES if video_only else ALL_MEMES
+        result = await _fetch_via_meme_api(fallback_subs, nsfw=nsfw, video_only=video_only)
         if result:
             return result
     
@@ -380,7 +418,7 @@ async def dmeme_handler(client: Client, message: Message):
 
 @astra_command(name="vmemes", description="Get a random video meme", category="Fun & Memes", usage=".vmemes")
 async def vmemes_handler(client: Client, message: Message):
-    await _meme_handler(client, message, ALL_MEMES, "🎥 Fetching video meme...", video_only=True)
+    await _meme_handler(client, message, ALL_VIDEO_MEMES, "🎥 Fetching video meme...", video_only=True)
 
 @astra_command(name="vdmemes", description="Get a NSFW video meme", category="Fun & Memes", usage=".vdmemes [subreddit]")
 async def vdmemes_handler(client: Client, message: Message):
@@ -395,7 +433,7 @@ async def idm_handler(client: Client, message: Message):
     args = extract_args(message)
     video_only = "-v" in args
     label = f"🇮🇳 {'🎥 ' if video_only else ''}Fetching IDM meme..."
-    await _meme_handler(client, message, ['IndianDankMemes'], label, fallback_subs=INDIAN_MEMES, video_only=video_only)
+    await _meme_handler(client, message, ['IndianDankMemes'], label, fallback_subs=ALL_VIDEO_MEMES, video_only=video_only)
 
 @astra_command(name="phakh", description="Get a story from r/PataHaiAajKyaHua", aliases=["story"], category="Fun & Memes", usage=".phakh")
 async def phakh_handler(client: Client, message: Message):
@@ -403,7 +441,7 @@ async def phakh_handler(client: Client, message: Message):
 
 @astra_command(name="ivdmeme", description="Get an Indian NSFW video", category="Fun & Memes", usage=".ivdmeme")
 async def ivdmeme_handler(client: Client, message: Message):
-    await _meme_handler(client, message, INDIAN_NSFW_MEMES, "🔞🇮🇳🎥 Fetching Indian dark video...", fallback_subs=INDIAN_MEMES, video_only=True, nsfw=True)
+    await _meme_handler(client, message, INDIAN_NSFW_MEMES, "🔞🇮🇳🎥 Fetching Indian dark video...", fallback_subs=ALL_VIDEO_MEMES, video_only=True, nsfw=True)
 
 @astra_command(name="idmvd", description="Get a NSFW video from r/IndianDankMemes", category="Fun & Memes", usage=".idmvd")
 async def idmvd_handler(client: Client, message: Message):
@@ -411,8 +449,8 @@ async def idmvd_handler(client: Client, message: Message):
 
 @astra_command(name="ivmeme", description="Get an Indian safe video meme", category="Fun & Memes", usage=".ivmeme")
 async def ivmeme_handler(client: Client, message: Message):
-    await _meme_handler(client, message, INDIAN_MEMES, "🇮🇳🎥 Fetching Indian video meme...", video_only=True)
+    await _meme_handler(client, message, INDIAN_MEMES, "🇮🇳🎥 Fetching Indian video meme...", fallback_subs=ALL_VIDEO_MEMES, video_only=True)
 
 @astra_command(name="idmv", description="Get a safe video from r/IndianDankMemes", category="Fun & Memes", usage=".idmv")
 async def idmv_handler(client: Client, message: Message):
-    await _meme_handler(client, message, ['IndianDankMemes'], "🇮🇳🎥 Fetching IDM video...", fallback_subs=INDIAN_MEMES, video_only=True)
+    await _meme_handler(client, message, ['IndianDankMemes'], "🇮🇳🎥 Fetching IDM video...", fallback_subs=ALL_VIDEO_MEMES, video_only=True)
