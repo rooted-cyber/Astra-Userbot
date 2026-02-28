@@ -34,6 +34,9 @@ class Database:
         await self.sqlite_conn.execute(
             "CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER)"
         )
+        await self.sqlite_conn.execute(
+            "CREATE TABLE IF NOT EXISTS seen_memes (post_id TEXT PRIMARY KEY, subreddit TEXT, fetched_at INTEGER)"
+        )
         await self.sqlite_conn.commit()
 
         # Initialize MongoDB
