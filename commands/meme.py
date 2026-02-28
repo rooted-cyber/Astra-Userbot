@@ -62,9 +62,11 @@ async def mark_meme_seen(post_id: str, subreddit: str):
 
 async def fetch_reddit_meme(subreddits: List[str], video_only: bool = False, nsfw: bool = False, allow_text: bool = False) -> Optional[Dict]:
     """Fetches a fresh meme from Reddit with duplicate prevention and high variety."""
+    if not subreddits: return None
     random.shuffle(subreddits)
+    
     # Range of sorting methods to get both latest and all-time great memes
-    sort_methods = ['hot', 'top', 'new']
+    sort_methods = ['hot', 'top', 'new', 'rising']
     random.shuffle(sort_methods)
     
     async with aiohttp.ClientSession(headers=REQUEST_HEADERS) as session:
@@ -72,17 +74,19 @@ async def fetch_reddit_meme(subreddits: List[str], video_only: bool = False, nsf
             for sort in sort_methods:
                 try:
                     # Append ?t=all for top to get old gems occasionally
-                    url_suffix = f"/{sort}.json?limit=50"
+                    url_suffix = f"/{sort}.json?limit=100" # Increased depth
                     if sort == 'top':
                         url_suffix += "&t=" + random.choice(['day', 'week', 'month', 'year', 'all'])
                     
-                    async with session.get(f"https://www.reddit.com/r/{sub}{url_suffix}") as resp:
+                    async with session.get(f"https://www.reddit.com/r/{sub}{url_suffix}", timeout=10) as resp:
                         if resp.status != 200:
                             continue
                         
                         data = await resp.json()
                         posts = data.get('data', {}).get('children', [])
-                        random.shuffle(posts)
+                        if not posts: continue
+                        
+                        random.shuffle(posts) # High randomization
                         
                         for post in posts:
                             pdata = post.get('data', {})
@@ -92,15 +96,22 @@ async def fetch_reddit_meme(subreddits: List[str], video_only: bool = False, nsf
                             if await is_meme_seen(post_id):
                                 continue
                             
-                            # NSFW Filter
+                            # NSFW Logic
+                            # If command is NOT nsfw-specific, we MUST skip over_18
+                            # If command IS nsfw-specific, we can take both (as requested 'dmeme' etc)
                             if not nsfw and pdata.get('over_18'):
                                 continue
                             
                             # Media Detection
                             url = pdata.get('url', '')
-                            # Better detection for gallery and external links that aren't direct images
                             is_gallery = 'reddit.com/gallery/' in url
-                            is_video = pdata.get('is_video') or pdata.get('post_hint') == 'video' or url.endswith(('.mp4', '.gifv'))
+                            # Accurate video hint
+                            is_video = (
+                                pdata.get('is_video') or 
+                                pdata.get('post_hint') == 'video' or 
+                                url.lower().endswith(('.mp4', '.gifv', '.mkv')) or
+                                'v.redd.it' in url
+                            )
                             
                             # Handle text-only posts (for stories)
                             is_text = pdata.get('is_self', False)
@@ -122,10 +133,13 @@ async def fetch_reddit_meme(subreddits: List[str], video_only: bool = False, nsf
 
                             if video_only:
                                 if not is_video: continue
-                                if pdata.get('is_video'):
+                                if pdata.get('is_video') or 'v.redd.it' in url:
                                     url = pdata.get('media', {}).get('reddit_video', {}).get('fallback_url')
+                                    if not url: # Fallback for some crossposts
+                                        url = pdata.get('url')
                             else:
                                 if is_video or is_gallery: continue
+                                # Direct media check
                                 if not any(url.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']):
                                     # Try to fix imgur links
                                     if 'imgur.com' in url and not url.endswith(('.jpg', '.png', '.gif')):
