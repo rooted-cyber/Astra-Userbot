@@ -8,165 +8,238 @@
 
 from . import *
 import time
+import logging
 from config import config
 
-# Global cache for metadata indexing
-HELP_CACHE = {
-    "categories": {},
-    "last_update": 0
+logger = logging.getLogger("Astra.Help")
+
+# ─────── Category Normalization Map ───────
+# Maps raw category strings → unified display categories
+CATEGORY_MAP = {
+    # AI
+    "ai intelligence": "AI & Search",
+    # Tools / Utility / Essentials → merged
+    "astra essentials": "Tools & Utilities",
+    "core tools":       "Tools & Utilities",
+    "utility":          "Tools & Utilities",
+    "general":          "Tools & Utilities",
+    # Fun
+    "fun":              "Fun & Memes",
+    "fun & games":      "Fun & Memes",
+    # Media
+    "downloader":       "Media & Downloads",
+    "media engine":     "Media & Downloads",
+    # Group
+    "group admin":      "Group Management",
+    # Owner
+    "owner tools":      "Owner",
+    "owner utility":    "Owner",
+    # System
+    "system":           "System",
+    "system & bot":     "System",
+    "system hub":       "System",
 }
+
+# Icons per unified category
+CATEGORY_ICONS = {
+    "AI & Search":        "🧠",
+    "Tools & Utilities":  "🛠️",
+    "Fun & Memes":        "🎭",
+    "Media & Downloads":  "🎬",
+    "Group Management":   "👥",
+    "Owner":              "👑",
+    "System":             "⚙️",
+}
+
+# Sort order for main menu
+CATEGORY_ORDER = [
+    "AI & Search",
+    "Tools & Utilities",
+    "Fun & Memes",
+    "Media & Downloads",
+    "Group Management",
+    "Owner",
+    "System",
+]
+
+def normalize_category(raw_cat: str) -> str:
+    """Normalizes a raw category string to a unified display category."""
+    return CATEGORY_MAP.get(raw_cat.lower().strip(), raw_cat)
+
+def get_icon(cat: str) -> str:
+    return CATEGORY_ICONS.get(cat, "📦")
+
+
+# ─────── Help Cache ───────
+HELP_CACHE = {
+    "merged": {},      # { unified_cat: [cmd_entry, ...] }
+    "by_module": {},   # { module_name: [cmd_entry, ...] }
+    "built": False
+}
+
+def _build_cache():
+    """Indexes COMMANDS_METADATA into merged categories and module groups."""
+    HELP_CACHE["merged"].clear()
+    HELP_CACHE["by_module"].clear()
+    
+    for cmd in COMMANDS_METADATA:
+        # Merged category
+        ucat = normalize_category(cmd.get('category', 'Tools & Utilities'))
+        HELP_CACHE["merged"].setdefault(ucat, []).append(cmd)
+        
+        # Module index
+        mod = cmd.get('module', 'unknown')
+        HELP_CACHE["by_module"].setdefault(mod, []).append(cmd)
+    
+    HELP_CACHE["built"] = True
+
 
 @astra_command(
     name="help",
     aliases=["h", "menu"],
-    description="List all commands or get help for a specific one.",
-    category="Utility",
-    usage="[cmd/cat/module] (optional)",
+    description="Show all commands, category, or plugin details.",
+    category="Tools & Utilities",
+    usage="[cmd / category / module]",
     is_public=True
 )
 async def help_handler(client: Client, message: Message):
     """
-    Premium interactive help menu with module/file-wise grouping.
+    Premium help system with unified categories and module grouping.
     """
     try:
         from utils.state import state
-        curr_prefix = state.get_prefix()
+        pfx = state.get_prefix()
         args = extract_args(message)
 
-        # 1. Indexing Logic
-        global HELP_CACHE
-        if not HELP_CACHE["categories"]:
-            HELP_CACHE["categories"] = {}
-            for cmd_entry in COMMANDS_METADATA:
-                cat = cmd_entry.get('category', 'Core Tools')
-                if cat not in HELP_CACHE["categories"]:
-                    HELP_CACHE["categories"][cat] = []
-                HELP_CACHE["categories"][cat].append(cmd_entry)
+        # Rebuild cache on every call to stay fresh after reloads
+        _build_cache()
+        merged = HELP_CACHE["merged"]
+        by_mod = HELP_CACHE["by_module"]
 
-        categories = HELP_CACHE["categories"]
-
-        def get_icon(cat_name: str):
-            c_low = cat_name.lower()
-            if "media" in c_low: return "🎬"
-            if "core" in c_low or "util" in c_low: return "🛠️"
-            if "group" in c_low: return "👥"
-            if "system" in c_low: return "⚙️"
-            if "owner" in c_low: return "👑"
-            if "fun" in c_low: return "🎭" 
-            if "ai" in c_low: return "🧠"
-            if "admin" in c_low: return "🛡️"
-            if "dev" in c_low: return "🚀"
-            return "📦"
-
-        # 2. Handle Queries
+        # ── QUERY MODE ──────────────────────────
         if args:
-            query = args[0].lower().strip().lstrip('.!/')
+            q = args[0].lower().strip().lstrip('.!/')
             
-            # A. Check for CATEGORY query
-            match_cat = next((c for c in categories.keys() if c.lower() == query or c.lower().replace(' ', '_') == query), None)
-            if match_cat:
-                cmd_entries = sorted(categories[match_cat], key=lambda x: x['name'])
-                cat_help = (
-                    f"📂 **{match_cat.upper()} MODULE**\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"✨ *Category Overview*\n\n"
-                )
-                for c in cmd_entries:
-                    cat_help += f"🔹 `{curr_prefix}{c['name']}`\n╰ {c['description'][:50]}\n\n"
+            # ① MODULE / PLUGIN search (e.g. ".help meme", ".help system_mgmt")
+            mod_match = by_mod.get(q)
+            if mod_match:
+                cmds = sorted(mod_match, key=lambda c: c['name'])
+                cats_in_mod = sorted(set(normalize_category(c.get('category', '')) for c in cmds))
                 
-                cat_help += (
-                    f"━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"💠 **Total:** `{len(cmd_entries)}` commands\n"
-                    f"💡 Use `{curr_prefix}help <cmd>` for specifics."
+                txt = (
+                    f"╔═══════════════════════╗\n"
+                    f"║  📦 PLUGIN: *{q.upper()}*\n"
+                    f"╚═══════════════════════╝\n\n"
                 )
-                return await smart_reply(message, cat_help)
+                for c in cmds:
+                    txt += f"  ▸ `{pfx}{c['name']}`  —  _{c['description'][:45]}_\n"
+                txt += (
+                    f"\n┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n"
+                    f"  📂 Categories: {', '.join(cats_in_mod)}\n"
+                    f"  � Total: *{len(cmds)}* commands\n"
+                    f"┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n"
+                    f"💡 `{pfx}help <cmd>` for usage details"
+                )
+                return await smart_reply(message, txt)
 
-            # B. Check for MODULE (plugin) query
-            match_mod = [c for c in COMMANDS_METADATA if c.get('module', '').lower() == query or c.get('module', '').lower().replace('.py', '') == query]
-            if match_mod:
-                match_mod = sorted(match_mod, key=lambda x: x['name'])
-                mod_name = match_mod[0].get('module', query).title()
-                mod_help = (
-                    f"📦 **PLUGIN: {mod_name}**\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"🛠️ *Commands in this file:*\n\n"
-                )
-                for c in match_mod:
-                    mod_help += f"🔸 `{curr_prefix}{c['name']}`\n"
+            # ② CATEGORY search (e.g. ".help fun & memes")
+            full_query = " ".join(args).lower().strip()
+            cat_match = next((c for c in merged if c.lower() == full_query or c.lower().replace(' ', '_') == q or c.lower().replace('&', 'and').replace(' ', '_') == q), None)
+            if cat_match:
+                cmds = sorted(merged[cat_match], key=lambda c: c['name'])
+                icon = get_icon(cat_match)
                 
-                mod_help += (
-                    f"\n━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"💠 **Total:** `{len(match_mod)}` commands\n"
-                    f"✨ *Astra Plugin Architecture*"
+                txt = (
+                    f"╔═══════════════════════╗\n"
+                    f"║  {icon} *{cat_match.upper()}*\n"
+                    f"╚═══════════════════════╝\n\n"
                 )
-                return await smart_reply(message, mod_help)
+                for c in cmds:
+                    txt += f"  ▸ `{pfx}{c['name']}`  —  _{c['description'][:45]}_\n"
+                txt += (
+                    f"\n┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n"
+                    f"  � Total: *{len(cmds)}* commands\n"
+                    f"┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n"
+                    f"💡 `{pfx}help <cmd>` for usage details"
+                )
+                return await smart_reply(message, txt)
 
-            # C. Check for COMMAND query
-            cmd = next((c for c in COMMANDS_METADATA if c['name'].lower() == query or query in [a.lower() for a in c.get('aliases', [])]), None)
+            # ③ COMMAND search (e.g. ".help ping")
+            cmd = next((c for c in COMMANDS_METADATA if c['name'].lower() == q or q in [a.lower() for a in c.get('aliases', [])]), None)
             if cmd:
-                # Get other commands in same module
-                peer_cmds = [c['name'] for c in COMMANDS_METADATA if c.get('module') == cmd.get('module') and c['name'] != cmd['name']]
+                mod_name = cmd.get('module', '?')
+                peer_cmds = [c['name'] for c in COMMANDS_METADATA if c.get('module') == mod_name and c['name'] != cmd['name']]
                 
-                help_text = (
-                    f"📖 **COMMAND INDEX**\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"💠 **Command:** `{curr_prefix}{cmd['name']}`\n"
-                    f"ℹ️ **Info:** _{cmd['description']}_\n"
-                    f"🔖 **Category:** `{cmd.get('category', 'Utility')}`\n"
+                txt = (
+                    f"╔═══════════════════════╗\n"
+                    f"║  📖 *COMMAND DETAILS*\n"
+                    f"╚═══════════════════════╝\n\n"
+                    f"  💠 *Command:*  `{pfx}{cmd['name']}`\n"
+                    f"  ℹ️ *Info:*  _{cmd['description']}_\n"
+                    f"  � *Category:*  {normalize_category(cmd.get('category', ''))}\n"
+                    f"  📦 *Plugin:*  `{mod_name}`\n"
                 )
                 if cmd.get('aliases'):
-                    help_text += f"➕ **Aliases:** `{', '.join(cmd['aliases'])}`\n"
-                
-                help_text += f"💡 **Usage:** `{curr_prefix}{cmd['name']} {cmd.get('usage', '')}`\n"
+                    txt += f"  ➕ *Aliases:*  {', '.join(['`' + a + '`' for a in cmd['aliases']])}\n"
+                txt += f"  💡 *Usage:*  `{pfx}{cmd['name']} {cmd.get('usage', '')}`\n"
                 
                 if peer_cmds:
-                    # Clean grouping of related commands
-                    help_text += (
-                        f"━━━━━━━━━━━━━━━━━━━━━\n"
-                        f"🔗 **Related in `{cmd.get('module')}`:**\n"
-                        f"╰ " + " · ".join([f"`{p}`" for p in peer_cmds[:8]]) + (f" ...and {len(peer_cmds)-8} more" if len(peer_cmds) > 8 else "") + "\n"
+                    peers_str = "  ·  ".join([f"`{p}`" for p in sorted(peer_cmds)[:10]])
+                    extra = f" +{len(peer_cmds)-10} more" if len(peer_cmds) > 10 else ""
+                    txt += (
+                        f"\n┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n"
+                        f"  🔗 *Also in `{mod_name}`:*\n"
+                        f"  {peers_str}{extra}\n"
                     )
-
-                help_text += (
-                    f"━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"🚀 *Astra Engine v{config.VERSION}*"
+                
+                txt += (
+                    f"┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n"
+                    f"⚡ *Astra Engine v{config.VERSION}*"
                 )
-                return await smart_reply(message, help_text)
-            
-            return await smart_reply(message, f"❌ `{query}` not found as command, category, or plugin.")
+                return await smart_reply(message, txt)
 
-        # 3. Main Menu (Clean Category Grid)
-        sorted_cats = sorted(categories.keys())
-        menu_text = (
-            f"⚡ **ASTRA USERBOT {config.VERSION_NAME}**\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"👑 **Owner:** `{config.OWNER_ID}`\n"
-            f"💠 **Prefix:** `{curr_prefix}`    💠 **Cmds:** `{len(COMMANDS_METADATA)}`\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n\n"
+            return await smart_reply(message, f"❌ `{q}` not found.\n💡 Try `{pfx}help` for the full menu.")
+
+        # ── MAIN MENU ───────────────────────────
+        total = len(COMMANDS_METADATA)
+        
+        txt = (
+            f"╔═══════════════════════╗\n"
+            f"║   ⚡ *ASTRA USERBOT*  ⚡\n"
+            f"║   {config.VERSION_NAME}\n"
+            f"╚═══════════════════════╝\n\n"
+            f"  � *Owner:*  `{config.OWNER_ID}`\n"
+            f"  � *Prefix:*  `{pfx}`    � *Commands:*  `{total}`\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         )
 
-        for cat in sorted_cats:
-            cmd_names = sorted([c['name'] for c in categories[cat]])
-            menu_text += f"{get_icon(cat)} **{cat.upper()}**\n"
-            
-            # Formatted command list
-            cmds_str = "  ·  ".join([f"`{name}`" for name in cmd_names])
-            menu_text += f"╰ {cmds_str}\n\n"
+        for cat in CATEGORY_ORDER:
+            if cat not in merged:
+                continue
+            cmds = sorted(merged[cat], key=lambda c: c['name'])
+            icon = get_icon(cat)
+            names = "  ·  ".join([f"`{c['name']}`" for c in cmds])
+            txt += f"{icon} *{cat.upper()}*  [{len(cmds)}]\n╰ {names}\n\n"
+        
+        # Any uncategorized leftovers
+        for cat in sorted(merged.keys()):
+            if cat not in CATEGORY_ORDER:
+                cmds = sorted(merged[cat], key=lambda c: c['name'])
+                names = "  ·  ".join([f"`{c['name']}`" for c in cmds])
+                txt += f"📦 *{cat.upper()}*  [{len(cmds)}]\n╰ {names}\n\n"
 
-        menu_text += (
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"💡 `{curr_prefix}help <module>` for per-file details.\n"
-            f"✨ *Premium Performance & Aesthetics*"
+        txt += (
+            f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"💡 `{pfx}help <cmd>`  →  Command details\n"
+            f"📦 `{pfx}help <module>`  →  Plugin commands\n"
+            f"📂 `{pfx}help <category>`  →  Category list\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"✨ *Premium WhatsApp Automation*"
         )
         
-        await smart_reply(message, menu_text)
+        await smart_reply(message, txt)
 
     except Exception as e:
         import traceback
         logger.error(f"Help Error: {e}\n{traceback.format_exc()}")
-        await smart_reply(message, f"❌ Help System Failure: {e}")
-
-    except Exception as e:
-        import traceback
-        print(traceback.format_exc())
-        await smart_reply(message, f"❌ Help Error: {e}")
+        await smart_reply(message, f"❌ Help System Failure: `{e}`")
