@@ -110,16 +110,20 @@ async def update_cmd(client: Client, message: Message):
         # 3. Handle Diff if not forced
         if local_hash != remote_hash and not force:
             proc_diff = await asyncio.create_subprocess_exec(
-                'git', 'log', '--oneline', '--max-count=5', f'HEAD..origin/{branch}',
+                'git', 'log', '--format=%h | %an | %ar | %s', '--max-count=5', f'HEAD..origin/{branch}',
                 stdout=asyncio.subprocess.PIPE
             )
             diff_text, _ = await proc_diff.communicate()
             
             summary = diff_text.decode().strip() or "No commit summary available."
             update_prompt = (
-                f"🚀 **New Updates Found!**\n\n"
+                f"🚀 **Astra Update Engine**\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"✨ **New Updates Found!**\n\n"
                 f"📂 **Branch:** `{branch}`\n"
-                f"✨ **Latest Changes:**\n```\n{summary}```\n\n"
+                f"👤 **Author:** `Aman Kumar Pandey`\n"
+                f"🕒 **Checked at:** `{time.strftime('%H:%M:%S')}`\n\n"
+                f"📋 **Latest Changes:**\n```\n{summary}```\n\n"
                 f"⚠️ *Run `.update -f` to apply these changes and restart.*"
             )
             return await status_msg.edit(update_prompt)
