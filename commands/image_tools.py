@@ -15,14 +15,14 @@ from utils.helpers import handle_command_error
 async def apply_filter(client: Client, message: Message, filter_type: str):
     """Generic image filter applier."""
     target = message.quoted if message.has_quoted_msg else message
-    if not target or not target.is_media or not target.mimetype.startswith("image"):
+    if not target or not target.is_media or not target.mimetype or not target.mimetype.startswith("image"):
         return await smart_reply(message, "🖼️ **Image Tools**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Reply to an image** to apply this filter.")
 
     status_msg = await smart_reply(message, f"🎨 **Astra Creative Studio**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Applying {filter_type} filter...*")
 
     try:
-        # Download
-        media_data = await bridge_downloader.download_media(client, message)
+        # Download (Pass the target message which actually has the media)
+        media_data = await bridge_downloader.download_media(client, target)
         if not media_data:
             return await status_msg.edit("❌ Failed to download image.")
 
