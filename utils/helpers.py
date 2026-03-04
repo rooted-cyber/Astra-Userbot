@@ -1,19 +1,19 @@
-
 """
 Collection of utility functions and classes to assist with common bot operations.
 Includes media handling, rate limiting, and reporting mechanisms.
 """
-import time
-import os
-import shutil
+
 import asyncio
+import shutil
+import time
 import traceback
-from typing import Optional, List
+from typing import Optional
+
 from astra.models import Message
-from utils.progress import get_progress_bar
 
 # Core Utility Functions
 # ----------------------
+
 
 async def check_binary(name: str) -> bool:
     """
@@ -21,6 +21,7 @@ async def check_binary(name: str) -> bool:
     Useful for validating system-level dependencies like FFmpeg or Node.
     """
     return shutil.which(name) is not None
+
 
 async def get_media_message(message: Message) -> Optional[Message]:
     """
@@ -35,6 +36,7 @@ async def get_media_message(message: Message) -> Optional[Message]:
             return quoted
     return None
 
+
 async def get_media_title(url: str) -> str:
     """
     Attempts to retrieve a human-readable title for a media URL using yt-dlp.
@@ -42,9 +44,12 @@ async def get_media_title(url: str) -> str:
     """
     try:
         proc = await asyncio.create_subprocess_exec(
-            "yt-dlp", "--get-title", "--no-warnings", url,
+            "yt-dlp",
+            "--get-title",
+            "--no-warnings",
+            url,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            stderr=asyncio.subprocess.PIPE,
         )
         stdout, _ = await proc.communicate()
         if proc.returncode == 0:
@@ -54,14 +59,17 @@ async def get_media_title(url: str) -> str:
         pass
     return "Media Content"
 
+
 # Operational Support Classes
 # ---------------------------
+
 
 class RateLimiter:
     """
     Implements a sliding window rate limiting algorithm.
     Prevents command spam by tracking user-specific execution timestamps.
     """
+
     def __init__(self, limit: int = 5, window: int = 60):
         self.limit = limit
         self.window = window
@@ -72,20 +80,20 @@ class RateLimiter:
         Validates if a user is within the allowed rate limit.
         Returns True if allowed, False if throttled.
         """
-        import time
         now = time.time()
-        
+
         if user_id not in self.records:
             self.records[user_id] = []
-        
+
         # Purge timestamps outside the current window
         self.records[user_id] = [t for t in self.records[user_id] if now - t < self.window]
-        
+
         if len(self.records[user_id]) >= self.limit:
             return False
-            
+
         self.records[user_id].append(now)
         return True
+
 
 async def smart_reply(message: Message, content: str, **kwargs):
     """
@@ -100,14 +108,14 @@ async def smart_reply(message: Message, content: str, **kwargs):
             return message
         else:
             return await message.reply(content, **kwargs)
-    except Exception as e:
+    except Exception:
         # Fallback to standard reply if edit fails (e.g., message already deleted or too old).
         return await message.reply(content, **kwargs)
 
 
 async def safe_edit(message: Message, content: str, **kwargs):
     """
-    A robust version of edit() that automatically falls back to 
+    A robust version of edit() that automatically falls back to
     smart_reply() or message.reply() if editing is not possible.
     Includes built-in protection against common WhatsApp edit restrictions.
     """
@@ -124,20 +132,19 @@ async def safe_edit(message: Message, content: str, **kwargs):
         return await smart_reply(message, content, **kwargs)
 
 
-
-
 async def report_error(client, exc: Exception, context: str = ""):
     """
     Captures and transmits diagnostic information (tracebacks) to the bot owner.
     Provides visibility into runtime issues directly within WhatsApp.
     """
     from config import config
+
     try:
         # Extract full stack trace for debugging
-        tb = ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))
-        
+        tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+
         # Determine notification targets
-        owner_ids = getattr(client, 'owner_ids', [])
+        owner_ids = getattr(client, "owner_ids", [])
         if not owner_ids and config.OWNER_ID:
             owner_ids = [config.OWNER_ID]
 
@@ -161,16 +168,17 @@ async def report_error(client, exc: Exception, context: str = ""):
     except Exception:
         return False
 
+
 async def handle_command_error(client, message, exc, context: str = "Command Failure"):
     """
     Centralized error handler for commands.
     Provides beautified feedback to users and detailed logs to the owner.
     """
     from utils.media_exceptions import MediaException
-    
+
     # 1. Send report to owner
     await report_error(client, exc, context=context)
-    
+
     # 2. Provide feedback to user
     if isinstance(exc, MediaException):
         # Professional branded error card for media issues
@@ -189,8 +197,9 @@ async def handle_command_error(client, message, exc, context: str = "Command Fai
             f"👤 **Details:** `{str(exc)[:100]}`\n"
             f"🛠️ *Report this at: github.com/paman7647/Astra-Userbot/issues*"
         )
-    
+
     return await smart_reply(message, error_text)
+
 
 async def get_contact_name(client, jid: str) -> str:
     """
@@ -199,8 +208,9 @@ async def get_contact_name(client, jid: str) -> str:
     """
     try:
         from astra.models import JID
+
         jid_obj = JID.parse(jid) if isinstance(jid, str) else jid
-        
+
         # Check if it's "Me" (LID or User ID matches)
         me = await client.get_me()
         if jid_obj.primary == me.id.primary:
@@ -208,18 +218,21 @@ async def get_contact_name(client, jid: str) -> str:
 
         clean_jid = jid_obj.primary
         contact = await client.get_contact(clean_jid)
-        
+
         # Priority Logic
-        if contact.push_name: return contact.push_name
-        if contact.name: return contact.name
-        
+        if contact.push_name:
+            return contact.push_name
+        if contact.name:
+            return contact.name
+
         # Fallback to number or JID
-        user_part = clean_jid.split('@')[0]
+        user_part = clean_jid.split("@")[0]
         return f"+{user_part}" if user_part.isdigit() else user_part[:10]
     except Exception:
         # Hard fallback
-        user_part = str(jid).split('@')[0]
+        user_part = str(jid).split("@")[0]
         return f"+{user_part}" if user_part.isdigit() else user_part[:10]
+
 
 # Exported Singletons
 # ------------------

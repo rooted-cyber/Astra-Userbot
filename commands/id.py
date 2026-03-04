@@ -1,5 +1,5 @@
-
 from . import *
+
 
 @astra_command(
     name="id",
@@ -7,21 +7,21 @@ from . import *
     category="Tools & Utilities",
     aliases=["info"],
     usage=".id (reply to message to inspect its IDs)",
-    is_public=True
+    is_public=True,
 )
 async def id_handler(client: Client, message: Message):
     """Renders a detailed identity card with JID information."""
     try:
         chat_id = str(message.chat_id)
         sender_id = str(message.sender_id)
-        
+
         # Resolve names (Core logic preserved)
         chat_name = "Unknown"
         chat_type = "Chat"
         try:
             chat_entity = await client.get_entity(chat_id)
-            chat_name = getattr(chat_entity, 'title', "Unknown")
-            if getattr(chat_entity, 'is_group', False):
+            chat_name = getattr(chat_entity, "title", "Unknown")
+            if getattr(chat_entity, "is_group", False):
                 chat_type = "Group"
         except Exception:
             pass
@@ -45,8 +45,8 @@ async def id_handler(client: Client, message: Message):
             f"{reply_info}\n"
             "━━━━━━━━━━━━━━━━━━━━━━"
         )
-        
+
         await smart_reply(message, info_text)
 
     except Exception as e:
-        await report_error(client, e, context='ID command failure')
+        await report_error(client, e, context="ID command failure")

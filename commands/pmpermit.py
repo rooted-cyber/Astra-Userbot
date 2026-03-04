@@ -1,7 +1,7 @@
-
-from config import config
 from utils.state import state
+
 from . import *
+
 
 @astra_command(
     name="pmpermit",
@@ -9,17 +9,17 @@ from . import *
     category="Owner",
     aliases=[],
     usage="<on|off|approve|deny> [user_id] (e.g. .pmpermit approve @123)",
-    owner_only=True
+    owner_only=True,
 )
 async def pmpermit_handler(client: Client, message: Message):
     """Toggle PM Protection or permit/deny users"""
     try:
         args_list = extract_args(message)
-        
+
         if not args_list:
             status = "Active 🛡️" if state.get_config("ENABLE_PM_PROTECTION") else "Inactive 🔓"
             permitted_count = len(state.state.get("pm_permits", []))
-            
+
             help_text = (
                 f"🛡️ **Astra PM Security**\n━━━━━━━━━━━━━━━━━━━━\n"
                 f"📍 **Status:** {status}\n"
@@ -48,20 +48,23 @@ async def pmpermit_handler(client: Client, message: Message):
             elif message.has_quoted_msg:
                 quoted = message.quoted
                 target_id = quoted.sender or quoted.chat_id
-            elif not str(message.chat_id).endswith('@g.us'):
+            elif not str(message.chat_id).endswith("@g.us"):
                 target_id = message.chat_id
 
             if not target_id:
-                return await smart_reply(message, "⚠️ **Astra PM Security:** Please provide a user ID or reply to a message.")
+                return await smart_reply(
+                    message, "⚠️ **Astra PM Security:** Please provide a user ID or reply to a message."
+                )
 
             # Handle JID objects or strings
-            target_str = target_id.serialized if hasattr(target_id, 'serialized') else str(target_id)
-            if '@' not in target_str: target_str = f"{target_str}@c.us"
-            
+            target_str = target_id.serialized if hasattr(target_id, "serialized") else str(target_id)
+            if "@" not in target_str:
+                target_str = f"{target_str}@c.us"
+
             # Normalization: Ensure we only store primary JID (stripping :x)
-            if ":" in target_str.split('@', 1)[0]:
-                target_str = target_str.split(':', 1)[0] + '@' + target_str.split('@', 1)[1]
-            
+            if ":" in target_str.split("@", 1)[0]:
+                target_str = target_str.split(":", 1)[0] + "@" + target_str.split("@", 1)[1]
+
             state.permit_user(target_str)
             name = await get_contact_name(client, target_str)
             await smart_reply(message, f"✅ **Astra PM Security:** `{name}` has been permitted to DM. 🛡️")
@@ -73,16 +76,19 @@ async def pmpermit_handler(client: Client, message: Message):
             elif message.has_quoted_msg:
                 quoted = message.quoted
                 target_id = quoted.sender or quoted.chat_id
-            elif not str(message.chat_id).endswith('@g.us'):
+            elif not str(message.chat_id).endswith("@g.us"):
                 target_id = message.chat_id
 
             if not target_id:
-                return await smart_reply(message, "⚠️ **Astra PM Security:** Please provide a user ID or reply to a message.")
+                return await smart_reply(
+                    message, "⚠️ **Astra PM Security:** Please provide a user ID or reply to a message."
+                )
 
             # Handle JID objects or strings
-            target_str = target_id.serialized if hasattr(target_id, 'serialized') else str(target_id)
-            if '@' not in target_str: target_str = f"{target_str}@c.us"
-            
+            target_str = target_id.serialized if hasattr(target_id, "serialized") else str(target_id)
+            if "@" not in target_str:
+                target_str = f"{target_str}@c.us"
+
             state.deny_user(target_str)
             name = await get_contact_name(client, target_str)
             await smart_reply(message, f"❌ **Astra PM Security:** `{name}` access has been revoked.")
@@ -90,16 +96,16 @@ async def pmpermit_handler(client: Client, message: Message):
             permitted = state.state.get("pm_permits", [])
             if not permitted:
                 return await smart_reply(message, "🚫 **Astra PM Security:** No users permitted yet.")
-            
+
             list_text = "📑 **Astra Permitted Users:**\n━━━━━━━━━━━━━━━━━━━━\n"
             for i, uid in enumerate(permitted, 1):
                 name = await get_contact_name(client, uid)
                 list_text += f"{i}. **{name}** (`{uid.split('@')[0]}`)\n"
-            
+
             await smart_reply(message, list_text)
 
         else:
             await smart_reply(message, "❌ **Astra PM Security:** Invalid action. Use on/off/approve/deny/list.")
     except Exception as e:
         await smart_reply(message, f"❌ **System Error:** {str(e)}")
-        await report_error(client, e, context='Command pmpermit failed')
+        await report_error(client, e, context="Command pmpermit failed")

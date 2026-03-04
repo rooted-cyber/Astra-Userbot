@@ -1,33 +1,37 @@
-
-import time
 import json
-from . import *
+import time
+
 from utils.database import db
+
+from . import *
+
 
 @astra_command(
     name="analytics",
     description="Detailed command usage and bot engagement report.",
     category="System",
-    owner_only=True
+    owner_only=True,
 )
 async def analytics_handler(client: Client, message: Message):
     """Owner-only analytics dashboard."""
     status_msg = await smart_reply(message, "📊 **Generating Astra Intelligence Report...**")
-    
+
     try:
         # 1. Fetch Total Stats
         total_cmds = await db.get("total_commands_v1", 0)
-        
+
         # 2. Fetch Full Usage List
-        cursor = await db.sqlite_conn.execute("SELECT key, value FROM state WHERE key LIKE 'cmd_usage:%' ORDER BY CAST(json_extract(value, '$') AS INTEGER) DESC")
+        cursor = await db.sqlite_conn.execute(
+            "SELECT key, value FROM state WHERE key LIKE 'cmd_usage:%' ORDER BY CAST(json_extract(value, '$') AS INTEGER) DESC"
+        )
         rows = await cursor.fetchall()
-        
+
         usage_lines = []
         for i, row in enumerate(rows):
             cmd = row[0].split(":")[-1]
             count = json.loads(row[1])
-            usage_lines.append(f"{i+1}. `{cmd}`: **{count}**")
-            
+            usage_lines.append(f"{i + 1}. `{cmd}`: **{count}**")
+
         usage_text = "\n".join(usage_lines[:20]) if usage_lines else "_No data recorded yet._"
         if len(usage_lines) > 20:
             usage_text += f"\n\n_...and {len(usage_lines) - 20} more commands._"
@@ -43,8 +47,8 @@ async def analytics_handler(client: Client, message: Message):
             f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             f"✨ *Tracking enabled in Astra Engine v1.1*"
         )
-        
+
         await status_msg.edit(report)
 
     except Exception as e:
-        await handle_command_error(client, message, e, context='Analytics dashboard failure')
+        await handle_command_error(client, message, e, context="Analytics dashboard failure")

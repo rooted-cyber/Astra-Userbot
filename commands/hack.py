@@ -1,4 +1,3 @@
-
 """
 Fun Utility: Fake Hack
 ----------------------
@@ -7,9 +6,9 @@ WARNING: This is purely visual and does not actually hack anything.
 """
 
 import asyncio
-import random
-import time
+
 from . import *
+
 
 @astra_command(
     name="hack",
@@ -17,7 +16,7 @@ from . import *
     category="Fun & Memes",
     aliases=["hacker"],
     usage="<target> (e.g. @user or number)",
-    is_public=True
+    is_public=True,
 )
 async def hack_handler(client: Client, message: Message):
     """
@@ -52,7 +51,7 @@ async def hack_handler(client: Client, message: Message):
                 pass
 
         status_msg = await smart_reply(message, f" 💻 *Initiating Hack on {target_name}...*")
-        
+
         steps = [
             f" 🔍 *Scanning vulnerabilities on {target_name}...*",
             " 🔓 *Infiltrating local network...*",
@@ -66,12 +65,12 @@ async def hack_handler(client: Client, message: Message):
             f" 📂 *Downloading {target_name}'s Chat History...* `[67%]`",
             f" 📂 *Downloading {target_name}'s Chat History...* `[99%]`",
             " 📂 *Download Complete.* ✅",
-            f" 📸 *Accessing Camera...* `Success`",
+            " 📸 *Accessing Camera...* `Success`",
             f" 📸 *Stealing Private Gallery of {target_name}...*",
             " 🤐 *Exporting Account Private Keys...*",
             " 💣 *Injecting Ransomware into System Root...*",
             " ☁️ *Uploading Data to Dark Web...*",
-            f" ✅ **HACK COMPLETE!**\n\n_Target **{target_name}** has been successfully compromised._"
+            f" ✅ **HACK COMPLETE!**\n\n_Target **{target_name}** has been successfully compromised._",
         ]
 
         for step in steps:
@@ -83,4 +82,4 @@ async def hack_handler(client: Client, message: Message):
                 pass
 
     except Exception as e:
-        await report_error(client, e, context='Hack command failure')
+        await report_error(client, e, context="Hack command failure")

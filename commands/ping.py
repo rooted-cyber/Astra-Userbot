@@ -1,9 +1,10 @@
-
-import time
-import asyncio
 import platform
+import time
+
 from config import config
+
 from . import *
+
 
 @astra_command(
     name="ping",
@@ -11,22 +12,24 @@ from . import *
     category="Tools & Utilities",
     aliases=["p"],
     usage=".ping (checks latency)",
-    is_public=True
+    is_public=True,
 )
 async def ping_handler(client: Client, message: Message):
     """Calculates round-trip latency with descriptive system context."""
     try:
         start_time = time.time()
-        
+
         # First edit without delay
-        status_msg = await message.reply("📡 **ASTRA CONNECTIVITY TEST**\n━━━━━━━━━━━━━━━━━━━━\n🔍 **Status:** `Measuring...`")
-        
+        status_msg = await message.reply(
+            "📡 **ASTRA CONNECTIVITY TEST**\n━━━━━━━━━━━━━━━━━━━━\n🔍 **Status:** `Measuring...`"
+        )
+
         end_time = time.time()
         latency = round((end_time - start_time) * 1000)
-        
+
         # Determine status level
         status = "Excellent" if latency < 200 else "Good" if latency < 500 else "Average"
-        
+
         # Final result with descriptive formatting
         descriptive_ping = (
             "🏓 **PONG!** 🚀\n"
@@ -38,11 +41,11 @@ async def ping_handler(client: Client, message: Message):
             "━━━━━━━━━━━━━━━━━━━━━━\n"
             "✨ *Astra Engine is in peak form.*"
         )
-        
+
         # Second edit with manual delay
         time.sleep(0.5)
         await status_msg.edit(descriptive_ping)
 
     except Exception as e:
         await smart_reply(message, " ⚠️ Connectivity check failed.")
-        await report_error(client, e, context='Ping command failure')
+        await report_error(client, e, context="Ping command failure")

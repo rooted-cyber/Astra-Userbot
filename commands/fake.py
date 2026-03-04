@@ -1,4 +1,3 @@
-
 """
 Fun Utility: Fake Persona Generator
 -----------------------------------
@@ -6,10 +5,13 @@ Generates a random fake identity for privacy or fun.
 Uses randomuser.me API.
 """
 
-import aiohttp
 import time
-from . import *
+
+import aiohttp
 from utils.helpers import safe_edit
+
+from . import *
+
 
 @astra_command(
     name="fake",
@@ -17,7 +19,7 @@ from utils.helpers import safe_edit
     category="Fun & Memes",
     aliases=["identity", "fakeperson"],
     usage=".fake (generate random identity)",
-    is_public=True
+    is_public=True,
 )
 async def fake_handler(client: Client, message: Message):
     """
@@ -25,25 +27,25 @@ async def fake_handler(client: Client, message: Message):
     """
     try:
         status_msg = await smart_reply(message, " 🕵️ *Generating fake identity...*")
-        
+
         url = "https://randomuser.me/api/"
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
                 if resp.status != 200:
                     time.sleep(0.5)
                     return await safe_edit(status_msg, " ⚠️ Failed to fetch identity.")
-                
+
                 data = await resp.json()
-                user = data['results'][0]
-                
+                user = data["results"][0]
+
                 name = f"{user['name']['first']} {user['name']['last']}"
-                gender = user['gender']
+                gender = user["gender"]
                 location = f"{user['location']['city']}, {user['location']['country']}"
-                email = user['email']
-                login = user['login']['username']
-                pw = user['login']['password']
-                dob = user['dob']['date'][:10]
-                
+                email = user["email"]
+                login = user["login"]["username"]
+                pw = user["login"]["password"]
+                dob = user["dob"]["date"][:10]
+
                 # Format Identity Card
                 identity_card = (
                     "🕵️ **Fake Identity Generated**\n\n"
@@ -55,21 +57,18 @@ async def fake_handler(client: Client, message: Message):
                     f"🗝️ **Password:** `{pw}`\n\n"
                     f"⚠️ _For educational/fun purposes only._"
                 )
-                
+
                 # Send photo if available
-                pic_url = user['picture']['large']
+                pic_url = user["picture"]["large"]
                 if pic_url:
                     import base64
+
                     async with session.get(pic_url) as img_resp:
                         if img_resp.status == 200:
                             img_data = await img_resp.read()
-                            b64_data = base64.b64encode(img_data).decode('utf-8')
-                            
-                            media = {
-                                "mimetype": "image/jpeg",
-                                "data": b64_data,
-                                "filename": "identity.jpg"
-                            }
+                            b64_data = base64.b64encode(img_data).decode("utf-8")
+
+                            media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "identity.jpg"}
                             await client.send_media(message.chat_id, media, caption=identity_card)
                             await status_msg.delete()
                             return
@@ -78,4 +77,4 @@ async def fake_handler(client: Client, message: Message):
                 await safe_edit(status_msg, identity_card)
 
     except Exception as e:
-        await report_error(client, e, context='Fake command failure')
+        await report_error(client, e, context="Fake command failure")

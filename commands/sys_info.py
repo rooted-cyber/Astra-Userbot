@@ -1,26 +1,27 @@
-
 import platform
 import time
+
 from . import *
+
 
 @astra_command(
     name="platform",
     description="Description: Display detailed information about the bot's hosting environment.\nSyntax: .platform\nExample: .platform",
     usage=".platform (show system info)",
     aliases=["sys", "os"],
-    owner_only=True
+    owner_only=True,
 )
 async def platform_cmd(client: Client, message: Message):
     """Shows technical specifications of the hosting environment."""
     try:
         # First edit without delay
         status_msg = await message.reply("🖥️ *Fetching system architecture...*")
-        
+
         # Gathering info (Core logic preserved)
         os_info = f"{platform.system()} {platform.release()}"
         arch_info = platform.machine()
         python_ver = platform.python_version()
-        
+
         premium_sys_info = (
             "🖥️ **SYSTEM ARCHITECTURE** 🖥️\n"
             "━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -37,19 +38,20 @@ async def platform_cmd(client: Client, message: Message):
     except Exception as e:
         await message.reply(f"❌ Platform Error: {e}")
 
+
 @astra_command(
     name="start",
     description="Description: Simple test to verify the bot and edit functionality.\nSyntax: .start\nExample: .start",
     usage=".start (bot health check)",
     aliases=["test"],
-    owner_only=True
+    owner_only=True,
 )
 async def start_cmd(client: Client, message: Message):
     """Test command to verify bot responsiveness."""
     try:
         # First edit without delay
         msg = await message.reply("🤖 *Initializing Astra...*")
-        
+
         # Second edit with manual delay
         time.sleep(0.5)
         await msg.edit("🤖 **Astra Userbot is active!**\n\nYour personal assistant is ready to serve. 🚀")

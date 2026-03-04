@@ -1,26 +1,31 @@
-
-import os
-import time
-import json
-import re
 import asyncio
-from typing import Optional, Callable
-from astra.client import Client
-from astra.models import Message
+import json
+import os
+import re
+import time
+
 from config import config
 from utils.helpers import safe_edit
-from utils.progress import get_progress_bar
 from utils.media_exceptions import (
-    MediaException, ContentPrivateException, ContentUnavailableException, 
-    ContentAgeRestrictedException, RateLimitException, InvalidURLException
+    ContentAgeRestrictedException,
+    ContentPrivateException,
+    ContentUnavailableException,
+    InvalidURLException,
+    MediaException,
+    RateLimitException,
 )
+from utils.progress import get_progress_bar
+
+from astra.client import Client
+from astra.models import Message
+
 
 class MediaChannel:
     """
     Centralized Media Downloader and Uploader Channel.
     Provides real-time progress tracking and optimized delivery.
     """
-    
+
     def __init__(self, client: Client, message: Message, status_msg: Message):
         self.client = client
         self.message = message
@@ -31,6 +36,7 @@ class MediaChannel:
     async def _update_status(self, text: str, force: bool = False, is_progress: bool = False):
         """Throttled status updates for smooth UI."""
         from utils.state import state
+
         # Silent mode (FAST_MEDIA) bypasses progress updates
         if is_progress and state.get_config("FAST_MEDIA"):
             return
@@ -43,7 +49,7 @@ class MediaChannel:
     async def run_bridge(self, url: str, mode: str):
         """Executes the JS downloader bridge, utilizing cache for speed."""
         from utils.cache_manager import cache
-        
+
         # 1. Check Cache
         cached_file, cached_meta = await cache.get_cached_file(url, mode)
         if cached_file:
@@ -53,24 +59,28 @@ class MediaChannel:
                 f"✨ *{cached_meta.get('title', 'Media')}*\n"
                 f"🟢 *Cache Hit:* Delivered instantly.\n\n"
                 f"📤 *Preparing upload...*",
-                force=True
+                force=True,
             )
             # Small delay to let the user read the cache hit message
             await asyncio.sleep(1)
             return cached_file, cached_meta
 
         bridge_script = os.path.join(os.path.dirname(__file__), "js_downloader.js")
-        cookies_file = getattr(config, 'YOUTUBE_COOKIES_FILE', '') or ''
-        cookies_browser = getattr(config, 'YOUTUBE_COOKIES_FROM_BROWSER', '') or ''
+        cookies_file = getattr(config, "YOUTUBE_COOKIES_FILE", "") or ""
+        cookies_browser = getattr(config, "YOUTUBE_COOKIES_FROM_BROWSER", "") or ""
 
         import sys
+
         process = await asyncio.create_subprocess_exec(
-            "node", bridge_script,
-            url, mode, 
-            cookies_file, cookies_browser,
-            sys.executable, # Pass current python path
+            "node",
+            bridge_script,
+            url,
+            mode,
+            cookies_file,
+            cookies_browser,
+            sys.executable,  # Pass current python path
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            stderr=asyncio.subprocess.PIPE,
         )
 
         metadata = {"title": "Media Content", "platform": "Astra", "uploader": "Unknown", "url": url}
@@ -78,10 +88,11 @@ class MediaChannel:
 
         while True:
             line = await process.stdout.readline()
-            if not line: break
-            
-            line_str = line.decode('utf-8', errors='ignore').strip()
-            
+            if not line:
+                break
+
+            line_str = line.decode("utf-8", errors="ignore").strip()
+
             # Metadata Capture
             if line_str.startswith("METADATA:"):
                 metadata.update(json.loads(line_str.replace("METADATA:", "")))
@@ -92,7 +103,7 @@ class MediaChannel:
                     f"🌐 *Platform:* {metadata['platform']}\n"
                     f"📂 *Format:* {mode.capitalize()}\n\n"
                     f"⏳ *Initializing download stream...*",
-                    force=True
+                    force=True,
                 )
 
             # Progress Capture
@@ -109,19 +120,20 @@ class MediaChannel:
                         f"📋 *Size:* `{size}`\n"
                         f"🚀 *Speed:* `{speed}`\n"
                         f"🕒 *ETA:* `{eta}`",
-                        is_progress=True
+                        is_progress=True,
                     )
 
             # Success Capture
             if line_str.startswith("SUCCESS:"):
                 res = json.loads(line_str.replace("SUCCESS:", ""))
-                files = res.get('files', [])
-                if files: file_path = files[0]
+                files = res.get("files", [])
+                if files:
+                    file_path = files[0]
 
         await process.wait()
         if process.returncode != 0:
-            stderr = (await process.stderr.read()).decode(errors='ignore')
-            
+            stderr = (await process.stderr.read()).decode(errors="ignore")
+
             # Smart Error Parsing
             if "This video is private" in stderr or "Private account" in stderr:
                 raise ContentPrivateException()
@@ -133,7 +145,7 @@ class MediaChannel:
                 raise RateLimitException()
             elif "Unsupported URL" in stderr or "invalid URL" in stderr.lower():
                 raise InvalidURLException()
-            
+
             # Generic Bridge Error with snippet
             raise MediaException(f"Stream Error: {stderr[:200]}...")
 
@@ -147,10 +159,11 @@ class MediaChannel:
     async def upload_file(self, file_path: str, metadata: dict, mode: str):
         """Uploads file with real-time status updates."""
         from utils.state import state
+
         file_size = os.path.getsize(file_path)
         file_size_mb = file_size / (1024 * 1024)
-        size_str = f"{file_size_mb:.2f} MB" if file_size_mb < 1024 else f"{file_size_mb/1024:.2f} GB"
-        
+        size_str = f"{file_size_mb:.2f} MB" if file_size_mb < 1024 else f"{file_size_mb / 1024:.2f} GB"
+
         start_time = time.time()
         fast_mode = state.get_config("FAST_MEDIA")
 
@@ -166,7 +179,7 @@ class MediaChannel:
                 f"✨ *{metadata['title']}*\n\n"
                 f"📤 **Uploading to WhatsApp...**\n"
                 f"📂 *Size:* `{size_str}`",
-                is_progress=True
+                is_progress=True,
             )
 
         caption = (
@@ -186,14 +199,18 @@ class MediaChannel:
                     f"✨ *{metadata['title']}*\n\n"
                     f"📤 **Uploading to WhatsApp...**\n"
                     f"📂 *Size:* `{size_str}`",
-                    force=True
+                    force=True,
                 )
 
             if mode == "audio":
-                await self.client.send_audio(self.message.chat_id, file_path, reply_to=self.message.id, progress=on_progress)
+                await self.client.send_audio(
+                    self.message.chat_id, file_path, reply_to=self.message.id, progress=on_progress
+                )
             else:
-                await self.client.send_video(self.message.chat_id, file_path, caption=caption, reply_to=self.message.id, progress=on_progress)
-            
+                await self.client.send_video(
+                    self.message.chat_id, file_path, caption=caption, reply_to=self.message.id, progress=on_progress
+                )
+
             await self.status_msg.delete()
         except MediaException:
             # Re-raise custom exceptions to be handled by the command's generic error handler

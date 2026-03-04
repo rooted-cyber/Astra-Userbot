@@ -1,10 +1,10 @@
+import base64
 
 import aiohttp
-import base64
-import json
-import re
-from . import *
 from utils.helpers import handle_command_error
+
+from . import *
+
 
 @astra_command(
     name="iginfo",
@@ -12,7 +12,7 @@ from utils.helpers import handle_command_error
     category="Tools & Utilities",
     aliases=["igprofile", "instagraminfo"],
     usage="<username> (e.g. .iginfo amankrpandey7647)",
-    is_public=True
+    is_public=True,
 )
 async def iginfo_handler(client: Client, message: Message):
     """Instagram Profile Analyzer using official API or robust GraphQL scraping."""
@@ -20,12 +20,15 @@ async def iginfo_handler(client: Client, message: Message):
     if not args:
         return await smart_reply(message, "❌ **Usage:** `.iginfo <username>`")
 
-    username = args[0].replace('@', '')
-    status_msg = await smart_reply(message, f"📸 **Astra Instagram Intelligence**\n━━━━━━━━━━━━━━━━━━━━\n🔍 **Analyzing:** `@{username}`...")
+    username = args[0].replace("@", "")
+    status_msg = await smart_reply(
+        message, f"📸 **Astra Instagram Intelligence**\n━━━━━━━━━━━━━━━━━━━━\n🔍 **Analyzing:** `@{username}`..."
+    )
 
     from config import config
+
     access_token = config.INSTAGRAM_ACCESS_TOKEN
-    
+
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
         "Accept": "*/*",
@@ -36,7 +39,7 @@ async def iginfo_handler(client: Client, message: Message):
     try:
         async with aiohttp.ClientSession(headers=headers) as session:
             user_data = None
-            
+
             # Phase 1: Try Official Meta Graph API if Token is provided
             if access_token:
                 graph_url = f"https://graph.instagram.com/v12.0/me?fields=id,username,biography,followers_count,follows_count,media_count,name,profile_picture_url&access_token={access_token}"
@@ -47,33 +50,35 @@ async def iginfo_handler(client: Client, message: Message):
             # Phase 2: Switch to web_profile_info (Modern Web App Endpoint)
             # This is more stable than __a=1
             api_url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
-            
+
             async with session.get(api_url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
                 if resp.status == 200:
                     raw_data = await resp.json()
-                    user_data = raw_data.get('data', {}).get('user')
+                    user_data = raw_data.get("data", {}).get("user")
                 elif resp.status == 404:
                     return await status_msg.edit(f"❌ User `@{username}` not found.")
                 else:
                     logger.warning(f"IG Info Scraper returned {resp.status} for {username}")
 
             if not user_data:
-                return await status_msg.edit(f"⚠️ Instagram is blocking direct requests. Try adding a cookie file in settings.")
+                return await status_msg.edit(
+                    "⚠️ Instagram is blocking direct requests. Try adding a cookie file in settings."
+                )
 
             # Data Extraction
-            full_name = user_data.get('full_name') or username
-            bio = user_data.get('biography', 'No bio.')
-            followers = user_data.get('edge_followed_by', {}).get('count', 0)
-            following = user_data.get('edge_follow', {}).get('count', 0)
-            posts = user_data.get('edge_owner_to_timeline_media', {}).get('count', 0)
-            is_private = user_data.get('is_private', False)
-            is_verified = user_data.get('is_verified', False)
-            profile_pic = user_data.get('profile_pic_url_hd') or user_data.get('profile_pic_url')
-            external_url = user_data.get('external_url', 'None')
+            full_name = user_data.get("full_name") or username
+            bio = user_data.get("biography", "No bio.")
+            followers = user_data.get("edge_followed_by", {}).get("count", 0)
+            following = user_data.get("edge_follow", {}).get("count", 0)
+            posts = user_data.get("edge_owner_to_timeline_media", {}).get("count", 0)
+            is_private = user_data.get("is_private", False)
+            is_verified = user_data.get("is_verified", False)
+            profile_pic = user_data.get("profile_pic_url_hd") or user_data.get("profile_pic_url")
+            external_url = user_data.get("external_url", "None")
 
             badge = "✅" if is_verified else ""
             privacy_icon = "🔒" if is_private else "🔓"
-            
+
             # Manual Override for Test IDs
             if username.lower() == "amankumarpandeydev":
                 is_private = True
@@ -101,16 +106,12 @@ async def iginfo_handler(client: Client, message: Message):
                 async with session.get(profile_pic) as img_resp:
                     if img_resp.status == 200:
                         img_data = await img_resp.read()
-                        b64_data = base64.b64encode(img_data).decode('utf-8')
-                        media = {
-                            "mimetype": "image/jpeg",
-                            "data": b64_data,
-                            "filename": f"ig_{username}.jpg"
-                        }
+                        b64_data = base64.b64encode(img_data).decode("utf-8")
+                        media = {"mimetype": "image/jpeg", "data": b64_data, "filename": f"ig_{username}.jpg"}
                         await client.send_media(message.chat_id, media, caption=text)
                         return await status_msg.delete()
 
             return await status_msg.edit(text)
 
     except Exception as e:
-        await handle_command_error(client, message, e, context='Instagram Info refactor failure')
+        await handle_command_error(client, message, e, context="Instagram Info refactor failure")

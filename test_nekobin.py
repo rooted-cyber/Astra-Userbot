@@ -1,12 +1,14 @@
-import aiohttp
 import asyncio
+
+import aiohttp
+
 
 async def test_nekobin():
     url = "https://nekobin.com/api/documents"
     payload = {"content": "Astra Userbot Nekobin Test - Success!"}
-    
+
     print(f"Testing Nekobin API at {url}...")
-    
+
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=payload, timeout=10) as resp:
@@ -22,6 +24,7 @@ async def test_nekobin():
                     print(f"❌ HTTP Error: {await resp.text()}")
     except Exception as e:
         print(f"❌ Connection Error: {str(e)}")
+
 
 if __name__ == "__main__":
     asyncio.run(test_nekobin())

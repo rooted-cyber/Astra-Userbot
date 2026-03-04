@@ -1,4 +1,3 @@
-
 """
 Centralized State Management
 ----------------------------
@@ -9,7 +8,8 @@ Synchronizes local memory cache with the SQLite backend.
 import asyncio
 import logging
 import time
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, Optional
+
 from .database import db
 
 logger = logging.getLogger("Astra.State")
@@ -18,12 +18,14 @@ logger = logging.getLogger("Astra.State")
 # Used to ignore messages sent before the bot was online.
 BOOT_TIME = int(time.time())
 
+
 class StateManager:
     """
     Maintains the runtime state of the userbot.
-    Features a local cache for high-speed synchronous reads and 
+    Features a local cache for high-speed synchronous reads and
     asynchronous write-through to the database.
     """
+
     def __init__(self):
         # Local state cache to avoid frequent database I/O for reads.
         self.state: Dict[str, Any] = {
@@ -32,11 +34,11 @@ class StateManager:
             "sudo_users": [],
             "notes": {},
             "pm_warnings": {},
-            "group_configs": {}, # gid -> {muted: bool, welcome: str}
+            "group_configs": {},  # gid -> {muted: bool, welcome: str}
             "prefix": None,
             "FULL_DEV": True,  # Infrastructure enabled by default
-            "I_DEV": False,    # Privacy filter bypass (Disabled by default)
-            "configs": {}      # Dynamic runtime configurations
+            "I_DEV": False,  # Privacy filter bypass (Disabled by default)
+            "configs": {},  # Dynamic runtime configurations
         }
         self.initialized = False
 
@@ -47,25 +49,36 @@ class StateManager:
         """
         if self.initialized:
             return
-        
+
         await db.initialize()
-        
+
         # Bulk load managed state keys
-        keys = ["afk", "pm_permits", "sudo_users", "notes", "pm_warnings", "group_configs", "prefix", "I_DEV", "FULL_DEV", "configs"]
+        keys = [
+            "afk",
+            "pm_permits",
+            "sudo_users",
+            "notes",
+            "pm_warnings",
+            "group_configs",
+            "prefix",
+            "I_DEV",
+            "FULL_DEV",
+            "configs",
+        ]
         for key in keys:
             val = await db.get(key)
             if val is not None:
                 if key == "configs" and not isinstance(val, dict):
                     val = {}
                 self.state[key] = val
-        
+
         self.initialized = True
         logger.info("StateManager successfully synchronized with persistent store.")
 
     async def save(self):
         """
         Force-syncs the entire memory state to the database.
-        Note: The class handles individual state changes automatically; 
+        Note: The class handles individual state changes automatically;
         this remains for manual consistency checks.
         """
         tasks = [db.set(key, val) for key, val in self.state.items()]
@@ -76,11 +89,7 @@ class StateManager:
 
     def set_afk(self, is_afk: bool, reason: str = ""):
         """Toggles the AFK (Away From Keyboard) status."""
-        self.state["afk"] = {
-            "is_afk": is_afk,
-            "reason": reason,
-            "since": int(time.time()) if is_afk else 0
-        }
+        self.state["afk"] = {"is_afk": is_afk, "reason": reason, "since": int(time.time()) if is_afk else 0}
         # Commit to storage in the background
         asyncio.create_task(db.set("afk", self.state["afk"]))
 
@@ -140,6 +149,7 @@ class StateManager:
     def get_prefix(self) -> str:
         """Resolves the current command prefix. Defaults to configuration value."""
         from config import config
+
         return self.state.get("prefix") or getattr(config, "_DEFAULT_PREFIX", ".")
 
     def set_prefix(self, prefix: str):
@@ -172,6 +182,7 @@ class StateManager:
     def get_all_configs(self) -> Dict[str, Any]:
         """Returns all dynamic configurations."""
         return self.state["configs"]
+
 
 # Singleton Export
 state = StateManager()

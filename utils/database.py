@@ -1,15 +1,16 @@
-
 import asyncio
-import os
 import json
 import logging
+import os
 import time
-from typing import Any, Dict, Optional
+from typing import Any
+
 import aiosqlite
-from motor.motor_asyncio import AsyncIOMotorClient
 from config import config
+from motor.motor_asyncio import AsyncIOMotorClient
 
 logger = logging.getLogger("Astra.Database")
+
 
 class Database:
     def __init__(self):
@@ -21,7 +22,7 @@ class Database:
     async def initialize(self):
         if self.initialized:
             return
-        
+
         # Initialize SQLite
         self.sqlite_conn = await aiosqlite.connect(config.SQLITE_PATH)
         await self.sqlite_conn.execute(
@@ -37,7 +38,7 @@ class Database:
             try:
                 self.mongo_client = AsyncIOMotorClient(config.MONGO_URI)
                 # Parse DB name from URI or use default
-                db_name = config.MONGO_URI.split('/')[-1].split('?')[0] or "astra_userbot"
+                db_name = config.MONGO_URI.split("/")[-1].split("?")[0] or "astra_userbot"
                 self.mongo_db = self.mongo_client[db_name]
                 logger.info("Connected to MongoDB")
             except Exception as e:
@@ -55,7 +56,7 @@ class Database:
             return
 
         logger.info("Starting database synchronization...")
-        
+
         # 1. Get everything from SQLite
         cursor = await self.sqlite_conn.execute("SELECT key, value, updated_at FROM state")
         sqlite_data = {}
@@ -65,7 +66,7 @@ class Database:
             except Exception as e:
                 logger.warning(f"Failed to parse SQLite value for key {row[0]}: {e}")
                 continue
-        
+
         # 2. Get everything from MongoDB
         mongo_data = {}
         async for doc in self.mongo_db.state.find({}):
@@ -73,7 +74,7 @@ class Database:
 
         # 3. Synchronize
         all_keys = set(sqlite_data.keys()) | set(mongo_data.keys())
-        
+
         for key in all_keys:
             s_val = sqlite_data.get(key)
             m_val = mongo_data.get(key)
@@ -87,18 +88,20 @@ class Database:
                 # Mongo has it, SQLite doesn't -> Pull to SQLite
                 await self.sqlite_conn.execute(
                     "INSERT INTO state (key, value, updated_at) VALUES (?, ?, ?)",
-                    (key, json.dumps(m_val["value"]), m_val["updated_at"])
+                    (key, json.dumps(m_val["value"]), m_val["updated_at"]),
                 )
             elif s_val and m_val:
                 # Both have it -> Use the latest
                 if m_val["updated_at"] > s_val["updated_at"]:
                     await self.sqlite_conn.execute(
                         "UPDATE state SET value = ?, updated_at = ? WHERE key = ?",
-                        (json.dumps(m_val["value"]), m_val["updated_at"], key)
+                        (json.dumps(m_val["value"]), m_val["updated_at"], key),
                     )
                 elif s_val["updated_at"] > m_val["updated_at"]:
                     await self.mongo_db.state.update_one(
-                        {"_id": key}, {"$set": {"value": s_val["value"], "updated_at": s_val["updated_at"]}}, upsert=True
+                        {"_id": key},
+                        {"$set": {"value": s_val["value"], "updated_at": s_val["updated_at"]}},
+                        upsert=True,
                     )
 
         await self.sqlite_conn.commit()
@@ -113,20 +116,21 @@ class Database:
             if count == 0:
                 logger.info("Migrating data from bot_state.json to SQLite...")
                 try:
-                    with open(json_path, 'r') as f:
+                    with open(json_path) as f:
                         data = json.load(f)
                         now = int(time.time())
                         for key, val in data.items():
                             await self.sqlite_conn.execute(
                                 "INSERT INTO state (key, value, updated_at) VALUES (?, ?, ?)",
-                                (key, json.dumps(val), now)
+                                (key, json.dumps(val), now),
                             )
                         await self.sqlite_conn.commit()
                 except Exception as e:
                     logger.error(f"Migration failed: {e}")
 
     async def get(self, key: str, default: Any = None) -> Any:
-        if not self.initialized: await self.initialize()
+        if not self.initialized:
+            await self.initialize()
         cursor = await self.sqlite_conn.execute("SELECT value FROM state WHERE key = ?", (key,))
         row = await cursor.fetchone()
         if row:
@@ -138,32 +142,32 @@ class Database:
         return default
 
     async def set(self, key: str, value: Any):
-        if not self.initialized: await self.initialize()
+        if not self.initialized:
+            await self.initialize()
         now = int(time.time())
         # Update SQLite
         await self.sqlite_conn.execute(
             "INSERT INTO state (key, value, updated_at) VALUES (?, ?, ?) "
             "ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at",
-            (key, json.dumps(value), now)
+            (key, json.dumps(value), now),
         )
         await self.sqlite_conn.commit()
 
         # Update MongoDB (fire and forget or direct?)
         if self.mongo_db:
             asyncio.create_task(
-                self.mongo_db.state.update_one(
-                    {"_id": key}, {"$set": {"value": value, "updated_at": now}}, upsert=True
-                )
+                self.mongo_db.state.update_one({"_id": key}, {"$set": {"value": value, "updated_at": now}}, upsert=True)
             )
 
     async def increment(self, key: str, amount: int = 1):
-        if not self.initialized: await self.initialize()
+        if not self.initialized:
+            await self.initialize()
         now = int(time.time())
         # Update SQLite using UPSERT pattern
         await self.sqlite_conn.execute(
             "INSERT INTO state (key, value, updated_at) VALUES (?, ?, ?) "
             "ON CONFLICT(key) DO UPDATE SET value = CAST(json_extract(value, '$') AS INTEGER) + ?, updated_at = ?",
-            (key, json.dumps(amount), now, amount, now)
+            (key, json.dumps(amount), now, amount, now),
         )
         await self.sqlite_conn.commit()
 
@@ -176,10 +180,12 @@ class Database:
             )
 
     async def delete(self, key: str):
-        if not self.initialized: await self.initialize()
+        if not self.initialized:
+            await self.initialize()
         await self.sqlite_conn.execute("DELETE FROM state WHERE key = ?", (key,))
         await self.sqlite_conn.commit()
         if self.mongo_db:
             asyncio.create_task(self.mongo_db.state.delete_one({"_id": key}))
+
 
 db = Database()

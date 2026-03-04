@@ -1,7 +1,8 @@
+from utils.helpers import handle_command_error
+from utils.media_channel import MediaChannel
 
 from . import *
-from utils.media_channel import MediaChannel
-from utils.helpers import handle_command_error
+
 
 @astra_command(
     name="soundcloud",
@@ -9,7 +10,7 @@ from utils.helpers import handle_command_error
     category="Media & Downloads",
     aliases=["sc"],
     usage="<url> (SoundCloud track link)",
-    owner_only=False
+    owner_only=False,
 )
 async def soundcloud_handler(client: Client, message: Message):
     """Download SoundCloud track with optimized MediaChannel"""
@@ -19,7 +20,7 @@ async def soundcloud_handler(client: Client, message: Message):
             return await smart_reply(message, " ❌ Please provide a SoundCloud URL.")
 
         url = args_list[0]
-        status_msg = await smart_reply(message, f" 🔍 *Initializing SoundCloud Engine...*")
+        status_msg = await smart_reply(message, " 🔍 *Initializing SoundCloud Engine...*")
 
         channel = MediaChannel(client, message, status_msg)
         # SoundCloud is audio
@@ -27,4 +28,4 @@ async def soundcloud_handler(client: Client, message: Message):
         await channel.upload_file(file_path, metadata, "audio")
 
     except Exception as e:
-        await handle_command_error(client, message, e, context='SoundCloud command failure')
+        await handle_command_error(client, message, e, context="SoundCloud command failure")

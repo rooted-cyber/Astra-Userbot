@@ -1,8 +1,10 @@
-
 import os
-import psutil
 import time
+
+import psutil
+
 from . import *
+
 
 @astra_command(
     name="stats",
@@ -10,14 +12,14 @@ from . import *
     category="System",
     aliases=["status", "sysinfo"],
     usage=".stats (display bot statistics)",
-    is_public=True
+    is_public=True,
 )
 async def stats_handler(client: Client, message: Message):
     """Aggregates system metrics for a professional health report."""
     try:
         process = psutil.Process(os.getpid())
         mem_info = process.memory_info()
-        
+
         # Resolve Uptime (Core logic preserved)
         uptime_val = time.time() - process.create_time()
         hours, rem = divmod(int(uptime_val), 3600)
@@ -26,12 +28,15 @@ async def stats_handler(client: Client, message: Message):
 
         # Analytics: Fetch usage data
         from utils.database import db
+
         total_cmds = await db.get("total_commands_v1", 0)
-        
+
         # Fetch Top 3 Commands
         top_cmds_text = "None"
         try:
-            cursor = await db.sqlite_conn.execute("SELECT key, value FROM state WHERE key LIKE 'cmd_usage:%' ORDER BY CAST(json_extract(value, '$') AS INTEGER) DESC LIMIT 3")
+            cursor = await db.sqlite_conn.execute(
+                "SELECT key, value FROM state WHERE key LIKE 'cmd_usage:%' ORDER BY CAST(json_extract(value, '$') AS INTEGER) DESC LIMIT 3"
+            )
             rows = await cursor.fetchall()
             if rows:
                 top_cmds_text = ", ".join([f"`{r[0].split(':')[-1]}` ({json.loads(r[1])})" for r in rows])
@@ -50,9 +55,9 @@ async def stats_handler(client: Client, message: Message):
             "━━━━━━━━━━━━━━━━━━━━━━\n"
             "✨ *System is running optimally.*"
         )
-    
+
         await smart_reply(message, stats_text)
 
     except Exception as e:
         await smart_reply(message, " ⚠️ Failed to retrieve system statistics.")
-        await report_error(client, e, context='Stats command reporting failure')
+        await report_error(client, e, context="Stats command reporting failure")

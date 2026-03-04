@@ -1,4 +1,3 @@
-
 """
 Spam Utility: Message Flooding
 ------------------------------
@@ -7,7 +6,9 @@ WARNING: Use with caution to avoid account bans.
 """
 
 import asyncio
+
 from . import *
+
 
 @astra_command(
     name="spam",
@@ -15,7 +16,7 @@ from . import *
     category="Owner",
     aliases=[],
     usage="<count> <text> (e.g. .spam 5 hello)",
-    owner_only=True # Safety: Only owner/sudo can spam
+    owner_only=True,  # Safety: Only owner/sudo can spam
 )
 async def spam_handler(client: Client, message: Message):
     """
@@ -39,10 +40,10 @@ async def spam_handler(client: Client, message: Message):
 
         for _ in range(count):
             await client.send_message(message.chat_id, text)
-            await asyncio.sleep(0.1) # Slight delay to prevent immediate ban
+            await asyncio.sleep(0.1)  # Slight delay to prevent immediate ban
 
     except Exception as e:
-        await report_error(client, e, context='Spam command failure')
+        await report_error(client, e, context="Spam command failure")
 
 
 @astra_command(
@@ -51,7 +52,7 @@ async def spam_handler(client: Client, message: Message):
     category="Owner",
     aliases=["delayspam"],
     usage="<delay_sec> <count> <text> (e.g. .dspam 1 5 hi)",
-    owner_only=True
+    owner_only=True,
 )
 async def dspam_handler(client: Client, message: Message):
     """
@@ -79,4 +80,4 @@ async def dspam_handler(client: Client, message: Message):
             await asyncio.sleep(delay)
 
     except Exception as e:
-        await report_error(client, e, context='DelaySpam command failure')
+        await report_error(client, e, context="DelaySpam command failure")

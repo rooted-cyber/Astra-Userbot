@@ -1,10 +1,10 @@
-
-import os
 import base64
-import asyncio
-from . import *
+
 from utils.bridge_downloader import bridge_downloader
 from utils.helpers import handle_command_error
+
+from . import *
+
 
 @astra_command(
     name="sticker",
@@ -12,7 +12,7 @@ from utils.helpers import handle_command_error
     category="Tools & Utilities",
     aliases=["s", "stkr"],
     usage="(reply to image/video)",
-    is_public=True
+    is_public=True,
 )
 async def sticker_handler(client: Client, message: Message):
     """Sticker creation plugin."""
@@ -30,7 +30,7 @@ async def sticker_handler(client: Client, message: Message):
         if not media_data:
             return await status_msg.edit("❌ Failed to download media.")
 
-        b64_data = base64.b64encode(media_data).decode('utf-8')
+        b64_data = base64.b64encode(media_data).decode("utf-8")
         mimetype = target.mimetype
 
         # Send as sticker
@@ -38,20 +38,21 @@ async def sticker_handler(client: Client, message: Message):
         await client.media.send_sticker(
             message.chat_id.serialized if hasattr(message.chat_id, "serialized") else str(message.chat_id),
             b64_data,
-            reply_to=target.id
+            reply_to=target.id,
         )
-        
+
         await status_msg.delete()
 
     except Exception as e:
-        await handle_command_error(client, message, e, context='Sticker command failure')
+        await handle_command_error(client, message, e, context="Sticker command failure")
+
 
 @astra_command(
     name="tiny",
     description="Create a tiny sticker (centered image).",
     category="Tools & Utilities",
     usage="(reply to image)",
-    is_public=True
+    is_public=True,
 )
 async def tiny_handler(client: Client, message: Message):
     """Tiny sticker plugin - logic handled via bridge media params if supported or just placeholder."""

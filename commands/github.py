@@ -1,6 +1,7 @@
-
 import aiohttp
+
 from . import *
+
 
 @astra_command(
     name="github",
@@ -8,7 +9,7 @@ from . import *
     category="Tools & Utilities",
     aliases=["repo", "gh"],
     usage="<user/repo> or <username>",
-    is_public=True
+    is_public=True,
 )
 async def github_handler(client: Client, message: Message):
     """GitHub info plugin."""

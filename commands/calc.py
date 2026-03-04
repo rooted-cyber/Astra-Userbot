@@ -1,4 +1,3 @@
-
 """
 Educational Utility: Calculator
 -------------------------------
@@ -7,8 +6,11 @@ Uses Python's math library for safe execution of functions.
 """
 
 import math
-from . import *
+
 from utils.helpers import handle_command_error
+
+from . import *
+
 
 @astra_command(
     name="calc",
@@ -16,32 +18,33 @@ from utils.helpers import handle_command_error
     category="Tools & Utilities",
     aliases=["math", "calculate"],
     usage="<expression> (e.g. 2+2)",
-    is_public=True
+    is_public=True,
 )
 async def calc_handler(client: Client, message: Message):
     """
-    Evaluates geometric, algebraic and basic arithmetic expressions 
+    Evaluates geometric, algebraic and basic arithmetic expressions
     within a safe restricted namespace.
     """
     try:
         args_list = extract_args(message)
         if not args_list:
-            return await smart_reply(message, " 📋 **Mathematical Resolver**\n\n"
-                                             "Please provide an expression to solve.\n"
-                                             "**Example:** `.calc (10 * 2) + math.sqrt(25)`")
+            return await smart_reply(
+                message,
+                " 📋 **Mathematical Resolver**\n\n"
+                "Please provide an expression to solve.\n"
+                "**Example:** `.calc (10 * 2) + math.sqrt(25)`",
+            )
 
         expression = " ".join(args_list)
-        
+
         # Sandbox execution environment: only 'math' functions allowed
         allowed_names = {k: v for k, v in vars(math).items() if not k.startswith("_")}
-        allowed_names['math'] = math # Allow 'math.sin' syntax
-        
+        allowed_names["math"] = math  # Allow 'math.sin' syntax
+
         # restricted eval
         result = eval(expression, {"__builtins__": {}}, allowed_names)
-        
-        await smart_reply(message, f" 🔢 **Calculation Result**\n\n"
-                                   f"*Input:* `{expression}`\n"
-                                   f"*Output:* `{result}`")
+
+        await smart_reply(message, f" 🔢 **Calculation Result**\n\n*Input:* `{expression}`\n*Output:* `{result}`")
 
     except Exception as e:
-        await handle_command_error(client, message, e, context='Calculator command failure')
+        await handle_command_error(client, message, e, context="Calculator command failure")

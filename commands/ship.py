@@ -1,4 +1,3 @@
-
 """
 Social Utility: Ship Compatibility
 ----------------------------------
@@ -7,7 +6,9 @@ Supports manual JID input, mentions, or replies.
 """
 
 import random
+
 from . import *
+
 
 @astra_command(
     name="ship",
@@ -15,7 +16,7 @@ from . import *
     category="Fun & Memes",
     aliases=["match", "love"],
     usage="[@user1] [@user2] (e.g. .ship @alice @bob)",
-    is_public=True
+    is_public=True,
 )
 async def ship_handler(client: Client, message: Message):
     """
@@ -23,7 +24,7 @@ async def ship_handler(client: Client, message: Message):
     """
     try:
         args_list = extract_args(message)
-        
+
         user1 = "Astra User"
         user2 = "Target User"
 
@@ -44,20 +45,20 @@ async def ship_handler(client: Client, message: Message):
 
         # 2. Logic & Branding
         percentage = random.randint(0, 100)
-        
-        if percentage > 90: 
+
+        if percentage > 90:
             comment = "💍 **Perfect Match!** Future confirmed."
             emoji = "💖"
-        elif percentage > 70: 
+        elif percentage > 70:
             comment = "❤️ **Amazing chemistry.**"
             emoji = "💕"
-        elif percentage > 50: 
+        elif percentage > 50:
             comment = "🌚 **Potential.** Worth a try."
             emoji = "✨"
-        elif percentage > 30: 
+        elif percentage > 30:
             comment = "🤷 **Friendzone.**"
             emoji = "🤝"
-        else: 
+        else:
             comment = "💀 **No compatibility.** Stay away."
             emoji = "🚫"
 
@@ -74,4 +75,4 @@ async def ship_handler(client: Client, message: Message):
 
     except Exception as e:
         await smart_reply(message, " ⚠️ Ship calculation failed.")
-        await report_error(client, e, context='Ship command failure')
+        await report_error(client, e, context="Ship command failure")

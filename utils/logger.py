@@ -1,7 +1,7 @@
-
 import logging
 import os
 import sys
+
 
 # Standard ANSI Color Escapes
 class Colors:
@@ -15,53 +15,57 @@ class Colors:
     END = "\033[0m"
     GRAY = "\033[90m"
 
+
 class AstraFormatter(logging.Formatter):
     """
     Modern, emoji-free logging formatter with high-contrast ANSI styling.
     """
+
     LEVEL_STYLES = {
         logging.DEBUG: (Colors.GRAY, "»"),
         logging.INFO: (Colors.CYAN, "»"),
-        logging.WARNING: (Colors.YELLOW, "⚠"), # Minimalist warning char
-        logging.ERROR: (Colors.RED, "✖"),    # Minimalist error char
-        logging.CRITICAL: (Colors.BOLD + Colors.RED, "✘")
+        logging.WARNING: (Colors.YELLOW, "⚠"),  # Minimalist warning char
+        logging.ERROR: (Colors.RED, "✖"),  # Minimalist error char
+        logging.CRITICAL: (Colors.BOLD + Colors.RED, "✘"),
     }
 
     def format(self, record):
         color, symbol = self.LEVEL_STYLES.get(record.levelno, (Colors.END, "»"))
-        
+
         # Smart Module Namespacing
-        name_parts = record.name.split('.')
+        name_parts = record.name.split(".")
         mod_name = name_parts[-1].lower() if len(name_parts) > 1 else record.name.lower()
-        
+
         # Unique Module Coloring
         mod_color = Colors.BOLD + Colors.GRAY
-        if "bridge" in mod_name or "protocol" in mod_name: mod_color = Colors.BLUE
-        if "auth" in mod_name: mod_color = Colors.YELLOW
+        if "bridge" in mod_name or "protocol" in mod_name:
+            mod_color = Colors.BLUE
+        if "auth" in mod_name:
+            mod_color = Colors.YELLOW
 
         # Build Parts
         time_part = f"{Colors.GRAY}{self.formatTime(record, '%H:%M:%S')}{Colors.END}"
-        level_part = f"{color}{record.levelname[:1].upper()}{Colors.END}" # U, I, W, E, C
+        level_part = f"{color}{record.levelname[:1].upper()}{Colors.END}"  # U, I, W, E, C
         mod_part = f"{mod_color}{mod_name.upper():^10}{Colors.END}"
-        
+
         message = record.getMessage()
-        
+
         # Sophisticated line build
-        #格式: 03:42:42 [I] BRIDGE » Establishing connection...
+        # 格式: 03:42:42 [I] BRIDGE » Establishing connection...
         return f"{time_part} {Colors.GRAY}[{Colors.END}{level_part}{Colors.GRAY}]{Colors.END} {mod_part} {color}{symbol}{Colors.END} {message}"
 
 
 def setup_logging(script_dir: str):
     """Configures the global Astra logging system."""
-    
+
     # 1. Plain Text File Logger (Complete Debug)
     log_file = os.path.join(script_dir, "astra_full_debug.txt")
-    file_formatter = logging.Formatter('%(asctime)s - [%(levelname)s] - %(name)s - %(message)s')
-    
-    file_handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
+    file_formatter = logging.Formatter("%(asctime)s - [%(levelname)s] - %(name)s - %(message)s")
+
+    file_handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_formatter)
-    
+
     # Ensure immediate flush for "real-time" log tracking
     file_handler.flush = lambda: super(logging.FileHandler, file_handler).flush()
 
@@ -73,16 +77,16 @@ def setup_logging(script_dir: str):
     # 3. Configure Root
     root_log = logging.getLogger()
     root_log.setLevel(logging.DEBUG)
-    
+
     # Clear existing handlers
     for h in root_log.handlers[:]:
         root_log.removeHandler(h)
-        
+
     root_log.addHandler(file_handler)
     root_log.addHandler(console_handler)
 
     # Startup Separator
-    root_log.info("\n" + "="*50 + "\n" + "ASTRA BOT STARTUP".center(50) + "\n" + "="*50)
+    root_log.info("\n" + "=" * 50 + "\n" + "ASTRA BOT STARTUP".center(50) + "\n" + "=" * 50)
 
     # Silence noisy dependencies
     logging.getLogger("asyncio").setLevel(logging.WARNING)

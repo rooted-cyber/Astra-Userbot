@@ -1,6 +1,5 @@
-
-import sys
 import os
+import sys
 
 # Find the standard library platform module by temporarily removing the current directory from sys.path
 current_dir = os.path.dirname(os.path.abspath(__file__))

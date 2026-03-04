@@ -1,3 +1,1 @@
-
 """Astra userbot test package."""
-

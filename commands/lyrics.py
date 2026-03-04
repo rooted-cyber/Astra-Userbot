@@ -1,7 +1,9 @@
+from urllib.parse import quote_plus
 
 import aiohttp
-from urllib.parse import quote_plus
+
 from . import *
+
 
 @astra_command(
     name="lyrics",
@@ -9,7 +11,7 @@ from . import *
     category="Tools & Utilities",
     aliases=["lyrical"],
     usage="<song name> [artist] (e.g. .lyrics Blinding Lights)",
-    is_public=True
+    is_public=True,
 )
 async def lyrics_handler(client: Client, message: Message):
     """Lyrics lookup plugin."""
@@ -24,16 +26,16 @@ async def lyrics_handler(client: Client, message: Message):
         # Lyrist API is generally more robust and returns JSON directly
         # Format: https://lyrist.vercel.app/api/<song>/<artist> or just /api/<song>
         api_url = f"https://lyrist.vercel.app/api/{quote_plus(query)}"
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.get(api_url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
                 if resp.status == 200:
                     data = await resp.json()
-                    
-                    lyrics = data.get('lyrics')
-                    title = data.get('title')
-                    artist = data.get('artist')
-                    
+
+                    lyrics = data.get("lyrics")
+                    title = data.get("title")
+                    artist = data.get("artist")
+
                     if not lyrics:
                         return await status_msg.edit(f"❌ No lyrics found for `{query}`.")
 
@@ -54,7 +56,9 @@ async def lyrics_handler(client: Client, message: Message):
                     )
                     return await status_msg.edit(text)
                 else:
-                    return await status_msg.edit(f"⚠️ Lyrics search failed (Status: `{resp.status}`). Try adding the artist name.")
+                    return await status_msg.edit(
+                        f"⚠️ Lyrics search failed (Status: `{resp.status}`). Try adding the artist name."
+                    )
 
     except Exception as e:
-        await handle_command_error(client, message, e, context='Lyrics cleanup failure')
+        await handle_command_error(client, message, e, context="Lyrics cleanup failure")

@@ -1,7 +1,9 @@
+from urllib.parse import quote
 
 import aiohttp
-from urllib.parse import quote
+
 from . import *
+
 
 @astra_command(
     name="tr",
@@ -9,16 +11,16 @@ from . import *
     category="Tools & Utilities",
     aliases=["translate"],
     usage="<lang_code> [text] (or reply to a message)",
-    is_public=True
+    is_public=True,
 )
 async def translate_handler(client: Client, message: Message):
     """Translation plugin using Google Translate API."""
     args = extract_args(message)
-    
+
     # Defaults
     dest_lang = "en"
     text_to_translate = ""
-    
+
     if message.has_quoted_msg:
         # If replying, the first arg is the target language
         dest_lang = args[0] if args else "en"
@@ -39,14 +41,14 @@ async def translate_handler(client: Client, message: Message):
     try:
         # Google Translate mobile API (no key required for small requests)
         api_url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={dest_lang}&dt=t&q={quote(text_to_translate)}"
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.get(api_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     translated_text = "".join([part[0] for part in data[0]])
                     src_lang = data[2]
-                    
+
                     text = (
                         f"🌏 **TRANSLATION ENGINE**\n"
                         f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -58,7 +60,7 @@ async def translate_handler(client: Client, message: Message):
                         f"🚀 *Powered by Astra*"
                     )
                     return await status_msg.edit(text)
-                
+
         await status_msg.edit("⚠️ Translation service is currently unavailable.")
 
     except Exception as e:

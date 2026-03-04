@@ -1,4 +1,3 @@
-
 """
 Educational Utility: Dictionary
 ------------------------------
@@ -6,7 +5,9 @@ Retrieves word definitions, phonetics, and usage examples from the Free Dictiona
 """
 
 import aiohttp
+
 from . import *
+
 
 @astra_command(
     name="define",
@@ -14,7 +15,7 @@ from . import *
     category="Tools & Utilities",
     aliases=["dict", "meaning"],
     usage="<word> (e.g. automobile)",
-    is_public=True
+    is_public=True,
 )
 async def define_handler(client: Client, message: Message):
     """
@@ -27,17 +28,19 @@ async def define_handler(client: Client, message: Message):
 
         word = args_list[0].lower()
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}", timeout=aiohttp.ClientTimeout(total=10)) as resp:
+            async with session.get(
+                f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}", timeout=aiohttp.ClientTimeout(total=10)
+            ) as resp:
                 if resp.status != 200:
                     return await smart_reply(message, f" ❌ **Word Not Found:** `{word}`")
-        
+
                 data = await resp.json()
                 entry = data[0]
-                
+
                 # Construct clean definition
-                definition = entry['meanings'][0]['definitions'][0]['definition']
-                part_of_speech = entry['meanings'][0]['partOfSpeech']
-                phonetic = entry.get('phonetic', '')
+                definition = entry["meanings"][0]["definitions"][0]["definition"]
+                part_of_speech = entry["meanings"][0]["partOfSpeech"]
+                phonetic = entry.get("phonetic", "")
 
                 report = (
                     f"📖 **Definition: {word.capitalize()}**\n"
@@ -45,9 +48,9 @@ async def define_handler(client: Client, message: Message):
                     f"{definition}\n\n"
                     f"🌐 *Source: DictionaryAPI*"
                 )
-                
+
                 await smart_reply(message, report)
 
     except Exception as e:
         await smart_reply(message, " ⚠️ Dictionary service failure.")
-        await report_error(client, e, context='Define command lookup failure')
+        await report_error(client, e, context="Define command lookup failure")

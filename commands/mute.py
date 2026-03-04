@@ -1,6 +1,7 @@
+from utils.state import state
 
 from . import *
-from utils.state import state
+
 
 @astra_command(
     name="mute",
@@ -8,14 +9,14 @@ from utils.state import state
     category="Group Management",
     aliases=["unmute"],
     usage="<on|off> (enable or disable mute)",
-    owner_only=False
+    owner_only=False,
 )
 async def mute_handler(client: Client, message: Message):
     """Mute or unmute group notifications/commands (Bot internal)"""
     try:
         args_list = extract_args(message)
-        
-        is_group = str(message.chat_id).endswith('@g.us')
+
+        is_group = str(message.chat_id).endswith("@g.us")
         if not is_group:
             return await smart_reply(message, " ❌ This command only works in groups.")
 
@@ -25,8 +26,10 @@ async def mute_handler(client: Client, message: Message):
 
         # Store in state
         gid = message.chat_id
-        if "group_configs" not in state.state: state.state["group_configs"] = {}
-        if gid not in state.state["group_configs"]: state.state["group_configs"][gid] = {}
+        if "group_configs" not in state.state:
+            state.state["group_configs"] = {}
+        if gid not in state.state["group_configs"]:
+            state.state["group_configs"][gid] = {}
 
         state.state["group_configs"][gid]["muted"] = is_muted
         await state.save()
@@ -34,4 +37,4 @@ async def mute_handler(client: Client, message: Message):
         await smart_reply(message, f" 🤫 Group commands are now *{'MUTED' if is_muted else 'UNMUTED'}* for this group.")
     except Exception as e:
         await smart_reply(message, f" ❌ Error: {str(e)}")
-        await report_error(client, e, context='Command mute failed')
+        await report_error(client, e, context="Command mute failed")

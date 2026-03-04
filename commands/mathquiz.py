@@ -1,4 +1,3 @@
-
 """
 Entertainment Utility: Math Quiz
 --------------------------------
@@ -6,7 +5,9 @@ Generates randomized arithmetic challenges with spoiler-hidden answers.
 """
 
 import random
+
 from . import *
+
 
 @astra_command(
     name="mathquiz",
@@ -14,36 +15,32 @@ from . import *
     category="Fun & Memes",
     aliases=["mq"],
     usage=".mathquiz (no arguments)",
-    is_public=True
+    is_public=True,
 )
 async def mathquiz_handler(client: Client, message: Message):
     """
-    Generates a problem, calculates the solution, and renders a 
+    Generates a problem, calculates the solution, and renders a
     spoiler-protected quiz card.
     """
     try:
         # Generate operands and operator
         a = random.randint(1, 100)
         b = random.randint(1, 50)
-        op = random.choice(['+', '-', '*'])
+        op = random.choice(["+", "-", "*"])
 
         # Resolve result
-        if op == '+': 
+        if op == "+":
             result = a + b
-        elif op == '-': 
+        elif op == "-":
             result = a - b
-        else: 
+        else:
             result = a * b
 
         # Render Quiz Card
-        report = (
-            "🔢 **Astra Quick Math Quiz**\n\n"
-            f"Solve: `{a} {op} {b} = ?`\n\n"
-            f"💡 *Answer:* ||{result}||"
-        )
+        report = f"🔢 **Astra Quick Math Quiz**\n\nSolve: `{a} {op} {b} = ?`\n\n💡 *Answer:* ||{result}||"
 
         await smart_reply(message, report)
 
     except Exception as e:
         await smart_reply(message, " ⚠️ Quiz generator failure.")
-        await report_error(client, e, context='MathQuiz command failure')
+        await report_error(client, e, context="MathQuiz command failure")

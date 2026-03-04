@@ -1,9 +1,11 @@
-
-import time
-import aiohttp
 import base64
-from . import *
+import time
+
+import aiohttp
 from utils.helpers import handle_command_error
+
+from . import *
+
 
 @astra_command(
     name="weather",
@@ -11,7 +13,7 @@ from utils.helpers import handle_command_error
     category="Tools & Utilities",
     aliases=["wttr", "forecast"],
     usage="<city> (e.g. London)",
-    is_public=True
+    is_public=True,
 )
 async def weather_handler(client: Client, message: Message):
     """
@@ -20,9 +22,11 @@ async def weather_handler(client: Client, message: Message):
     try:
         args_list = extract_args(message)
         city = " ".join(args_list) or "London"
-        
-        status_msg = await smart_reply(message, f"☁️ **Astra Weather Radar**\n━━━━━━━━━━━━━━━━━━━━\n🔍 **Target:** `{city}`...")
-        
+
+        status_msg = await smart_reply(
+            message, f"☁️ **Astra Weather Radar**\n━━━━━━━━━━━━━━━━━━━━\n🔍 **Target:** `{city}`..."
+        )
+
         # wttr.in endpoints
         text_url = f"https://wttr.in/{city}?format=%C+%t+%w+%h+%m"
         img_url = f"https://wttr.in/{city}.png"
@@ -35,25 +39,18 @@ async def weather_handler(client: Client, message: Message):
                     time.sleep(0.5)
                     return await status_msg.edit("❌ **Astra Weather Radar:** Failed to retrieve weather data.")
                 data = await resp.text()
-            
+
             weather_report = (
-                f"🌍 **Astra Weather: {city.capitalize()}**\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"{data}\n\n"
-                f"_Powered by wttr.in_"
+                f"🌍 **Astra Weather: {city.capitalize()}**\n━━━━━━━━━━━━━━━━━━━━\n{data}\n\n_Powered by wttr.in_"
             )
 
             # 2. Attempt to fetch and send visual forecast
             async with session.get(img_url, timeout=aiohttp.ClientTimeout(total=15)) as img_resp:
                 if img_resp.status == 200:
                     img_data = await img_resp.read()
-                    b64_data = base64.b64encode(img_data).decode('utf-8')
-            
-                    media = {
-                        "mimetype": "image/png",
-                        "data": b64_data,
-                        "filename": f"weather_{city}.png"
-                    }
+                    b64_data = base64.b64encode(img_data).decode("utf-8")
+
+                    media = {"mimetype": "image/png", "data": b64_data, "filename": f"weather_{city}.png"}
                     try:
                         await client.send_media(message.chat_id, media, caption=weather_report)
                         return await status_msg.delete()
@@ -65,4 +62,4 @@ async def weather_handler(client: Client, message: Message):
             await status_msg.edit(weather_report)
 
     except Exception as e:
-        await handle_command_error(client, message, e, context='Weather command failure')
+        await handle_command_error(client, message, e, context="Weather command failure")

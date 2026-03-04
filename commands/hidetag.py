@@ -1,5 +1,5 @@
-
 from . import *
+
 
 @astra_command(
     name="hidetag",
@@ -7,12 +7,12 @@ from . import *
     category="Group Management",
     aliases=["htag", "ghosttag"],
     usage="[message]",
-    owner_only=True
+    owner_only=True,
 )
 async def hidetag_handler(client: Client, message: Message):
     """Hidden group mentions."""
     try:
-        if not str(message.chat_id).endswith('@g.us'):
+        if not str(message.chat_id).endswith("@g.us"):
             return await smart_reply(message, " ❌ This command only works in groups.")
 
         args_list = extract_args(message)
