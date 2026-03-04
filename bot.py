@@ -196,9 +196,12 @@ async def on_ready(_):
         # 3. Connectivity Notification
         try:
             target_id = user.id.serialized if hasattr(user.id, "serialized") else str(user.id)
+            from utils.database import db
+            msg = db.get("STARTUP_MESSAGE") or f"🤖 **Astra Userbot Online!**\nBuild: `{config.VERSION_NAME}` (v{config.VERSION})"
+             
             msg = await client.send_message(
                 target_id, 
-                f"🤖 **Astra Userbot Online!**\nBuild: `{config.VERSION_NAME}` (v{config.VERSION})"
+                msg,
             )
             await msg.react("✅")
         except Exception as notify_err:
