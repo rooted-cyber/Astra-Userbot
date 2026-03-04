@@ -56,21 +56,24 @@ async def logo_handler(client: Client, message: Message):
         # 3. Draw Text
         draw = ImageDraw.Draw(img)
         
-        # Try to find a nice font (Prioritizing locally downloaded premium fonts)
-        font_paths = [
-            os.path.join(LOGOS_DIR, "font1.ttf"),
-            os.path.join(LOGOS_DIR, "font2.ttf"),
-            os.path.join(LOGOS_DIR, "font3.ttf"),
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-            "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
-            "arial.ttf" # Generic fallback
-        ]
+        # Stylized Font Selection: Pick a random font from font1.ttf to font5.ttf
+        available_fonts = [f for f in os.listdir(LOGOS_DIR) if f.startswith('font') and f.endswith('.ttf')]
+        if not available_fonts:
+            # Fallback to system fonts if no local fonts found
+            font_paths = [
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+                "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+                "arial.ttf"
+            ]
+        else:
+            font_paths = [os.path.join(LOGOS_DIR, f) for f in available_fonts]
+            random.shuffle(font_paths) # Randomized style each time
         
         font = None
         for p in font_paths:
             try:
-                # Use a large font size for premium look
-                font = ImageFont.truetype(p, 140)
+                # Increased font size for a more premium, high-impact look
+                font = ImageFont.truetype(p, 180)
                 break
             except: continue
         
