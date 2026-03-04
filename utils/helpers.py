@@ -168,6 +168,37 @@ async def report_error(client, exc: Exception, context: str = ""):
     except Exception:
         return False
 
+async def handle_command_error(client, message, exc, context: str = "Command Failure"):
+    """
+    Centralized error handler for commands.
+    Provides beautified feedback to users and detailed logs to the owner.
+    """
+    from utils.media_exceptions import MediaException
+    
+    # 1. Send report to owner
+    await report_error(client, exc, context=context)
+    
+    # 2. Provide feedback to user
+    if isinstance(exc, MediaException):
+        # Professional branded error card for media issues
+        error_text = (
+            f"{exc.icon} **Astra Media Gateway**\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"❌ **Error:** {exc.message}\n\n"
+            f"💡 *Tip:* Ensure the link is valid and publicly accessible."
+        )
+    else:
+        # Generic professional error card for system failures
+        error_text = (
+            f"⚠️ **Astra System Error**\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"❌ Something went wrong while processing your request.\n\n"
+            f"👤 **Details:** `{str(exc)[:100]}`\n"
+            f"🛠️ *Report this at: github.com/paman7647/Astra-Userbot/issues*"
+        )
+    
+    return await smart_reply(message, error_text)
+
 async def get_contact_name(client, jid: str) -> str:
     """
     Priority-based name resolution for any JID.

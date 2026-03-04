@@ -127,9 +127,10 @@ class Config:
         from utils.state import state
         return state.get_config("FFMPEG_PATH") or os.getenv('FFMPEG_PATH', 'ffmpeg')
     
-    # YouTube session handling
+    # Instagram session/API handling
     YOUTUBE_COOKIES_FILE = os.getenv('YOUTUBE_COOKIES_FILE')
     YOUTUBE_COOKIES_FROM_BROWSER = os.getenv('YOUTUBE_COOKIES_FROM_BROWSER')
+    INSTAGRAM_ACCESS_TOKEN = os.getenv('INSTAGRAM_ACCESS_TOKEN')
 
     # Resource Constraints & Timeouts
     # -------------------------------

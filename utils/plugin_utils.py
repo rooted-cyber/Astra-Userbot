@@ -25,8 +25,9 @@ async def is_authorized(event) -> bool:
     from_me = getattr(event, 'from_me', False)
     if from_me: return True
     
-    # Normalize sender_id for lookup (Primary JID only)
-    primary_id = sender_id.split('@')[0].split(':')[0] + '@' + sender_id.split('@')[1] if '@' in sender_id else sender_id
+    # Normalize sender_id for lookup (Primary JID only, handle multi-device)
+    sid_str = str(sender_id)
+    primary_id = sid_str.split('@')[0].split(':')[0] + '@' + sid_str.split('@')[1] if '@' in sid_str else sid_str
     
     # 2. Sudo Users
     if state.is_sudo(primary_id): return True
@@ -45,8 +46,9 @@ async def is_owner(event) -> bool:
     # Check if message is from the bot account itself (considered owner)
     if getattr(event, 'from_me', False): return True
     
-    # Normalize sender_id for lookup (Primary JID only)
-    primary_id = sender_id.split('@')[0].split(':')[0] + '@' + sender_id.split('@')[1] if '@' in sender_id else sender_id
+    # Normalize sender_id for lookup (Primary JID only, handle multi-device)
+    sid_str = str(sender_id)
+    primary_id = sid_str.split('@')[0].split(':')[0] + '@' + sid_str.split('@')[1] if '@' in sid_str else sid_str
     
     sender_num = primary_id.split('@')[0]
     return str(config.OWNER_ID) == sender_num
@@ -189,9 +191,25 @@ def load_plugin(client: Client, plugin_name: str) -> bool:
                 if event == "message":
                     criteria = (criteria & startup_filter) if criteria else startup_filter
                 
-                # Wrap handler to inject 'client' (self) as first argument
+                # Wrap handler to inject 'client' (self) as first argument and add global error safety
                 async def wrapper(event_payload, _f=func):
-                    return await _f(client, event_payload)
+                    # Analytics: Track command usage in the background
+                    try:
+                        cmd_name = _f.__name__ # Or we could pass the name from astra_command
+                        from utils.database import db
+                        # Special key pattern: cmd_usage:<name>
+                        asyncio.create_task(db.increment(f"cmd_usage:{cmd_name}"))
+                        asyncio.create_task(db.increment("total_commands_v1"))
+                    except:
+                        pass
+
+                    try:
+                        return await _f(client, event_payload)
+                    except Exception as e:
+                        from utils.helpers import handle_command_error
+                        # Capture plugin name for context
+                        module_name = _f.__module__.split('.')[-1] if hasattr(_f, '__module__') else "unknown"
+                        return await handle_command_error(client, event_payload, e, context=f"Global Plugin Failure ({module_name})")
                 
                 # Register and capture handle
                 handle = client.on(event, criteria=criteria)(wrapper)

@@ -10,6 +10,7 @@ import base64
 import asyncio
 from . import *
 from utils.bridge_downloader import bridge_downloader
+from utils.helpers import handle_command_error
 
 @astra_command(
     name="sticker",
@@ -49,7 +50,7 @@ async def sticker_handler(client: Client, message: Message):
         await status_msg.delete()
 
     except Exception as e:
-        await smart_reply(message, f"❌ **Sticker Error:** {str(e)}")
+        await handle_command_error(client, message, e, context='Sticker command failure')
 
 @astra_command(
     name="tiny",

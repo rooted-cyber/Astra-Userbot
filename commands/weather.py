@@ -9,6 +9,7 @@ import time
 import aiohttp
 import base64
 from . import *
+from utils.helpers import handle_command_error
 
 @astra_command(
     name="weather",
@@ -70,5 +71,4 @@ async def weather_handler(client: Client, message: Message):
             await status_msg.edit(weather_report)
 
     except Exception as e:
-        await smart_reply(message, f"❌ **Astra Weather Error:** {str(e)}")
-        await report_error(client, e, context='Weather command failure')
+        await handle_command_error(client, message, e, context='Weather command failure')

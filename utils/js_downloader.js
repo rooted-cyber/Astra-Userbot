@@ -18,6 +18,7 @@ async function download() {
     const mode = args[1] || 'video'; // 'video' or 'audio'
     const cookies_file = args[2] || null;
     const cookies_browser = args[3] || null;
+    const pythonPath = args[4] || 'python3';
 
     const tempDir = path.join(__dirname, '../temp');
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
@@ -63,7 +64,7 @@ async function download() {
     if (cookies_file && cookies_file !== 'None' && cookies_file !== '') metaArgs.push('--cookies', cookies_file);
     else if (cookies_browser && cookies_browser !== 'None' && cookies_browser !== '') metaArgs.push('--cookies-from-browser', cookies_browser);
 
-    const metaCp = spawn('python3', ['-m', 'yt_dlp', ...metaArgs]);
+    const metaCp = spawn(pythonPath, ['-m', 'yt_dlp', ...metaArgs]);
     let metaData = '';
     metaCp.stdout.on('data', (d) => metaData += d.toString());
 
@@ -84,7 +85,7 @@ async function download() {
     }
 
     // 2. Perform Download
-    const cp = spawn('python3', ['-m', 'yt_dlp', ...ytArgs]);
+    const cp = spawn(pythonPath, ['-m', 'yt_dlp', ...ytArgs]);
 
     cp.stdout.on('data', (data) => {
         // Forward yt-dlp progress to Python

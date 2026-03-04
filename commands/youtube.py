@@ -17,7 +17,7 @@ from . import *
 import aiohttp
 from urllib.parse import quote_plus
 from config import config
-from utils.helpers import get_progress_bar, safe_edit
+from utils.helpers import get_progress_bar, safe_edit, handle_command_error
 
 @astra_command(
     name="youtube",
@@ -80,5 +80,4 @@ async def youtube_handler(client: Client, message: Message):
         await channel.upload_file(file_path, metadata, mode)
 
     except Exception as e:
-        await smart_reply(message, f" ❌ System Error: {str(e)}")
-        await report_error(client, e, context='YouTube command root failure')
+        await handle_command_error(client, message, e, context='YouTube command failure')

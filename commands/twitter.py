@@ -15,7 +15,7 @@ import shutil
 import random
 from config import config
 from . import *
-from utils.helpers import get_progress_bar
+from utils.helpers import get_progress_bar, handle_command_error
 
 @astra_command(
     name="twitter",
@@ -46,5 +46,4 @@ async def twitter_handler(client: Client, message: Message):
         await channel.upload_file(file_path, metadata, "video")
 
     except Exception as e:
-        await smart_reply(message, f" ❌ System Error: {str(e)}")
-        await report_error(client, e, context='Twitter command root failure')
+        await handle_command_error(client, message, e, context='Twitter command failure')

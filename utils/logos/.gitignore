@@ -1,0 +1,13 @@
+# Astra-Userbot Logo Assets
+# Ignore temporary backgrounds but keep the directory and core assets if needed
+# Traditionally we might want to keep the curated backgrounds and fonts
+# But large binaries can bloat the repo.
+# For now, let's ignore any 'temp' or 'bg' files if they are generated at runtime.
+# However, the user asked to 'manually download and copy', implying they should stay.
+# I will ignore accidental temp files.
+
+utils/logos/temp_*
+utils/logos/bg_*
+.DS_Store
+__pycache__/
+*.pyc

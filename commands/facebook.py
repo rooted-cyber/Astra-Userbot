@@ -7,6 +7,7 @@
 
 from . import *
 from utils.media_channel import MediaChannel
+from utils.helpers import handle_command_error
 
 @astra_command(
     name="facebook",
@@ -31,5 +32,4 @@ async def facebook_handler(client: Client, message: Message):
         await channel.upload_file(file_path, metadata, "video")
 
     except Exception as e:
-        await smart_reply(message, f" ❌ Facebook Error: {str(e)}")
-        await report_error(client, e, context='Facebook command failure')
+        await handle_command_error(client, message, e, context='Facebook command failure')

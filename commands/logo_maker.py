@@ -1,0 +1,99 @@
+# -----------------------------------------------------------
+# Astra-Userbot - WhatsApp Userbot Framework
+# Copyright (c) 2026 Aman Kumar Pandey
+# https://github.com/paman7647/Astra-Userbot
+# Licensed under the MIT License.
+# -----------------------------------------------------------
+
+import os
+import io
+import base64
+import asyncio
+import random
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from . import *
+from utils.helpers import handle_command_error
+
+# Configuration
+LOGOS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "utils", "logos")
+os.makedirs(LOGOS_DIR, exist_ok=True)
+
+@astra_command(
+    name="logo",
+    description="Create a beautiful logo with local professional backgrounds.",
+    category="Creative Suite",
+    usage="<text>",
+    is_public=True
+)
+async def logo_handler(client: Client, message: Message):
+    args = extract_args(message)
+    if not args:
+        return await smart_reply(message, "🏷️ **Astra Logo Maker**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Usage:** `.logo MyName`")
+
+    text = " ".join(args)
+    status_msg = await smart_reply(message, "🖼️ **Astra Creative Studio**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Crafting your logo...*")
+
+    try:
+        # 1. Pick a random local background (Prefer manually added bg1, bg2, etc.)
+        bg_files = [f for f in os.listdir(LOGOS_DIR) if f.startswith('bg') and f.endswith(('.jpg', '.jpeg', '.png'))]
+        if not bg_files:
+            bg_files = [f for f in os.listdir(LOGOS_DIR) if f.endswith(('.jpg', '.jpeg', '.png'))]
+        
+        if not bg_files:
+            # Fallback to local color if no images found
+            img = Image.new('RGB', (1024, 1024), color=(15, 12, 25))
+        else:
+            bg_path = os.path.join(LOGOS_DIR, random.choice(bg_files))
+            img = Image.open(bg_path)
+            img = img.resize((1024, 1024), Image.LANCZOS)
+
+        # 2. Process Image (Blur & Darken for premium text readability)
+        img = img.filter(ImageFilter.GaussianBlur(radius=2))
+        # Semi-transparent dark overlay for high contrast
+        overlay = Image.new('RGBA', img.size, (0, 0, 0, 130))
+        img = Image.alpha_composite(img.convert('RGBA'), overlay).convert('RGB')
+
+        # 3. Draw Text
+        draw = ImageDraw.Draw(img)
+        
+        # Try to find a nice font (Prioritizing locally downloaded premium fonts)
+        font_paths = [
+            os.path.join(LOGOS_DIR, "font1.ttf"),
+            os.path.join(LOGOS_DIR, "font2.ttf"),
+            os.path.join(LOGOS_DIR, "font3.ttf"),
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+            "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+            "arial.ttf" # Generic fallback
+        ]
+        
+        font = None
+        for p in font_paths:
+            try:
+                # Use a large font size for premium look
+                font = ImageFont.truetype(p, 140)
+                break
+            except: continue
+        
+        if not font:
+            font = ImageFont.load_default()
+
+        # Center text
+        bbox = draw.textbbox((0, 0), text, font=font)
+        w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        draw.text(((1024-w)/2, (1024-h)/2), text, font=font, fill=(255, 255, 255))
+
+        # 4. Save & Send
+        out_buffer = io.BytesIO()
+        img.save(out_buffer, format="JPEG", quality=90)
+        b64_data = base64.b64encode(out_buffer.getvalue()).decode('utf-8')
+
+        media = {
+            "mimetype": "image/jpeg",
+            "data": b64_data,
+            "filename": "logo.jpg"
+        }
+        await client.send_media(message.chat_id, media, caption=f"🏷️ **Custom Logo for:** `{text}`")
+        await status_msg.delete()
+
+    except Exception as e:
+        await handle_command_error(client, message, e, context='Logo maker failure')

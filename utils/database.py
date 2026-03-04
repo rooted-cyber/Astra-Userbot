@@ -65,7 +65,13 @@ class Database:
         
         # 1. Get everything from SQLite
         cursor = await self.sqlite_conn.execute("SELECT key, value, updated_at FROM state")
-        sqlite_data = {row[0]: {"value": json.loads(row[1]), "updated_at": row[2]} for row in await cursor.fetchall()}
+        sqlite_data = {}
+        for row in await cursor.fetchall():
+            try:
+                sqlite_data[row[0]] = {"value": json.loads(row[1]), "updated_at": row[2]}
+            except Exception as e:
+                logger.warning(f"Failed to parse SQLite value for key {row[0]}: {e}")
+                continue
         
         # 2. Get everything from MongoDB
         mongo_data = {}
@@ -131,7 +137,11 @@ class Database:
         cursor = await self.sqlite_conn.execute("SELECT value FROM state WHERE key = ?", (key,))
         row = await cursor.fetchone()
         if row:
-            return json.loads(row[0])
+            try:
+                return json.loads(row[0])
+            except Exception as e:
+                logger.error(f"Failed to parse JSON for key {key}: {e}")
+                return default
         return default
 
     async def set(self, key: str, value: Any):
@@ -150,6 +160,25 @@ class Database:
             asyncio.create_task(
                 self.mongo_db.state.update_one(
                     {"_id": key}, {"$set": {"value": value, "updated_at": now}}, upsert=True
+                )
+            )
+
+    async def increment(self, key: str, amount: int = 1):
+        if not self.initialized: await self.initialize()
+        now = int(time.time())
+        # Update SQLite using UPSERT pattern
+        await self.sqlite_conn.execute(
+            "INSERT INTO state (key, value, updated_at) VALUES (?, ?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = CAST(json_extract(value, '$') AS INTEGER) + ?, updated_at = ?",
+            (key, json.dumps(amount), now, amount, now)
+        )
+        await self.sqlite_conn.commit()
+
+        # Update MongoDB using $inc
+        if self.mongo_db:
+            asyncio.create_task(
+                self.mongo_db.state.update_one(
+                    {"_id": key}, {"$inc": {"value": amount}, "$set": {"updated_at": now}}, upsert=True
                 )
             )
 

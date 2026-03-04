@@ -8,6 +8,7 @@
 import aiohttp
 from urllib.parse import quote_plus
 from . import *
+from utils.helpers import handle_command_error
 
 @astra_command(
     name="song",
@@ -67,7 +68,7 @@ async def song_handler(client: Client, message: Message):
         return
                 
     except Exception as e:
-        await status_msg.edit(f"❌ **Song Error:** {str(e)}")
+        await handle_command_error(client, message, e, context='Song command failure')
 
 @astra_command(
     name="vsong",
@@ -128,4 +129,4 @@ async def vsong_handler(client: Client, message: Message):
         return
                 
     except Exception as e:
-        await status_msg.edit(f"❌ **Vsong Error:** {str(e)}")
+        await handle_command_error(client, message, e, context='Vsong command failure')

@@ -5,77 +5,95 @@
 # Licensed under the MIT License.
 # -----------------------------------------------------------
 
-import re
+import aiohttp
+import base64
+import io
+import os
 from . import *
-
-# Fancy font mapping
-FANCY_FONTS = {
-    "mono": "𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙾𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉𝟶𝟷𝟸𝟹𝟺𝟻𝟼𝟽𝟾𝟿",
-    "bold": "𝐚𝐛𝐜𝐝𝐞𝐟𝐠𝐡𝐢𝐣𝐤𝐥𝐦𝐧𝐨𝐩𝐪𝐫𝐬𝐭𝐮𝐯𝐰𝐱𝐲𝐳𝐀𝐁𝐂𝐃𝐄𝐅𝐆𝐇𝐈𝐉𝐊𝐋𝐌𝐍𝐎𝐏Ｑ𝐑𝐒𝐓𝐔𝐕𝐖𝐗𝐘Ｚ𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗",
-    "italic": "italic", # Handled via regex/logic if needed, but standard bold/italic is better for WA
-    "script": "𝒶𝒷𝒸𝒹𝑒𝒻𝑔𝒽𝒾𝒿𝓀𝓁𝓂𝓃𝑜𝓅𝓆𝓇𝓈𝓉𝓊𝓋𝓌𝓍𝓎𝓏𝒜𝐵𝒞𝒟𝐸𝐹𝒢𝐻𝐼𝒥𝒦𝐿𝑀𝒩𝒪𝒫𝒬𝑅𝒮𝒯𝒰𝒱𝒲𝒳𝒴𝒵",
-}
-
-NORMAL_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+from utils.helpers import handle_command_error
 
 @astra_command(
-    name="fancy",
-    description="Convert text into fancy fonts.",
-    category="Tools & Utilities",
-    usage="<type> <text> (types: mono, bold, script)",
-    is_public=True
-)
-async def fancy_handler(client: Client, message: Message):
-    """Fancy text generator."""
-    args = extract_args(message)
-    if len(args) < 2:
-        return await smart_reply(message, "❌ **Usage:** `.fancy <mono|bold|script> <text>`")
-    
-    font_type = args[0].lower()
-    text = " ".join(args[1:])
-    
-    if font_type not in FANCY_FONTS:
-        return await smart_reply(message, "❌ **Invalid type!** Use: mono, bold, script")
-    
-    target_font = FANCY_FONTS[font_type]
-    result = ""
-
-@astra_command(
-    name="morse",
-    description="Convert text to Morse code.",
-    category="Tools & Utilities",
+    name="txtimg",
+    description="Convert plain text into a beautiful image card.",
+    category="Creative Suite",
     usage="<text>",
     is_public=True
 )
-async def morse_handler(client: Client, message: Message):
-    """Morse code converter."""
-    MORSE_DICT = { 'A':'.-', 'B':'-...', 'C':'-.-.', 'D':'-..', 'E':'.', 'F':'..-.', 'G':'--.', 'H':'....',
-                  'I':'..', 'J':'.---', 'K':'-.-', 'L':'.-..', 'M':'--', 'N':'-.', 'O':'---', 'P':'.--.',
-                  'Q':'--.-', 'R':'.-.', 'S':'...', 'T':'-', 'U':'..-', 'V':'...-', 'W':'.--', 'X':'-..-',
-                  'Y':'-.--', 'Z':'--..', '1':'.----', '2':'..---', '3':'...--', '4':'....-', '5':'.....',
-                  '6':'-....', '7':'--...', '8':'---..', '9':'----.', '0':'-----', ' ': '/' }
-    
+async def txtimg_handler(client: Client, message: Message):
     args = extract_args(message)
-    if not args:
-        return await smart_reply(message, "❌ Provide text to convert.")
-    
-    text = " ".join(args).upper()
-    encoded = " ".join([MORSE_DICT.get(c, c) for c in text])
-    await smart_reply(message, f"📟 **Morse Code:**\n`{encoded}`")
+    if not args and not message.has_quoted_msg:
+        return await smart_reply(message, "📝 **Astra Text Card**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Usage:** `.txtimg Hello World` or reply to text.")
+
+    text = " ".join(args) if args else message.quoted.body
+    status_msg = await smart_reply(message, "✨ **Astra Creative Studio**\n━━━━━━━━━━━━━━━━━━━━\n🎨 *Rendering your text card...*")
+
+    try:
+        # Using a reliable free API for text-to-image (Pollinations or similar)
+        # We can also use a custom HTML/CSS renderer via a public service
+        url = "https://image.pollinations.ai/prompt/"
+        prompt = f"A beautiful typography card with the text: '{text}'. centered, professional, clean, high resolution, soft background."
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{url}{prompt}") as resp:
+                if resp.status == 200:
+                    image_data = await resp.read()
+                    b64_data = base64.b64encode(image_data).decode('utf-8')
+                    
+                    media = {
+                        "mimetype": "image/jpeg",
+                        "data": b64_data,
+                        "filename": "text_card.jpg"
+                    }
+                    await client.send_media(message.chat_id, media, caption="📝 **Astra Text Card**")
+                    await status_msg.delete()
+                else:
+                    await status_msg.edit("❌ Failed to render text image.")
+
+    except Exception as e:
+        await handle_command_error(client, message, e, context='Text card failure')
 
 @astra_command(
-    name="binary",
-    description="Convert text to binary.",
-    category="Tools & Utilities",
+    name="kcode",
+    description="Carbon-style rendering for plain text (not just code).",
+    category="Creative Suite",
     usage="<text>",
     is_public=True
 )
-async def binary_handler(client: Client, message: Message):
-    """Binary converter."""
+async def kcode_handler(client: Client, message: Message):
+    """
+    Uses Carbonara API but optimized for plain text descriptions.
+    """
     args = extract_args(message)
-    if not args:
-        return await smart_reply(message, "❌ Provide text to convert.")
-    
-    text = " ".join(args)
-    binary = ' '.join(format(ord(x), '08b') for x in text)
-    await smart_reply(message, f"🔢 **Binary:**\n`{binary}`")
+    if not args and not message.has_quoted_msg:
+        return await smart_reply(message, "🎨 **Astra K-Code**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Usage:** `.kcode Hello World`")
+
+    text = " ".join(args) if args else message.quoted.body
+    status_msg = await smart_reply(message, "🎨 **Astra K-Code**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Rendering premium card...*")
+
+    try:
+        url = "https://carbonara.solopov.dev/api/cook"
+        payload = {
+            "code": text,
+            "backgroundColor": "rgba(27, 20, 41, 1)",
+            "theme": "panda", # Slick dark theme
+            "language": "plain_text"
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload) as resp:
+                if resp.status == 200:
+                    image_data = await resp.read()
+                    b64_data = base64.b64encode(image_data).decode('utf-8')
+                    
+                    media = {
+                        "mimetype": "image/jpeg",
+                        "data": b64_data,
+                        "filename": "kcode.jpg"
+                    }
+                    await client.send_media(message.chat_id, media, caption="🎨 **Astra Premium Card**")
+                    await status_msg.delete()
+                else:
+                    await status_msg.edit("❌ Failed to generate premium card.")
+
+    except Exception as e:
+        await handle_command_error(client, message, e, context='K-Code failure')

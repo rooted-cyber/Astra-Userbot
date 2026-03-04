@@ -23,6 +23,8 @@ from . import *
 async def restart_cmd(client: Client, message: Message):
     """Restarts the bot process"""
     await smart_reply(message, "🚀 *Restarting Astra Userbot...*")
+    # Small delay to ensure the message is sent and seen
+    time.sleep(2)
     # Restart the application
     os.execv(sys.executable, [sys.executable] + sys.argv)
 
@@ -35,6 +37,8 @@ async def restart_cmd(client: Client, message: Message):
 async def shutdown_cmd(client: Client, message: Message):
     """Shuts down the bot process"""
     await smart_reply(message, "🛑 *Shutting down Astra Userbot...*")
+    # Small delay to ensure the message is sent
+    time.sleep(2)
     # Exit the application
     sys.exit(0)
 
@@ -184,6 +188,43 @@ async def reload_cmd(client: Client, message: Message):
         )
     except Exception as e:
         await report_error(client, e, context='Reload command failure')
+
+@astra_command(
+    name="cleanup",
+    description="Purge temporary files and local cache.",
+    category="Owner",
+    owner_only=True
+)
+async def cleanup_handler(client: Client, message: Message):
+    """Purges the temp directory and cache."""
+    status_msg = await smart_reply(message, "🧹 **System Maintenance**\n━━━━━━━━━━━━━━━━━━━━\n🗑️ *Purging temporary storage...*")
+    
+    try:
+        import shutil
+        temp_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "temp")
+        cache_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "cache")
+        
+        purged_count = 0
+        for d in [temp_dir, cache_dir]:
+            if os.path.exists(d):
+                for f in os.listdir(d):
+                    path = os.path.join(d, f)
+                    try:
+                        if os.path.isfile(path):
+                            os.remove(path)
+                            purged_count += 1
+                        elif os.path.islink(path):
+                            os.unlink(path)
+                            purged_count += 1
+                        elif os.path.isdir(path):
+                            shutil.rmtree(path)
+                            purged_count += 1
+                    except:
+                        continue
+        
+        await status_msg.edit(f"✅ **System Purge Complete**\n━━━━━━━━━━━━━━━━━━━━\n📂 **Cleaned Items:** `{purged_count}`\n🚀 *Environment is now optimized.*")
+    except Exception as e:
+        await handle_command_error(client, message, e, context='Cleanup failure')
 
 @astra_command(
     name="logs",

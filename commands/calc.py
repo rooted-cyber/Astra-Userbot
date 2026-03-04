@@ -15,6 +15,7 @@ Uses Python's math library for safe execution of functions.
 
 import math
 from . import *
+from utils.helpers import handle_command_error
 
 @astra_command(
     name="calc",
@@ -50,5 +51,4 @@ async def calc_handler(client: Client, message: Message):
                                    f"*Output:* `{result}`")
 
     except Exception as e:
-        await smart_reply(message, f" ❌ **Math Error:** `{str(e)}`")
-        await report_error(client, e, context='Calculator module failure')
+        await handle_command_error(client, message, e, context='Calculator command failure')

@@ -35,7 +35,7 @@ async def whois_handler(client: Client, message: Message):
                 target_jid = raw
         else:
             # Info about self or the current chat
-            target_jid = message.sender or (message.chat_id if not message.chat_id.endswith('@g.us') else "")
+            target_jid = message.sender or (message.chat_id if not str(message.chat_id).endswith('@g.us') else "")
 
         if not target_jid:
             return await smart_reply(message, " 👤 Provide a user to fetch info.")

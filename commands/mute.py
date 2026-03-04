@@ -22,7 +22,7 @@ async def mute_handler(client: Client, message: Message):
     try:
         args_list = extract_args(message)
         
-        is_group = message.chat_id.endswith('@g.us')
+        is_group = str(message.chat_id).endswith('@g.us')
         if not is_group:
             return await smart_reply(message, " ❌ This command only works in groups.")
 

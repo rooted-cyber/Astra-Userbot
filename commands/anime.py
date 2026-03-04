@@ -8,6 +8,7 @@
 import aiohttp
 import base64
 from . import *
+from utils.helpers import handle_command_error
 
 @astra_command(
     name="anime",
@@ -80,4 +81,4 @@ async def anime_handler(client: Client, message: Message):
         await status_msg.edit("⚠️ Anime service is currently unavailable.")
 
     except Exception as e:
-        await status_msg.edit(f"❌ **Anime Error:** {str(e)}")
+        await handle_command_error(client, message, e, context='Anime command failure')

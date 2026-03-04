@@ -19,7 +19,7 @@ from . import *
 )
 async def pick_handler(client: Client, message: Message):
     """Random user picker."""
-    if not message.chat_id.endswith('@g.us'):
+    if not str(message.chat_id).endswith('@g.us'):
         return await smart_reply(message, "❌ Groups only.")
         
     status_msg = await smart_reply(message, "🎲 **Rolling the dice...**")
@@ -38,6 +38,44 @@ async def pick_handler(client: Client, message: Message):
         await status_msg.edit(f"❌ Error: {str(e)}")
 
 @astra_command(
+    name="tagall",
+    description="Tag everyone in the group in batches.",
+    category="Group Management",
+    usage="",
+    is_public=True
+)
+async def tagall_handler(client: Client, message: Message):
+    """Batched tagging to avoid spam flags."""
+    if not str(message.chat_id).endswith('@g.us'):
+        return await smart_reply(message, "❌ Groups only.")
+
+    status_msg = await smart_reply(message, "📣 **Preparing batched notification...**")
+
+    try:
+        info = await client.group.get_info(message.chat_id)
+        participants = info.participants
+        if not participants:
+            return await status_msg.edit("❌ No participants found.")
+
+        batch_size = 5
+        total = len(participants)
+        await status_msg.edit(f"📣 **Tagging {total} members in batches...**")
+
+        for i in range(0, total, batch_size):
+            batch = participants[i:i + batch_size]
+            mentions = [str(p.id) for p in batch]
+            text = "📣 **Group Notification:**\n"
+            for p in batch:
+                text += f"• @{str(p.id).split('@')[0]}\n"
+            
+            await client.send_message(message.chat_id, text, mentions=mentions)
+            await asyncio.sleep(1.5)
+
+        await status_msg.delete()
+    except Exception as e:
+        await status_msg.edit(f"❌ Error: {str(e)}")
+
+@astra_command(
     name="tagadmin",
     description="Tag all group admins.",
     category="Group Management",
@@ -47,14 +85,14 @@ async def pick_handler(client: Client, message: Message):
 )
 async def tagadmin_handler(client: Client, message: Message):
     """Admin tagger."""
-    if not message.chat_id.endswith('@g.us'):
+    if not str(message.chat_id).endswith('@g.us'):
         return await smart_reply(message, "❌ Groups only.")
         
     status_msg = await smart_reply(message, "🛡️ **Calling all admins...**")
     
     try:
         info = await client.group.get_info(message.chat_id)
-        admins = [p.id for p in info.participants if p.isAdmin or p.isSuperAdmin]
+        admins = [p.id for p in info.participants if p.is_admin or p.is_super_admin]
         
         if not admins:
             return await status_msg.edit("❌ No admins found.")

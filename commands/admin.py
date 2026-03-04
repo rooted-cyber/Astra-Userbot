@@ -27,7 +27,7 @@ async def admin_handler(client: Client, message: Message):
         usage = "<kick|add|promote|demote|tagall|create|leave> [@user|title]"
         return await smart_reply(message, f"⚠️ **Usage:** `{config.PREFIX}admin {usage}`")
     
-    is_group = message.chat_id.endswith('@g.us')
+    is_group = str(message.chat_id).endswith('@g.us')
     action = args_list[0].lower()
 
     try:

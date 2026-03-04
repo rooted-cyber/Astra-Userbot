@@ -7,6 +7,7 @@
 
 from utils.search import perform_search
 from . import *
+from utils.helpers import handle_command_error
 
 @astra_command(
     name="google",
@@ -61,4 +62,4 @@ async def google_handler(client: Client, message: Message):
         await status_msg.edit("⚠️ Failed to fetch search results. Try again later.")
 
     except Exception as e:
-        await status_msg.edit(f"❌ **Google Error:** {str(e)}")
+        await handle_command_error(client, message, e, context='Google command failure')

@@ -107,8 +107,9 @@ async def quotly_handler(client: Client, message: Message):
         # 1. Fetch sequence if count > 1
         if count > 1:
             # We fetch messages in the chat starting from the quoted message ID
+            chat_id_str = message.chat_id.serialized if hasattr(message.chat_id, "serialized") else str(message.chat_id)
             fetched = await client.chat.fetch_messages(
-                message.chat_id.serialized, 
+                chat_id_str, 
                 limit=count, 
                 message_id=start_quoted.id,
                 direction="after" # Fetch subsequent messages

@@ -1204,8 +1204,7 @@ async def _meme_handler(client, message, subs, label, fallback_subs=None, **kwar
             mode_str = '+'.join(mode) if mode else 'image'
             await safe_edit(status_msg, f"❌ No fresh content found.\n🔍 Subs: `{subs_tried}`\n📂 Mode: `{mode_str}`\n💡 Use `.memedebug` to check if your server's IP is blocked by Reddit.")
     except Exception as e:
-        logger.error(f"_meme_handler error: {e}")
-        await safe_edit(status_msg, f"❌ Meme Error: `{str(e)[:100]}`")
+        await handle_command_error(client, message, e, context='Meme command failure')
 
 # ── Command Handlers ───────────────────────
 

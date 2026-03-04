@@ -16,6 +16,10 @@ from astra.models import Message
 from config import config
 from utils.helpers import safe_edit
 from utils.progress import get_progress_bar
+from utils.media_exceptions import (
+    MediaException, ContentPrivateException, ContentUnavailableException, 
+    ContentAgeRestrictedException, RateLimitException, InvalidURLException
+)
 
 class MediaChannel:
     """
@@ -65,10 +69,12 @@ class MediaChannel:
         cookies_file = getattr(config, 'YOUTUBE_COOKIES_FILE', '') or ''
         cookies_browser = getattr(config, 'YOUTUBE_COOKIES_FROM_BROWSER', '') or ''
 
+        import sys
         process = await asyncio.create_subprocess_exec(
             "node", bridge_script,
             url, mode, 
             cookies_file, cookies_browser,
+            sys.executable, # Pass current python path
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
@@ -120,42 +126,52 @@ class MediaChannel:
 
         await process.wait()
         if process.returncode != 0:
-            stderr = (await process.stderr.read()).decode(errors='ignore')[:300]
-            raise Exception(f"Bridge Error: {stderr}")
+            stderr = (await process.stderr.read()).decode(errors='ignore')
+            
+            # Smart Error Parsing
+            if "This video is private" in stderr or "Private account" in stderr:
+                raise ContentPrivateException()
+            elif "Video unavailable" in stderr or "this video has been removed" in stderr.lower():
+                raise ContentUnavailableException()
+            elif "Confirm your age" in stderr or "age-restricted" in stderr.lower():
+                raise ContentAgeRestrictedException()
+            elif "429" in stderr or "Too Many Requests" in stderr:
+                raise RateLimitException()
+            elif "Unsupported URL" in stderr or "invalid URL" in stderr.lower():
+                raise InvalidURLException()
+            
+            # Generic Bridge Error with snippet
+            raise MediaException(f"Stream Error: {stderr[:200]}...")
 
         if not file_path or not os.path.exists(file_path):
-            raise Exception("File stream failed or was not written to disk.")
+            raise MediaException("File stream failed or was not written to disk.")
 
         # Save to Cache automatically
         cached_path = await cache.save_to_cache(url, mode, file_path, metadata)
         return cached_path, metadata
 
     async def upload_file(self, file_path: str, metadata: dict, mode: str):
-        """Uploads file with real-time progress bar."""
+        """Uploads file with real-time status updates."""
+        from utils.state import state
         file_size = os.path.getsize(file_path)
         file_size_mb = file_size / (1024 * 1024)
         size_str = f"{file_size_mb:.2f} MB" if file_size_mb < 1024 else f"{file_size_mb/1024:.2f} GB"
         
         start_time = time.time()
+        fast_mode = state.get_config("FAST_MEDIA")
 
         async def on_progress(current, total):
-            pct = (current / total) * 100
-            bar = get_progress_bar(pct)
-            
-            elapsed = time.time() - start_time
-            if elapsed > 0:
-                sent_mb = (current / total) * file_size_mb
-                speed = sent_mb / elapsed
-                speed_text = f"{speed:.2f} MiB/s"
-            else:
-                speed_text = "..."
+            if fast_mode:
+                return
 
+            # Non-fastmode: Show a simple "Uploading" status without a granular progress bar for a cleaner look
+            # as per user request to "show uploading etc in non fastmode without progress etc"
             await self._update_status(
                 f"⚡ **Astra Media Gateway**\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
                 f"✨ *{metadata['title']}*\n\n"
-                f"📤 *Bridging to WA:* {bar}\n"
-                f"🚀 *Transfer Rate:* `{speed_text}`",
+                f"📤 **Uploading to WhatsApp...**\n"
+                f"📂 *Size:* `{size_str}`",
                 is_progress=True
             )
 
@@ -168,12 +184,29 @@ class MediaChannel:
         )
 
         try:
+            # Initial upload status
+            if not fast_mode:
+                await self._update_status(
+                    f"⚡ **Astra Media Gateway**\n"
+                    f"━━━━━━━━━━━━━━━━━━━━\n"
+                    f"✨ *{metadata['title']}*\n\n"
+                    f"📤 **Uploading to WhatsApp...**\n"
+                    f"📂 *Size:* `{size_str}`",
+                    force=True
+                )
+
             if mode == "audio":
                 await self.client.send_audio(self.message.chat_id, file_path, reply_to=self.message.id, progress=on_progress)
             else:
                 await self.client.send_video(self.message.chat_id, file_path, caption=caption, reply_to=self.message.id, progress=on_progress)
             
             await self.status_msg.delete()
+        except MediaException:
+            # Re-raise custom exceptions to be handled by the command's generic error handler
+            raise
+        except Exception as e:
+            # Wrap unexpected errors in a general MediaException
+            raise MediaException(f"Media Engine Fault: {str(e)}")
         finally:
             # We don't remove file_path anymore here because it's serving from the cache directory
             pass

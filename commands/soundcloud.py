@@ -7,6 +7,7 @@
 
 from . import *
 from utils.media_channel import MediaChannel
+from utils.helpers import handle_command_error
 
 @astra_command(
     name="soundcloud",
@@ -32,5 +33,4 @@ async def soundcloud_handler(client: Client, message: Message):
         await channel.upload_file(file_path, metadata, "audio")
 
     except Exception as e:
-        await smart_reply(message, f" ❌ SoundCloud Error: {str(e)}")
-        await report_error(client, e, context='SoundCloud command failure')
+        await handle_command_error(client, message, e, context='SoundCloud command failure')

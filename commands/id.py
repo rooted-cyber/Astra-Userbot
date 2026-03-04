@@ -19,8 +19,8 @@ from . import *
 async def id_handler(client: Client, message: Message):
     """Renders a detailed identity card with JID information."""
     try:
-        chat_id = message.chat_id
-        sender_id = message.sender_id
+        chat_id = str(message.chat_id)
+        sender_id = str(message.sender_id)
         
         # Resolve names (Core logic preserved)
         chat_name = "Unknown"
