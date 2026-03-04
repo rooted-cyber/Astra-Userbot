@@ -219,8 +219,7 @@ async def cleanup_handler(client: Client, message: Message):
                     except:
                         continue
         
-        await status_msg.edit(f" Cleaned
-Items: `{purged_count}`\n")
+        await status_msg.edit(f" Cleaned\\nItems: `{purged_count}`\\n")
     except Exception as e:
         await handle_command_error(client, message, e, context='Cleanup failure')
 
@@ -312,10 +311,8 @@ async def clearcache_cmd(client: Client, message: Message):
             freed = result["freed_mb"]
             await asyncio.sleep(0.5)
             await status_msg.edit(
-                f" Cache cleared.
-
-"
-                f"🗑️ *Deleted Files:* `{files}`\n"
+                f" Cache cleared.\\n\\n"
+                f"🗑️ *Deleted Files:* `{files}`\\n"
                 f"💾 *Space Freed:* `{freed} MB`\n"
                 f"🚀 *Astra Media Engine is clean.*"
             )
