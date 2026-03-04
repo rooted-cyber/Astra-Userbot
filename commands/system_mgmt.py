@@ -1,10 +1,3 @@
-# -----------------------------------------------------------
-# Astra-Userbot - WhatsApp Userbot Framework
-# Copyright (c) 2026 Aman Kumar Pandey
-# https://github.com/paman7647/Astra-Userbot
-# Licensed under the MIT License.
-# See LICENSE file in the project root for full license text.
-# -----------------------------------------------------------
 
 import os
 import sys
@@ -21,8 +14,8 @@ from . import *
     owner_only=True
 )
 async def restart_cmd(client: Client, message: Message):
-    """Restarts the bot process"""
-    await smart_reply(message, "🚀 *Restarting Astra Userbot...*")
+    """Restart Bot"""
+    await smart_reply(message, " Rebooting...")
     # Small delay to ensure the message is sent and seen
     time.sleep(2)
     # Restart the application
@@ -35,8 +28,8 @@ async def restart_cmd(client: Client, message: Message):
     owner_only=True
 )
 async def shutdown_cmd(client: Client, message: Message):
-    """Shuts down the bot process"""
-    await smart_reply(message, "🛑 *Shutting down Astra Userbot...*")
+    """Shutdown Bot"""
+    await smart_reply(message, " Powering off...")
     # Small delay to ensure the message is sent
     time.sleep(2)
     # Exit the application
@@ -50,15 +43,7 @@ async def shutdown_cmd(client: Client, message: Message):
     usage=".update [-b branch] [-f]"
 )
 async def update_cmd(client: Client, message: Message):
-    """
-    Advanced Update Orchestrator:
-    - Supports branch selection (-b). Default: master.
-    - Force update (-f)
-    - Already up-to-date detection
-    - Change log / Diff summary
-    - Automatic requirements installation
-    - Restart upon success
-    """
+    """ Update Handler """
     args = extract_args(message)
     force = "-f" in args
     
@@ -127,7 +112,9 @@ async def update_cmd(client: Client, message: Message):
             update_prompt = (
                 f"🚀 **Astra Update Engine**\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"✨ **New Updates Found!**\n\n"
+                f" Updates available.
+
+"
                 f"📂 **Branch:** `{branch}`\n"
                 f"👤 **Author:** `{author_name}`\n"
                 f"🕒 **Checked at:** `{time.strftime('%H:%M:%S')}`\n\n"
@@ -194,7 +181,7 @@ async def reload_cmd(client: Client, message: Message):
         
         await asyncio.sleep(0.5)
         await status_msg.edit(
-            f"✅ **Reload Successful!**\n"
+            f" Reloaded!\n"
             f"📦 **Modules:** {count} plugins resynced.\n"
             f"🕒 **Time:** {time.strftime('%H:%M:%S')}"
         )
@@ -209,7 +196,7 @@ async def reload_cmd(client: Client, message: Message):
 )
 async def cleanup_handler(client: Client, message: Message):
     """Purges the temp directory and cache."""
-    status_msg = await smart_reply(message, "🧹 **System Maintenance**\n━━━━━━━━━━━━━━━━━━━━\n🗑️ *Purging temporary storage...*")
+    status_msg = await smart_reply(message, " Cleaning up...")
     
     try:
         import shutil
@@ -234,7 +221,8 @@ async def cleanup_handler(client: Client, message: Message):
                     except:
                         continue
         
-        await status_msg.edit(f"✅ **System Purge Complete**\n━━━━━━━━━━━━━━━━━━━━\n📂 **Cleaned Items:** `{purged_count}`\n🚀 *Environment is now optimized.*")
+        await status_msg.edit(f" Cleaned
+Items: `{purged_count}`\n")
     except Exception as e:
         await handle_command_error(client, message, e, context='Cleanup failure')
 
@@ -315,7 +303,7 @@ async def logs_cmd(client: Client, message: Message):
 )
 async def clearcache_cmd(client: Client, message: Message):
     """Purges the media cache directory."""
-    status_msg = await smart_reply(message, "⏳ *Scanning media cache...*")
+    status_msg = await smart_reply(message, " Clearing cache...")
     
     try:
         from utils.cache_manager import cache
@@ -326,7 +314,9 @@ async def clearcache_cmd(client: Client, message: Message):
             freed = result["freed_mb"]
             await asyncio.sleep(0.5)
             await status_msg.edit(
-                f"✅ **Cache Cleared Successfully!**\n\n"
+                f" Cache cleared.
+
+"
                 f"🗑️ *Deleted Files:* `{files}`\n"
                 f"💾 *Space Freed:* `{freed} MB`\n"
                 f"🚀 *Astra Media Engine is clean.*"

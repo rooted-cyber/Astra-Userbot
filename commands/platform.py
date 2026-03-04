@@ -1,7 +1,3 @@
-# -----------------------------------------------------------
-# Astra-Userbot - WhatsApp Userbot Framework
-# This file is a PROXY to avoid shadowing the standard library 'platform' module.
-# -----------------------------------------------------------
 
 import sys
 import os

@@ -1,10 +1,3 @@
-# -----------------------------------------------------------
-# Astra-Userbot - WhatsApp Userbot Framework
-# Copyright (c) 2026 Aman Kumar Pandey
-# https://github.com/paman7647/Astra-Userbot
-# Licensed under the MIT License.
-# See LICENSE file in the project root for full license text.
-# -----------------------------------------------------------
 
 from . import *
 import time
@@ -19,7 +12,7 @@ from utils.plugin_utils import load_plugin, unload_plugin, PLUGIN_HANDLES
     owner_only=True
 )
 async def admin_handler(client: Client, message: Message):
-    """Group administration commands."""
+    """Admin Tools"""
     args = getattr(message, 'command', None)
     args_list = extract_args(message)
     
@@ -69,7 +62,7 @@ async def admin_handler(client: Client, message: Message):
             return
 
         if not is_group:
-            return await smart_reply(message, "❌ **Group Admin:** This action only works in groups.")
+            return await smart_reply(message, "This action only works in groups.")
 
         if action == 'leave':
             await smart_reply(message, "👋 **Astra Admin:** Leaving group...")
@@ -108,31 +101,31 @@ async def admin_handler(client: Client, message: Message):
         # print(f"DEBUG: Targets for {action}: {target_ids}") # Uncomment for debugging if needed
         
         if action in ['kick', 'remove']:
-            if not target_ids: return await smart_reply(message, "⚠️ **Group Admin:** Mention users or reply to their message to kick.")
+            if not target_ids: return await smart_reply(message, "Mention users or reply to their message to kick.")
             await client.group.remove_participants(message.chat_id, target_ids)
-            await smart_reply(message, f"💥 **Group Admin:** Processed `{len(target_ids)}` removals.")
+            await smart_reply(message, f"Processed `{len(target_ids)}` removals.")
         
         elif action == 'add':
-            if not target_ids: return await smart_reply(message, "⚠️ **Group Admin:** Provide user IDs, phone numbers or mention someone to add.")
+            if not target_ids: return await smart_reply(message, "Provide user IDs, phone numbers or mention someone to add.")
             await client.group.add_participants(message.chat_id, target_ids)
-            await smart_reply(message, f"➕ **Group Admin:** Processed `{len(target_ids)}` additions.")
+            await smart_reply(message, f"Processed `{len(target_ids)}` additions.")
 
         elif action == 'promote':
-            if not target_ids: return await smart_reply(message, "⚠️ **Group Admin:** Mention users to promote.")
+            if not target_ids: return await smart_reply(message, "Mention users to promote.")
             await client.group.promote_participants(message.chat_id, target_ids)
-            await smart_reply(message, f"🛡️ **Group Admin:** Processed `{len(target_ids)}` promotions.")
+            await smart_reply(message, f"Processed `{len(target_ids)}` promotions.")
 
         elif action == 'demote':
-            if not target_ids: return await smart_reply(message, "⚠️ **Group Admin:** Mention users to demote.")
+            if not target_ids: return await smart_reply(message, "Mention users to demote.")
             await client.group.demote_participants(message.chat_id, target_ids)
-            await smart_reply(message, f"👤 **Group Admin:** Processed `{len(target_ids)}` demotions.")
+            await smart_reply(message, f"Processed `{len(target_ids)}` demotions.")
 
         elif action in ['tagall', 'everyone']:
-            status = await smart_reply(message, "📢 **Group Admin:** Tagging everyone...")
+            status = await smart_reply(message, "Tagging everyone...")
             info = await client.group.get_info(message.chat_id)
             if not info or not info.participants: 
                 time.sleep(0.5)
-                return await status.edit("❌ **Group Admin:** Failed to fetch group info.")
+                return await status.edit("Failed to fetch group info.")
             
             text = "📢 **Everyone Check!** \n━━━━━━━━━━━━━━━━━━━━\n"
             mentions = []

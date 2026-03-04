@@ -1,6 +1,3 @@
-# -----------------------------------------------------------
-# Astra-Userbot - Universal Multi-Language Executor
-# -----------------------------------------------------------
 
 import asyncio
 import shutil
@@ -11,9 +8,6 @@ import re
 from typing import Optional, Union, Dict
 from . import *  # Astra helpers (astra_command, extract_args, smart_reply, report_error)
 
-# -----------------------------------------------------------
-# LANGUAGE DEFINITIONS (CORE / MOST USED)
-# -----------------------------------------------------------
 
 # Package mapping notes: linux (apt) vs darwin (brew)
 # Verified package names for Ubuntu 22.04/24.04 and macOS
@@ -210,9 +204,6 @@ def normalize_code(code: str) -> str:
     return code
 
 
-# -----------------------------------------------------------
-# PRIVACY PROTECTION (v6.0)
-# -----------------------------------------------------------
 
 SENSITIVE_PATTERNS = [
     "config.py", ".env", "api_key", "os.environ", "os.getenv", 
@@ -235,9 +226,6 @@ def security_filter(code: str) -> Optional[str]:
             return pattern
     return None
 
-# -----------------------------------------------------------
-# UNIVERSAL MULTI-LANGUAGE EXECUTION COMMAND
-# -----------------------------------------------------------
 
 @astra_command(
     name="run",
@@ -372,8 +360,7 @@ async def multi_lang_exec_handler(client: Client, message: Message):
         filename = f"/tmp/{base_name}{selected['ext']}"
         with open(filename, "w") as f:
             f.write(code.strip())
-        # -------------------------------------------------------------
-
+        
         # Execute
         run_cmd = selected["run_cmd"](binary, filename)
 
@@ -475,9 +462,6 @@ async def install_deps_handler(client: Client, message: Message):
         await smart_reply(message, f"❌ Error: {str(e)}")
 
 
-# -----------------------------------------------------------
-# EXAMPLES FOR HELP / README
-# -----------------------------------------------------------
 
 EXAMPLES = """
 🚀 *Master Executor v3.0 - Supreme Examples*

@@ -1,9 +1,3 @@
-# -----------------------------------------------------------
-# Astra-Userbot - WhatsApp Userbot Framework
-# Copyright (c) 2026 Aman Kumar Pandey
-# https://github.com/paman7647/Astra-Userbot
-# Licensed under the MIT License.
-# -----------------------------------------------------------
 
 class MediaException(Exception):
     """Base exception for all media-related failures."""

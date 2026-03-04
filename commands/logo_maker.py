@@ -1,9 +1,3 @@
-# -----------------------------------------------------------
-# Astra-Userbot - WhatsApp Userbot Framework
-# Copyright (c) 2026 Aman Kumar Pandey
-# https://github.com/paman7647/Astra-Userbot
-# Licensed under the MIT License.
-# -----------------------------------------------------------
 
 import os
 import io
@@ -28,10 +22,10 @@ os.makedirs(LOGOS_DIR, exist_ok=True)
 async def logo_handler(client: Client, message: Message):
     args = extract_args(message)
     if not args:
-        return await smart_reply(message, "🏷️ **Astra Logo Maker**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Usage:** `.logo MyName`")
+        return await smart_reply(message, " Usage: `.logo MyName`")
 
     text = " ".join(args)
-    status_msg = await smart_reply(message, "🖼️ **Astra Creative Studio**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Crafting your logo...*")
+    status_msg = await smart_reply(message, " Processing...")
 
     try:
         # 1. Pick a random local background (Prefer manually added bg1, bg2, etc.)
