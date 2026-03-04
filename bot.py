@@ -197,7 +197,7 @@ async def on_ready(_):
         try:
             target_id = user.id.serialized if hasattr(user.id, "serialized") else str(user.id)
             from utils.database import db
-            msg = db.get("STARTUP_MESSAGE") or f"🤖 **Astra Userbot Online!**\nBuild: `{config.VERSION_NAME}` (v{config.VERSION})"
+            msg = await db.get("STARTUP_MESSAGE") or f"🤖 **Astra Userbot Online!**\nBuild: `{config.VERSION_NAME}` (v{config.VERSION})"
              
             msg = await client.send_message(
                 target_id, 
