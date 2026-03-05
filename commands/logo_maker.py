@@ -9,7 +9,7 @@ from utils.helpers import handle_command_error
 from . import *
 
 # Configuration
-LOGOS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "utils", "logos")
+LOGOS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "utils", "logos")
 os.makedirs(LOGOS_DIR, exist_ok=True)
 
 

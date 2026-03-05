@@ -19,6 +19,9 @@ from . import *
 logger = logging.getLogger("Astra.Meme")
 
 # ── Configuration & Constants ────────────────
+LOGOS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "utils", "logos")
+os.makedirs(LOGOS_DIR, exist_ok=True)
+
 REDDIT_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AstraUserbot/1.0"
 REQUEST_TIMEOUT = 10
 REDLIB_INSTANCES = [
@@ -107,7 +110,7 @@ async def meme_maker_handler(client: Client, message: Message):
         width, height = img.size
 
         # Load font (Astra standard path)
-        font_path = "/Users/paman7647/ASTRAUB/astra_userbot_test/utils/logos/font1.ttf"
+        font_path = os.path.join(LOGOS_DIR, "font1.ttf")
         if not os.path.exists(font_path):
              font_path = None # Fallback to default if font missing
         
