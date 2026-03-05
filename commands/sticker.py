@@ -196,3 +196,15 @@ async def getstkr_handler(client: Client, message: Message):
 
     except Exception as e:
         await handle_command_error(client, message, e, context="Get sticker failure")
+
+
+@astra_command(
+    name="tiny",
+    description="Create a tiny sticker (centered image).",
+    category="Tools & Utilities",
+    usage="(reply to image)",
+    is_public=True,
+)
+async def tiny_handler(client: Client, message: Message):
+    """Tiny sticker plugin - centered on 512x512 canvas."""
+    await kang_handler(client, message)
