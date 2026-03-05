@@ -203,23 +203,13 @@ async def on_ready(_):
             logger.info(f"Initialized {len(loaded_plugins)} modules: {', '.join(loaded_plugins)}")
             print(f"📦 Modules: {len(loaded_plugins)} loaded.")
 
-        # 3. Connectivity Notification
-        try:
-            target_id = user.id.serialized if hasattr(user.id, "serialized") else str(user.id)
-            from utils.database import db
+        # 3. Initialize Error Log Group (auto-create if not in DB, skip if exists)
+        from utils.error_reporter import ErrorReporter
+        await ErrorReporter.initialize(client)
 
-            msg = (
-                await db.get("STARTUP_MESSAGE")
-                or f"🤖 **Astra Userbot Online!**\nBuild: `{config.VERSION_NAME}` (v{config.VERSION})"
-            )
-
-            msg = await client.send_message(
-                target_id,
-                msg,
-            )
-            await msg.react("✅")
-        except Exception as notify_err:
-            logger.debug(f"Self-notification failed: {notify_err}")
+        # 4. Boot Notification → Error Log Group (falls back to DM)
+        plugin_count = len(loaded_plugins) if 'loaded_plugins' in dir() else 0
+        await ErrorReporter.boot_message(client, plugin_count)
 
     except Exception as e:
         logger.error(f"Critical error during startup sequence: {e}", exc_info=True)

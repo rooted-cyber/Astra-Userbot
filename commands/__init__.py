@@ -2,7 +2,8 @@
 
 import logging
 
-from utils.helpers import get_contact_name, report_error, smart_reply
+from utils.error_reporter import ErrorReporter, handle_command_error
+from utils.helpers import get_contact_name, smart_reply
 from utils.plugin_utils import (
     COMMANDS_METADATA,
     PLUGIN_HANDLES,

@@ -220,12 +220,11 @@ def load_plugin(client: Client, plugin_name: str) -> bool:
                     try:
                         return await _f(client, event_payload)
                     except Exception as e:
-                        from utils.helpers import handle_command_error
+                        from utils.error_reporter import ErrorReporter
 
-                        # Capture plugin name for context
                         module_name = _f.__module__.split(".")[-1] if hasattr(_f, "__module__") else "unknown"
-                        return await handle_command_error(
-                            client, event_payload, e, context=f"Global Plugin Failure ({module_name})"
+                        return await ErrorReporter.report(
+                            client, event_payload, e, context=f"{module_name}.{_f.__name__}"
                         )
 
                 # Register and capture handle

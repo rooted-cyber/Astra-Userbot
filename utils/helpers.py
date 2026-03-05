@@ -132,73 +132,9 @@ async def safe_edit(message: Message, content: str, **kwargs):
         return await smart_reply(message, content, **kwargs)
 
 
-async def report_error(client, exc: Exception, context: str = ""):
-    """
-    Captures and transmits diagnostic information (tracebacks) to the bot owner.
-    Provides visibility into runtime issues directly within WhatsApp.
-    """
-    from config import config
-
-    try:
-        # Extract full stack trace for debugging
-        tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
-
-        # Determine notification targets
-        owner_ids = getattr(client, "owner_ids", [])
-        if not owner_ids and config.OWNER_ID:
-            owner_ids = [config.OWNER_ID]
-
-        if not owner_ids:
-            return False
-
-        # Format report with Markdown for better readability in WhatsApp
-        report = (
-            f"🚨 *Astra System Alert*\n\n"
-            f"*Context:* `{context}`\n"
-            f"*Error:* {str(exc)[:200]}\n"
-            f"\n*Stack Trace:*\n```\n{tb[:1500]}\n```"
-        )
-
-        for oid in owner_ids:
-            try:
-                await client.send_message(oid, report)
-            except Exception:
-                continue
-        return True
-    except Exception:
-        return False
-
-
-async def handle_command_error(client, message, exc, context: str = "Command Failure"):
-    """
-    Centralized error handler for commands.
-    Provides beautified feedback to users and detailed logs to the owner.
-    """
-    from utils.media_exceptions import MediaException
-
-    # 1. Send report to owner
-    await report_error(client, exc, context=context)
-
-    # 2. Provide feedback to user
-    if isinstance(exc, MediaException):
-        # Professional branded error card for media issues
-        error_text = (
-            f"{exc.icon} **Astra Media Gateway**\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"❌ **Error:** {exc.message}\n\n"
-            f"💡 *Tip:* Ensure the link is valid and publicly accessible."
-        )
-    else:
-        # Generic professional error card for system failures
-        error_text = (
-            f"⚠️ **Astra System Error**\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"❌ Something went wrong while processing your request.\n\n"
-            f"👤 **Details:** `{str(exc)[:100]}`\n"
-            f"🛠️ *Report this at: github.com/paman7647/Astra-Userbot/issues*"
-        )
-
-    return await smart_reply(message, error_text)
+# Error reporting is now handled by the centralized ErrorReporter module.
+# It auto-creates a WhatsApp group for logs, falling back to owner DM.
+from utils.error_reporter import report_error, handle_command_error, ErrorReporter
 
 
 async def get_contact_name(client, jid: str) -> str:
