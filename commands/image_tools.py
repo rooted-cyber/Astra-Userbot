@@ -21,8 +21,8 @@ async def apply_filter(client: Client, message: Message, filter_type: str):
     )
 
     try:
-        # Download (Pass the target message which actually has the media)
-        media_data = await bridge_downloader.download_media(client, target)
+        # Download media via bridge (handles quoted resolution internally)
+        media_data = await bridge_downloader.download_media(client, message)
         if not media_data:
             return await status_msg.edit("❌ Failed to download image.")
 
