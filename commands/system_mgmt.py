@@ -317,47 +317,82 @@ async def reload_cmd(client: Client, message: Message):
 
 @astra_command(
     name="logs",
-    description="Retrieves recent Astra system logs.",
+    description="Retrieves recent Astra system logs with noise reduction.",
     category="System",
     owner_only=True,
-    usage=".logs [full]"
+    usage=".logs [full]",
 )
 async def logs_cmd(client: Client, message: Message):
-    """Fetches last 100 lines or uploads full file."""
+    """Fetches diagnostic logs, filtering repetitive startup noise."""
     args = extract_args(message)
     is_full = "full" in [a.lower() for a in args]
-    
+
     log_file = "astra_full_debug.txt"
     if not os.path.exists(log_file):
         return await smart_reply(message, "❌ **Error:** Log file not found.")
 
-    status_msg = await smart_reply(message, "⏳ **Log Retrieval**\n━━━━━━━━━━━━━━━━━━━━\n📝 *Reading Astra console...*")
-    
-    try:
-        def tail(filename, n=100):
-            from collections import deque
-            with open(filename, "r", encoding='utf-8', errors='ignore') as f:
-                return list(deque(f, n))
+    status_msg = await smart_reply(message, "⏳ **Analysing Astra Logs...**")
 
-        lines = tail(log_file)
-        log_content = "".join(lines)
-        if not log_content: return await status_msg.edit("ℹ️ **Console is empty.**")
+    # 1. Read Logs with Noise Reduction
+    def get_filtered_logs(filename, n=150):
+        from collections import deque
 
-        if len(log_content) > 3500: log_content = log_content[-3500:]
-            
-        await status_msg.edit(f"📜 **Astra Live Console**\n━━━━━━━━━━━━━━━━━━━━\n```\n{log_content}\n```\n🕒 **Last Check:** `{time.strftime('%H:%M:%S')}`")
-        
-        if is_full:
-            await smart_reply(message, "📤 *Uploading full log file...*")
-            import base64
-            with open(log_file, "rb") as f:
-                b64_data = base64.b64encode(f.read()).decode('utf-8')
-                
-            media = {"mimetype": "text/plain", "data": b64_data, "filename": "astra_full_logs.txt"}
-            await client.send_media(message.chat_id, media, caption="📄 **Full Astra System Logs**", reply_to=message.id)
-    except Exception as e:
-        from utils.error_reporter import ErrorReporter
-        await ErrorReporter.report(client, message, e, context="Log Retrieval Failure")
+        with open(filename, "r", encoding="utf-8", errors="ignore") as f:
+            all_lines = list(f)
+
+        # Noise Reduction: Collapse consecutive startup banners
+        filtered = []
+        skip_mode = False
+        startup_marker = "ASTRA BOT STARTUP"
+
+        for line in all_lines:
+            if startup_marker in line:
+                if not skip_mode:
+                    filtered.append(line)
+                    skip_mode = True
+                continue
+            else:
+                skip_mode = False
+            filtered.append(line)
+
+        # Return last N filtered lines
+        return filtered[-n:]
+
+    lines = get_filtered_logs(log_file)
+    log_content = "".join(lines)
+
+    if not log_content:
+        return await status_msg.edit("ℹ️ **Console is empty.**")
+
+    # 2. Advanced Truncation & Formatting
+    if len(log_content) > 3500:
+        log_content = "...\n" + log_content[-3500:]
+
+    # Resolve Current Time in Indian Timezone
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    now_india = datetime.now(ZoneInfo(config.TIMEZONE)).strftime("%H:%M:%S")
+
+    output = (
+        f"📜 **ASTRA SYSTEM CONSOLE**\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"```\n{log_content}\n```\n"
+        f"🕒 **Fetched at:** `{now_india}`\n"
+        f"✨ *Noise reduction active.*"
+    )
+
+    await status_msg.edit(output)
+
+    if is_full:
+        await smart_reply(message, "📤 *Uploading full log file...*")
+        import base64
+
+        with open(log_file, "rb") as f:
+            b64_data = base64.b64encode(f.read()).decode("utf-8")
+
+        media = {"mimetype": "text/plain", "data": b64_data, "filename": "astra_full_logs.txt"}
+        await client.send_media(message.chat_id, media, caption="📄 **Full Astra System Logs**", reply_to=message.id)
 
 @astra_command(
     name="clearcache",

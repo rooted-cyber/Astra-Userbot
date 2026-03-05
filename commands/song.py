@@ -1,5 +1,3 @@
-from utils.helpers import handle_command_error
-
 from . import *
 
 
@@ -29,47 +27,43 @@ async def song_handler(client: Client, message: Message):
         message, f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n🎵 **Query:** `{query}`..."
     )
 
-    try:
-        import yt_dlp
+    import yt_dlp
 
-        ydl_opts = {
-            "quiet": True,
-            "extract_flat": True,
-            "force_generic_extractor": False,
-        }
+    ydl_opts = {
+        "quiet": True,
+        "extract_flat": True,
+        "force_generic_extractor": False,
+    }
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            if is_url:
-                result = ydl.extract_info(query, download=False)
-                res = result["entries"][0] if "entries" in result else result
-            else:
-                # Search YouTube for the best match
-                result = ydl.extract_info(f"ytsearch1:{query}", download=False)
-                results = result.get("entries", [])
-                if not results:
-                    return await status_msg.edit(f"❌ No song found for `{query}`.")
-                res = results[0]
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        if is_url:
+            result = ydl.extract_info(query, download=False)
+            res = result["entries"][0] if "entries" in result else result
+        else:
+            # Search YouTube for the best match
+            result = ydl.extract_info(f"ytsearch1:{query}", download=False)
+            results = result.get("entries", [])
+            if not results:
+                return await status_msg.edit(f"❌ No song found for `{query}`.")
+            res = results[0]
 
-        target_url = res.get("webpage_url") or f"https://www.youtube.com/watch?v={res.get('id')}"
-        title = res.get("title", "Unknown")
-        duration = res.get("duration_string") or (
-            f"{int(res['duration']) // 60}:{int(res['duration']) % 60:02d}" if res.get("duration") else "N/A"
-        )
+    target_url = res.get("webpage_url") or f"https://www.youtube.com/watch?v={res.get('id')}"
+    title = res.get("title", "Unknown")
+    duration = res.get("duration_string") or (
+        f"{int(res['duration']) // 60}:{int(res['duration']) % 60:02d}" if res.get("duration") else "N/A"
+    )
 
-        await status_msg.edit(
-            f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Found:** `{title}`\n⏱️ **Duration:** `{duration}`\n\n📥 *Routing to Gateway...*"
-        )
+    await status_msg.edit(
+        f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Found:** `{title}`\n⏱️ **Duration:** `{duration}`\n\n📥 *Routing to Gateway...*"
+    )
 
-        # Use MediaChannel for download/upload
-        from utils.media_channel import MediaChannel
+    # Use MediaChannel for download/upload
+    from utils.media_channel import MediaChannel
 
-        channel = MediaChannel(client, message, status_msg)
-        file_path, metadata = await channel.run_bridge(target_url, "audio")
-        await channel.upload_file(file_path, metadata, "audio")
-        return
-
-    except Exception as e:
-        await handle_command_error(client, message, e, context="Song command failure")
+    channel = MediaChannel(client, message, status_msg)
+    file_path, metadata = await channel.run_bridge(target_url, "audio")
+    await channel.upload_file(file_path, metadata, "audio")
+    return
 
 
 @astra_command(
@@ -99,44 +93,40 @@ async def vsong_handler(client: Client, message: Message):
         message, f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n🎬 **Query:** `{query}`..."
     )
 
-    try:
-        import yt_dlp
+    import yt_dlp
 
-        ydl_opts = {
-            "quiet": True,
-            "extract_flat": True,
-            "force_generic_extractor": False,
-        }
+    ydl_opts = {
+        "quiet": True,
+        "extract_flat": True,
+        "force_generic_extractor": False,
+    }
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            if is_url:
-                result = ydl.extract_info(query, download=False)
-                res = result["entries"][0] if "entries" in result else result
-            else:
-                # Search YouTube for the best match
-                result = ydl.extract_info(f"ytsearch1:{query}", download=False)
-                results = result.get("entries", [])
-                if not results:
-                    return await status_msg.edit(f"❌ No video found for `{query}`.")
-                res = results[0]
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        if is_url:
+            result = ydl.extract_info(query, download=False)
+            res = result["entries"][0] if "entries" in result else result
+        else:
+            # Search YouTube for the best match
+            result = ydl.extract_info(f"ytsearch1:{query}", download=False)
+            results = result.get("entries", [])
+            if not results:
+                return await status_msg.edit(f"❌ No video found for `{query}`.")
+            res = results[0]
 
-        target_url = res.get("webpage_url") or f"https://www.youtube.com/watch?v={res.get('id')}"
-        title = res.get("title", "Unknown")
-        duration = res.get("duration_string") or (
-            f"{int(res['duration']) // 60}:{int(res['duration']) % 60:02d}" if res.get("duration") else "N/A"
-        )
+    target_url = res.get("webpage_url") or f"https://www.youtube.com/watch?v={res.get('id')}"
+    title = res.get("title", "Unknown")
+    duration = res.get("duration_string") or (
+        f"{int(res['duration']) // 60}:{int(res['duration']) % 60:02d}" if res.get("duration") else "N/A"
+    )
 
-        await status_msg.edit(
-            f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Found:** `{title}`\n⏱️ **Duration:** `{duration}`\n\n📥 *Routing to Gateway...*"
-        )
+    await status_msg.edit(
+        f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Found:** `{title}`\n⏱️ **Duration:** `{duration}`\n\n📥 *Routing to Gateway...*"
+    )
 
-        # Use MediaChannel for download/upload
-        from utils.media_channel import MediaChannel
+    # Use MediaChannel for download/upload
+    from utils.media_channel import MediaChannel
 
-        channel = MediaChannel(client, message, status_msg)
-        file_path, metadata = await channel.run_bridge(target_url, "video")
-        await channel.upload_file(file_path, metadata, "video")
-        return
-
-    except Exception as e:
-        await handle_command_error(client, message, e, context="Vsong command failure")
+    channel = MediaChannel(client, message, status_msg)
+    file_path, metadata = await channel.run_bridge(target_url, "video")
+    await channel.upload_file(file_path, metadata, "video")
+    return

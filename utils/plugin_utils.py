@@ -118,7 +118,6 @@ def astra_command(
 
     def decorator(func):
         # Build the native filter by ORing name and aliases
-        # astra-engine's Filters.command only accepts single strings.
         names = [name] + aliases
 
         crit = Filters.command(names[0], prefixes="!./")
@@ -129,17 +128,37 @@ def astra_command(
         crit = crit & startup_filter
 
         # Apply Authorization Logic
-        # 1.owner_only: Only the configured owner can trigger.
-        # 2.is_public: Everyone can trigger (useful for fun/info commands).
-        # 3.Default: Only Sudo users and the Owner can trigger.
         if owner_only:
             crit = crit & owner_filter
         elif not is_public:
             crit = crit & authorized_filter
 
+        # --- Global Wrapper for Error Handling & Analytics ---
+        import functools
+        @functools.wraps(func)
+        async def global_wrapper(client: Client, message: Message, *args, **kwargs):
+            # 1. Analytics: Track command usage
+            try:
+                from utils.database import db
+                # We use the primary command name for stats
+                asyncio.create_task(db.increment(f"cmd_usage:{name}"))
+                asyncio.create_task(db.increment("total_commands_v2"))
+            except:
+                pass
+
+            # 2. Execution & Error Handling
+            try:
+                return await func(client, message, *args, **kwargs)
+            except Exception as e:
+                from utils.error_reporter import ErrorReporter
+                module_name = func.__module__.split(".")[-1] if hasattr(func, "__module__") else "unknown"
+                return await ErrorReporter.report(
+                    client, message, e, context=f"{module_name}.{func.__name__}"
+                )
+
         # Register as a class-level handler for Client.load_plugins()
-        Client.on_message(crit)(func)
-        return func
+        Client.on_message(crit)(global_wrapper)
+        return global_wrapper
 
     return decorator
 
@@ -204,31 +223,12 @@ def load_plugin(client: Client, plugin_name: str) -> bool:
                 if event == "message":
                     criteria = (criteria & startup_filter) if criteria else startup_filter
 
-                # Wrap handler to inject 'client' (self) as first argument and add global error safety
-                async def wrapper(event_payload, _f=func):
-                    # Analytics: Track command usage in the background
-                    try:
-                        cmd_name = _f.__name__  # Or we could pass the name from astra_command
-                        from utils.database import db
-
-                        # Special key pattern: cmd_usage:<name>
-                        asyncio.create_task(db.increment(f"cmd_usage:{cmd_name}"))
-                        asyncio.create_task(db.increment("total_commands_v1"))
-                    except:
-                        pass
-
-                    try:
-                        return await _f(client, event_payload)
-                    except Exception as e:
-                        from utils.error_reporter import ErrorReporter
-
-                        module_name = _f.__module__.split(".")[-1] if hasattr(_f, "__module__") else "unknown"
-                        return await ErrorReporter.report(
-                            client, event_payload, e, context=f"{module_name}.{_f.__name__}"
-                        )
+                # Pass-through wrapper for loading
+                async def load_wrapper(event_payload, _f=func):
+                    return await _f(client, event_payload)
 
                 # Register and capture handle
-                handle = client.on(event, criteria=criteria)(wrapper)
+                handle = client.on(event, criteria=criteria)(load_wrapper)
                 handles.append(handle)
 
             Client._class_handlers.clear()

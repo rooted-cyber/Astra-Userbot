@@ -28,9 +28,15 @@ logger = logging.getLogger("AstraBot")
 def apply_framework_patches():
     original_edit = Message.edit
 
-    async def patched_edit(self, text: str) -> bool:
-        await asyncio.sleep(random.uniform(0.4, 1.2))
-        return await original_edit(self, text)
+    async def patched_edit(self, text: str, **kwargs) -> bool:
+        import time
+        # Constant delay for stability
+        time.sleep(0.5)
+        try:
+            return await original_edit(self, text, **kwargs)
+        except Exception:
+            # Suppress errors for failed edits as requested
+            return False
 
     Message.edit = patched_edit
 

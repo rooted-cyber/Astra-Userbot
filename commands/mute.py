@@ -13,28 +13,24 @@ from . import *
 )
 async def mute_handler(client: Client, message: Message):
     """Mute or unmute group notifications/commands (Bot internal)"""
-    try:
-        args_list = extract_args(message)
+    args_list = extract_args(message)
 
-        is_group = str(message.chat_id).endswith("@g.us")
-        if not is_group:
-            return await smart_reply(message, " ❌ This command only works in groups.")
+    is_group = str(message.chat_id).endswith("@g.us")
+    if not is_group:
+        return await smart_reply(message, " ❌ This command only works in groups.")
 
-        action = args_list[0].lower() if args_list else ("on" if message.body.lower().startswith(".mute") else "off")
+    action = args_list[0].lower() if args_list else ("on" if message.body.lower().startswith(".mute") else "off")
 
-        is_muted = action in ["on", "mute"]
+    is_muted = action in ["on", "mute"]
 
-        # Store in state
-        gid = message.chat_id
-        if "group_configs" not in state.state:
-            state.state["group_configs"] = {}
-        if gid not in state.state["group_configs"]:
-            state.state["group_configs"][gid] = {}
+    # Store in state
+    gid = message.chat_id
+    if "group_configs" not in state.state:
+        state.state["group_configs"] = {}
+    if gid not in state.state["group_configs"]:
+        state.state["group_configs"][gid] = {}
 
-        state.state["group_configs"][gid]["muted"] = is_muted
-        await state.save()
+    state.state["group_configs"][gid]["muted"] = is_muted
+    await state.save()
 
-        await smart_reply(message, f" 🤫 Group commands are now *{'MUTED' if is_muted else 'UNMUTED'}* for this group.")
-    except Exception as e:
-        await smart_reply(message, f" ❌ Error: {str(e)}")
-        await report_error(client, e, context="Command mute failed")
+    await smart_reply(message, f" 🤫 Group commands are now *{'MUTED' if is_muted else 'UNMUTED'}* for this group.")

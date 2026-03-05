@@ -19,18 +19,15 @@ async def pick_handler(client: Client, message: Message):
 
     status_msg = await smart_reply(message, "🎲 **Rolling the dice...**")
 
-    try:
-        info = await client.group.get_info(message.chat_id)
-        participants = info.participants
-        if not participants:
-            return await status_msg.edit("❌ No participants found.")
+    info = await client.group.get_info(message.chat_id)
+    participants = info.participants
+    if not participants:
+        return await status_msg.edit("❌ No participants found.")
 
-        winner = random.choice(participants)
-        winner_id = str(winner.id).split("@")[0]
+    winner = random.choice(participants)
+    winner_id = str(winner.id).split("@")[0]
 
-        await status_msg.edit(f"🎉 **Lucky Winner:** @{winner_id}", mentions=[str(winner.id)])
-    except Exception as e:
-        await status_msg.edit(f"❌ Error: {str(e)}")
+    await status_msg.edit(f"🎉 **Lucky Winner:** @{winner_id}", mentions=[str(winner.id)])
 
 
 @astra_command(
@@ -47,29 +44,26 @@ async def tagall_handler(client: Client, message: Message):
 
     status_msg = await smart_reply(message, "📣 **Preparing batched notification...**")
 
-    try:
-        info = await client.group.get_info(message.chat_id)
-        participants = info.participants
-        if not participants:
-            return await status_msg.edit("❌ No participants found.")
+    info = await client.group.get_info(message.chat_id)
+    participants = info.participants
+    if not participants:
+        return await status_msg.edit("❌ No participants found.")
 
-        batch_size = 5
-        total = len(participants)
-        await status_msg.edit(f"📣 **Tagging {total} members in batches...**")
+    batch_size = 5
+    total = len(participants)
+    await status_msg.edit(f"📣 **Tagging {total} members in batches...**")
 
-        for i in range(0, total, batch_size):
-            batch = participants[i : i + batch_size]
-            mentions = [str(p.id) for p in batch]
-            text = "📣 **Group Notification:**\n"
-            for p in batch:
-                text += f"• @{str(p.id).split('@')[0]}\n"
+    for i in range(0, total, batch_size):
+        batch = participants[i : i + batch_size]
+        mentions = [str(p.id) for p in batch]
+        text = "📣 **Group Notification:**\n"
+        for p in batch:
+            text += f"• @{str(p.id).split('@')[0]}\n"
 
-            await client.send_message(message.chat_id, text, mentions=mentions)
-            await asyncio.sleep(1.5)
+        await client.send_message(message.chat_id, text, mentions=mentions)
+        await asyncio.sleep(1.5)
 
-        await status_msg.delete()
-    except Exception as e:
-        await status_msg.edit(f"❌ Error: {str(e)}")
+    await status_msg.delete()
 
 
 @astra_command(
@@ -87,21 +81,18 @@ async def tagadmin_handler(client: Client, message: Message):
 
     status_msg = await smart_reply(message, "🛡️ **Calling all admins...**")
 
-    try:
-        info = await client.group.get_info(message.chat_id)
-        admins = [p.id for p in info.participants if p.is_admin or p.is_super_admin]
+    info = await client.group.get_info(message.chat_id)
+    admins = [p.id for p in info.participants if p.is_admin or p.is_super_admin]
 
-        if not admins:
-            return await status_msg.edit("❌ No admins found.")
+    if not admins:
+        return await status_msg.edit("❌ No admins found.")
 
-        text = "🛡️ **Group Administrators:**\n\n"
-        for adm in admins:
-            text += f"• @{str(adm).split('@')[0]}\n"
+    text = "🛡️ **Group Administrators:**\n\n"
+    for adm in admins:
+        text += f"• @{str(adm).split('@')[0]}\n"
 
-        await client.send_message(message.chat_id, text, mentions=[str(a) for a in admins])
-        await status_msg.delete()
-    except Exception as e:
-        await status_msg.edit(f"❌ Error: {str(e)}")
+    await client.send_message(message.chat_id, text, mentions=[str(a) for a in admins])
+    await status_msg.delete()
 
 
 @astra_command(

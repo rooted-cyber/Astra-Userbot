@@ -1,4 +1,3 @@
-from utils.helpers import handle_command_error
 from utils.search import perform_search
 
 from . import *
@@ -21,40 +20,34 @@ async def google_handler(client: Client, message: Message):
     query = " ".join(args)
     status_msg = await smart_reply(message, f"🔍 Searching Google for `{query}`...")
 
-    try:
-        data = await perform_search(query, engines=["google"])
+    data = await perform_search(query, engines=["google"])
 
-        if not data or not data.get("results"):
-            return await status_msg.edit(f"❌ No results found for `{query}`.")
+    if not data or not data.get("results"):
+        return await status_msg.edit(f"❌ No results found for `{query}`.")
 
-        results = data.get("results", [])[:5]
-        text = (
-            f"🌐 **GOOGLE SEARCH RESULTS**\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"🔍 **Query:** `{query}`\n"
-            f"📡 **Source:** `{data.get('instance', 'Astra Engine')}`\n\n"
-        )
+    results = data.get("results", [])[:5]
+    text = (
+        f"🌐 **GOOGLE SEARCH RESULTS**\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"🔍 **Query:** `{query}`\n"
+        f"📡 **Source:** `{data.get('instance', 'Astra Engine')}`\n\n"
+    )
 
-        # Show answer/infobox if available
-        answer = data.get("answers", []) or data.get("infoboxes", [])
-        if answer:
-            ans_text = answer[0].get("answer") or answer[0].get("content", "")
-            if ans_text:
-                text += f"📝 **Note:** {ans_text}\n\n"
+    # Show answer/infobox if available
+    answer = data.get("answers", []) or data.get("infoboxes", [])
+    if answer:
+        ans_text = answer[0].get("answer") or answer[0].get("content", "")
+        if ans_text:
+            text += f"📝 **Note:** {ans_text}\n\n"
 
-        for i, res in enumerate(results, 1):
-            title = res.get("title", "No Title")
-            link = res.get("url", res.get("link", "#"))
-            snippet = res.get("content", res.get("snippet", ""))[:150]
-            if snippet:
-                text += f"{i}. **[{title}]({link})**\n_{snippet}_\n\n"
-            else:
-                text += f"{i}. **[{title}]({link})**\n\n"
+    for i, res in enumerate(results, 1):
+        title = res.get("title", "No Title")
+        link = res.get("url", res.get("link", "#"))
+        snippet = res.get("content", res.get("snippet", ""))[:150]
+        if snippet:
+            text += f"{i}. **[{title}]({link})**\n_{snippet}_\n\n"
+        else:
+            text += f"{i}. **[{title}]({link})**\n\n"
 
-        text += "━━━━━━━━━━━━━━━━━━━━"
-        return await status_msg.edit(text)
-
-        await status_msg.edit("⚠️ Failed to fetch search results. Try again later.")
-
-    except Exception as e:
-        await handle_command_error(client, message, e, context="Google command failure")
+    text += "━━━━━━━━━━━━━━━━━━━━"
+    await status_msg.edit(text)

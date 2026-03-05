@@ -11,54 +11,49 @@ from . import *
 )
 async def notes_handler(client: Client, message: Message):
     """Manage your notes/snippets."""
-    try:
-        args_list = extract_args(message)
+    args_list = extract_args(message)
 
-        if not args_list:
-            usage = "save <keyword> <content> | get <keyword> | del <keyword> | list"
-            return await smart_reply(message, f" *Usage:* `.notes {usage}`")
+    if not args_list:
+        usage = "save <keyword> <content> | get <keyword> | del <keyword> | list"
+        return await smart_reply(message, f" *Usage:* `.notes {usage}`")
 
-        from utils.state import state
+    from utils.state import state
 
-        action = args_list[0].lower()
+    action = args_list[0].lower()
 
-        if action in ["save", "add"]:
-            if len(args_list) < 3:
-                return await smart_reply(message, " *Usage:* `.save <keyword> <content>`")
-            keyword = args_list[1].lower().replace("#", "")
-            content = " ".join(args_list[2:])
-            state.set_note(keyword, content)
-            await smart_reply(message, f" ✅ Note `{keyword}` saved! Access via `#keyword` or `get {keyword}`.")
+    if action in ["save", "add"]:
+        if len(args_list) < 3:
+            return await smart_reply(message, " *Usage:* `.save <keyword> <content>`")
+        keyword = args_list[1].lower().replace("#", "")
+        content = " ".join(args_list[2:])
+        state.set_note(keyword, content)
+        await smart_reply(message, f" ✅ Note `{keyword}` saved! Access via `#keyword` or `get {keyword}`.")
 
-        elif action == "get":
-            if len(args_list) < 2:
-                return await smart_reply(message, " Specify a keyword.")
-            keyword = args_list[1].lower().replace("#", "")
-            content = state.get_note(keyword)
-            if content:
-                await smart_reply(message, content)
-            else:
-                await smart_reply(message, " ❌ Note not found.")
-
-        elif action in ["del", "rem"]:
-            if len(args_list) < 2:
-                return await smart_reply(message, " Specify a keyword to delete.")
-            keyword = args_list[1].lower().replace("#", "")
-            state.delete_note(keyword)
-            await smart_reply(message, f" 🗑️ Note `{keyword}` deleted.")
-
-        elif action == "list":
-            notes = state.state.get("notes", {})
-            if not notes:
-                return await smart_reply(message, " You have no saved notes.")
-            txt = " 📝 *Your Notes:*\n\n" + "\n".join([f"• #{k}" for k in notes.keys()])
-            await smart_reply(message, txt)
+    elif action == "get":
+        if len(args_list) < 2:
+            return await smart_reply(message, " Specify a keyword.")
+        keyword = args_list[1].lower().replace("#", "")
+        content = state.get_note(keyword)
+        if content:
+            await smart_reply(message, content)
         else:
-            await smart_reply(message, " Unknown action. Use: save, get, del, list")
+            await smart_reply(message, " ❌ Note not found.")
 
-    except Exception as e:
-        await smart_reply(message, f" ❌ Error: {str(e)}")
-        await report_error(client, e, context="Command notes failed")
+    elif action in ["del", "rem"]:
+        if len(args_list) < 2:
+            return await smart_reply(message, " Specify a keyword to delete.")
+        keyword = args_list[1].lower().replace("#", "")
+        state.delete_note(keyword)
+        await smart_reply(message, f" 🗑️ Note `{keyword}` deleted.")
+
+    elif action == "list":
+        notes = state.state.get("notes", {})
+        if not notes:
+            return await smart_reply(message, " You have no saved notes.")
+        txt = " 📝 *Your Notes:*\n\n" + "\n".join([f"• #{k}" for k in notes.keys()])
+        await smart_reply(message, txt)
+    else:
+        await smart_reply(message, " Unknown action. Use: save, get, del, list")
 
 
 # Corrected filter usage: Using functional default

@@ -11,20 +11,16 @@ from . import *
 )
 async def setprefix_handler(client: Client, message: Message):
     """Change the command prefix."""
-    try:
-        args_list = extract_args(message)
+    args_list = extract_args(message)
 
-        if not args_list:
-            return await smart_reply(message, " ⚠️ Please provide a new prefix. Example: `.setprefix !`")
+    if not args_list:
+        return await smart_reply(message, " ⚠️ Please provide a new prefix. Example: `.setprefix !`")
 
-        new_prefix = args_list[0]
-        if len(new_prefix) > 2:
-            return await smart_reply(message, " ❌ Prefix must be 1 or 2 characters long.")
+    new_prefix = args_list[0]
+    if len(new_prefix) > 2:
+        return await smart_reply(message, " ❌ Prefix must be 1 or 2 characters long.")
 
-        from utils.state import state
+    from utils.state import state
 
-        state.set_prefix(new_prefix)
-        await smart_reply(message, f" ✅ Prefix updated to `{new_prefix}` successfully!")
-    except Exception as e:
-        await smart_reply(message, f" ❌ Error: {str(e)}")
-        await report_error(client, e, context="Command setprefix failed")
+    state.set_prefix(new_prefix)
+    await smart_reply(message, f" ✅ Prefix updated to `{new_prefix}` successfully!")

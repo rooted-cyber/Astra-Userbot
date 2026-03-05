@@ -63,41 +63,36 @@ async def truth_handler(client: Client, message: Message):
     """
     Renders a randomized prompt from API or local fallback.
     """
-    try:
-        args_list = extract_args(message)
-        body_lower = message.body.lower()
+    args_list = extract_args(message)
+    body_lower = message.body.lower()
 
-        # Choice Resolution
-        if args_list:
-            choice = args_list[0].lower()
-        elif body_lower.startswith((".truth", "!truth", "/truth")):
-            choice = "truth"
-        elif body_lower.startswith((".dare", "!dare", "/dare")):
-            choice = "dare"
-        else:
-            choice = "truth"
+    # Choice Resolution
+    if args_list:
+        choice = args_list[0].lower()
+    elif body_lower.startswith((".truth", "!truth", "/truth")):
+        choice = "truth"
+    elif body_lower.startswith((".dare", "!dare", "/dare")):
+        choice = "dare"
+    else:
+        choice = "truth"
 
-        # Expand abbreviations
-        if choice in ["t", "tr"]:
-            choice = "truth"
-        if choice in ["d", "dr"]:
-            choice = "dare"
+    # Expand abbreviations
+    if choice in ["t", "tr"]:
+        choice = "truth"
+    if choice in ["d", "dr"]:
+        choice = "dare"
 
-        if choice == "truth":
-            status_msg = await smart_reply(message, " 🤔 *Fetching truth...*")
-            prompt = await fetch_prompt("truth") or random.choice(TRUTHS)
-            time.sleep(0.5)
-            await status_msg.edit(f"🤔 **Astra Truth:**\n\n_{prompt}_")
+    if choice == "truth":
+        status_msg = await smart_reply(message, " 🤔 *Fetching truth...*")
+        prompt = await fetch_prompt("truth") or random.choice(TRUTHS)
+        time.sleep(0.5)
+        await status_msg.edit(f"🤔 **Astra Truth:**\n\n_{prompt}_")
 
-        elif choice == "dare":
-            status_msg = await smart_reply(message, " 🔥 *Fetching dare...*")
-            prompt = await fetch_prompt("dare") or random.choice(DARES)
-            time.sleep(0.5)
-            await status_msg.edit(f"🔥 **Astra Dare:**\n\n_{prompt}_")
+    elif choice == "dare":
+        status_msg = await smart_reply(message, " 🔥 *Fetching dare...*")
+        prompt = await fetch_prompt("dare") or random.choice(DARES)
+        time.sleep(0.5)
+        await status_msg.edit(f"🔥 **Astra Dare:**\n\n_{prompt}_")
 
-        else:
-            await smart_reply(message, " 📋 Usage: `.truth` | `.dare` | `.td <truth|dare>`")
-
-    except Exception as e:
-        await smart_reply(message, " ⚠️ Game logic failure.")
-        await report_error(client, e, context="Truth/Dare command failure")
+    else:
+        await smart_reply(message, " 📋 Usage: `.truth` | `.dare` | `.td <truth|dare>`")

@@ -1,5 +1,3 @@
-from utils.helpers import handle_command_error
-
 from . import *
 
 
@@ -15,65 +13,61 @@ async def youtube_handler(client: Client, message: Message):
     """
     Handles media download requests with optimized MediaChannel.
     """
-    try:
-        args_list = extract_args(message)
-        if not args_list:
-            return await smart_reply(message, " ❌ Please provide a valid YouTube URL.")
+    args_list = extract_args(message)
+    if not args_list:
+        return await smart_reply(message, " ❌ Please provide a valid YouTube URL.")
 
-        url_input = args_list[0]
-        args_lower = [arg.lower() for arg in args_list]
+    url_input = args_list[0]
+    args_lower = [arg.lower() for arg in args_list]
 
-        # Mode detection
-        video_keywords = ["video", "vid", "mp4", "mkv", "720p", "1080p"]
-        mode = "video" if any(kw in args_lower for kw in video_keywords) else "audio"
+    # Mode detection
+    video_keywords = ["video", "vid", "mp4", "mkv", "720p", "1080p"]
+    mode = "video" if any(kw in args_lower for kw in video_keywords) else "audio"
 
-        status_msg = await smart_reply(
-            message, "⚡ **Astra Media Engine**\n━━━━━━━━━━━━━━━━━━━━\n🔍 *Initializing request...*"
+    status_msg = await smart_reply(
+        message, "⚡ **Astra Media Engine**\n━━━━━━━━━━━━━━━━━━━━\n🔍 *Initializing request...*"
+    )
+
+    # Auto-Search Logic
+    url = url_input
+    if not url_input.startswith(("http://", "https://", "www.")):
+        search_query = " ".join(args_list)
+        if " video" in search_query.lower() or " audio" in search_query.lower():
+            search_query = search_query.rsplit(" ", 1)[0]
+
+        await status_msg.edit(
+            f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n📺 **Query:** `{search_query}`..."
         )
 
-        # Auto-Search Logic
-        url = url_input
-        if not url_input.startswith(("http://", "https://", "www.")):
-            search_query = " ".join(args_list)
-            if " video" in search_query.lower() or " audio" in search_query.lower():
-                search_query = search_query.rsplit(" ", 1)[0]
+        try:
+            import yt_dlp
 
-            await status_msg.edit(
-                f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n📺 **Query:** `{search_query}`..."
-            )
+            ydl_opts = {"quiet": True, "extract_flat": True}
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                search_result = ydl.extract_info(f"ytsearch1:{search_query}", download=False)
+                if search_result.get("entries"):
+                    entry = search_result["entries"][0]
+                    url = f"https://www.youtube.com/watch?v={entry['id']}"
+                    duration = entry.get("duration_string") or (
+                        f"{int(entry['duration']) // 60}:{int(entry['duration']) % 60:02d}"
+                        if entry.get("duration")
+                        else "N/A"
+                    )
+                    await status_msg.edit(
+                        f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Found:** `{entry['title']}`\n⏱️ **Duration:** `{duration}`\n\n📥 *Routing to Gateway...*"
+                    )
+                else:
+                    return await status_msg.edit(f"❌ No results found for `{search_query}`.")
+        except Exception as e:
+            return await status_msg.edit(f"❌ YouTube Search failed: {str(e)}")
 
-            try:
-                import yt_dlp
+    # Use MediaChannel for a "real-time" experience
+    from utils.media_channel import MediaChannel
 
-                ydl_opts = {"quiet": True, "extract_flat": True}
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    search_result = ydl.extract_info(f"ytsearch1:{search_query}", download=False)
-                    if search_result.get("entries"):
-                        entry = search_result["entries"][0]
-                        url = f"https://www.youtube.com/watch?v={entry['id']}"
-                        duration = entry.get("duration_string") or (
-                            f"{int(entry['duration']) // 60}:{int(entry['duration']) % 60:02d}"
-                            if entry.get("duration")
-                            else "N/A"
-                        )
-                        await status_msg.edit(
-                            f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Found:** `{entry['title']}`\n⏱️ **Duration:** `{duration}`\n\n📥 *Routing to Gateway...*"
-                        )
-                    else:
-                        return await status_msg.edit(f"❌ No results found for `{search_query}`.")
-            except Exception as e:
-                return await status_msg.edit(f"❌ YouTube Search failed: {str(e)}")
+    channel = MediaChannel(client, message, status_msg)
 
-        # Use MediaChannel for a "real-time" experience
-        from utils.media_channel import MediaChannel
+    # 1. Download
+    file_path, metadata = await channel.run_bridge(url, mode)
 
-        channel = MediaChannel(client, message, status_msg)
-
-        # 1. Download
-        file_path, metadata = await channel.run_bridge(url, mode)
-
-        # 2. Upload
-        await channel.upload_file(file_path, metadata, mode)
-
-    except Exception as e:
-        await handle_command_error(client, message, e, context="YouTube command failure")
+    # 2. Upload
+    await channel.upload_file(file_path, metadata, mode)

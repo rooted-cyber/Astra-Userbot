@@ -1,5 +1,3 @@
-from utils.helpers import handle_command_error
-
 from . import *
 
 
@@ -13,33 +11,29 @@ from . import *
 )
 async def instagram_handler(client: Client, message: Message):
     """Download Instagram media with optimized MediaChannel"""
-    try:
-        args_list = extract_args(message)
-        if not args_list:
-            return await smart_reply(message, " ❌ Please provide an Instagram URL.")
+    args_list = extract_args(message)
+    if not args_list:
+        return await smart_reply(message, " ❌ Please provide an Instagram URL.")
 
-        url = args_list[0]
-        # Handle username-only input for stories? No, that's for .igstory.
-        # But we can detect if it's a story URL.
+    url = args_list[0]
+    # Handle username-only input for stories? No, that's for .igstory.
+    # But we can detect if it's a story URL.
 
-        args_lower = [arg.lower() for arg in args_list]
-        mode = "audio" if "audio" in args_lower or "mp3" in args_lower else "video"
+    args_lower = [arg.lower() for arg in args_list]
+    mode = "audio" if "audio" in args_lower or "mp3" in args_lower else "video"
 
-        status_msg = await smart_reply(message, " 🔍 *Initializing Instagram Engine...*")
+    status_msg = await smart_reply(message, " 🔍 *Initializing Instagram Engine...*")
 
-        # Use MediaChannel for a "real-time" experience
-        from utils.media_channel import MediaChannel
+    # Use MediaChannel for a "real-time" experience
+    from utils.media_channel import MediaChannel
 
-        channel = MediaChannel(client, message, status_msg)
+    channel = MediaChannel(client, message, status_msg)
 
-        # 1. Download (run_bridge handles yt-dlp which supports stories)
-        file_path, metadata = await channel.run_bridge(url, mode)
+    # 1. Download (run_bridge handles yt-dlp which supports stories)
+    file_path, metadata = await channel.run_bridge(url, mode)
 
-        # 2. Upload
-        await channel.upload_file(file_path, metadata, mode)
-
-    except Exception as e:
-        await handle_command_error(client, message, e, context="Instagram command failure")
+    # 2. Upload
+    await channel.upload_file(file_path, metadata, mode)
 
 
 @astra_command(
@@ -60,14 +54,14 @@ async def igstory_handler(client: Client, message: Message):
         message, f"📥 **Astra Story Fetcher**\n━━━━━━━━━━━━━━━━━━━━\n📡 Looking for active stories of `@{username}`..."
     )
 
+    # We construct the story URL and pass it to the standard instagram handler logic
+    story_url = f"https://www.instagram.com/stories/{username}/"
+
+    from utils.media_channel import MediaChannel
+
+    channel = MediaChannel(client, message, status_msg)
+
     try:
-        # We construct the story URL and pass it to the standard instagram handler logic
-        story_url = f"https://www.instagram.com/stories/{username}/"
-
-        from utils.media_channel import MediaChannel
-
-        channel = MediaChannel(client, message, status_msg)
-
         # We attempt to download all stories using yt-dlp's generic downloader
         # Note: Stories often require cookies for server-side downloads.
         file_path, metadata = await channel.run_bridge(story_url, "video")
@@ -80,4 +74,4 @@ async def igstory_handler(client: Client, message: Message):
                 f"ℹ️ **No active public stories** found for `@{username}`.\n(They might be expired or the account is private)"
             )
         else:
-            await handle_command_error(client, message, e, context="Instagram Story failure")
+            raise e

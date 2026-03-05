@@ -12,7 +12,7 @@ import aiohttp
 from PIL import Image, ImageDraw, ImageFont
 from utils.bridge_downloader import bridge_downloader
 from utils.database import db
-from utils.helpers import handle_command_error, safe_edit
+from utils.helpers import safe_edit
 
 from . import *
 
@@ -78,83 +78,79 @@ async def _get_reddit_token(cid: str, csec: str) -> Optional[str]:
 )
 async def meme_maker_handler(client: Client, message: Message):
     """Meme maker plugin using PIL."""
-    try:
-        quoted = message.quoted if message.has_quoted_msg else None
-        target = quoted if quoted and quoted.is_media else (message if message.is_media else None)
+    quoted = message.quoted if message.has_quoted_msg else None
+    target = quoted if quoted and quoted.is_media else (message if message.is_media else None)
 
-        if not target or target.type != MessageType.IMAGE:
-            return await smart_reply(message, "✨ Reply to an image to make a meme.")
+    if not target or target.type != MessageType.IMAGE:
+        return await smart_reply(message, "✨ Reply to an image to make a meme.")
 
-        text = message.text_after_command
-        if not text:
-            return await smart_reply(message, "✨ Provide text for the meme. Example: `.mm Top Text | Bottom Text`")
+    text = message.text_after_command
+    if not text:
+        return await smart_reply(message, "✨ Provide text for the meme. Example: `.mm Top Text | Bottom Text`")
 
-        top_text, bottom_text = "", ""
-        if "|" in text:
-            parts = text.split("|")
-            top_text = parts[0].strip().upper()
-            bottom_text = parts[1].strip().upper()
-        else:
-            top_text = text.strip().upper()
+    top_text, bottom_text = "", ""
+    if "|" in text:
+        parts = text.split("|")
+        top_text = parts[0].strip().upper()
+        bottom_text = parts[1].strip().upper()
+    else:
+        top_text = text.strip().upper()
 
-        status_msg = await smart_reply(message, "✨ **Generating meme...**")
+    status_msg = await smart_reply(message, "✨ **Generating meme...**")
 
-        # Download image
-        media_data = await bridge_downloader.download_media(client, message)
-        if not media_data:
-            return await status_msg.edit("❌ Failed to download image.")
+    # Download image
+    media_data = await bridge_downloader.download_media(client, message)
+    if not media_data:
+        return await status_msg.edit("❌ Failed to download image.")
 
-        # Process with PIL
-        img = Image.open(io.BytesIO(media_data)).convert("RGB")
-        draw = ImageDraw.Draw(img)
-        width, height = img.size
+    # Process with PIL
+    img = Image.open(io.BytesIO(media_data)).convert("RGB")
+    draw = ImageDraw.Draw(img)
+    width, height = img.size
 
-        # Load font (Astra standard path)
-        font_path = os.path.join(LOGOS_DIR, "font1.ttf")
-        if not os.path.exists(font_path):
-             font_path = None # Fallback to default if font missing
+    # Load font (Astra standard path)
+    font_path = os.path.join(LOGOS_DIR, "font1.ttf")
+    if not os.path.exists(font_path):
+         font_path = None # Fallback to default if font missing
+    
+    def get_font(text_line, max_w, max_h):
+        size = int(height / 10)
+        try:
+            font = ImageFont.truetype(font_path, size) if font_path else ImageFont.load_default()
+            while font_path and font.getlength(text_line) > max_w and size > 12:
+                size -= 2
+                font = ImageFont.truetype(font_path, size)
+            return font
+        except: return ImageFont.load_default()
+
+    def draw_text(text_val, pos_type):
+        if not text_val: return
+        wrapped = textwrap.wrap(text_val, width=20)
+        y_curr = 20 if pos_type == "top" else (height - (len(wrapped) * (height/10)) - 20)
         
-        def get_font(text_line, max_w, max_h):
-            size = int(height / 10)
-            try:
-                font = ImageFont.truetype(font_path, size) if font_path else ImageFont.load_default()
-                while font_path and font.getlength(text_line) > max_w and size > 12:
-                    size -= 2
-                    font = ImageFont.truetype(font_path, size)
-                return font
-            except: return ImageFont.load_default()
-
-        def draw_text(text_val, pos_type):
-            if not text_val: return
-            wrapped = textwrap.wrap(text_val, width=20)
-            y_curr = 20 if pos_type == "top" else (height - (len(wrapped) * (height/10)) - 20)
+        for line in wrapped:
+            fnt = get_font(line, width * 0.9, height / 10)
+            bbox = draw.textbbox((0, 0), line, font=fnt)
+            w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            x = (width - w) / 2
             
-            for line in wrapped:
-                fnt = get_font(line, width * 0.9, height / 10)
-                bbox = draw.textbbox((0, 0), line, font=fnt)
-                w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
-                x = (width - w) / 2
-                
-                # Outline
-                for ox, oy in [(-2, -2), (2, -2), (-2, 2), (2, 2)]:
-                    draw.text((x + ox, y_curr + oy), line, font=fnt, fill="black")
-                draw.text((x, y_curr), line, font=fnt, fill="white")
-                y_curr += h + 10
+            # Outline
+            for ox, oy in [(-2, -2), (2, -2), (-2, 2), (2, 2)]:
+                draw.text((x + ox, y_curr + oy), line, font=fnt, fill="black")
+            draw.text((x, y_curr), line, font=fnt, fill="white")
+            y_curr += h + 10
 
-        draw_text(top_text, "top")
-        draw_text(bottom_text, "bottom")
+    draw_text(top_text, "top")
+    draw_text(bottom_text, "bottom")
 
-        out = io.BytesIO()
-        img.save(out, format="JPEG", quality=90)
-        await client.send_media(
-            message.chat_id.serialized,
-            {"mimetype": "image/jpeg", "data": base64.b64encode(out.getvalue()).decode(), "filename": "meme.jpg"},
-            caption="✨ **Meme Generated By Astra**"
-        )
-        await status_msg.delete()
-
-    except Exception as e:
-        await handle_command_error(client, message, e, context="Meme Maker Failure")
+    out = io.BytesIO()
+    img.save(out, format="JPEG", quality=90)
+    await client.send_media(
+        message.chat_id.serialized,
+        {"mimetype": "image/jpeg", "data": base64.b64encode(out.getvalue()).decode(), "filename": "meme.jpg"},
+        caption="✨ **Meme Generated By Astra**"
+    )
+    await status_msg.delete()
 
 
 # ── Meme Fetcher (API/Reddit) ────────────────

@@ -1,7 +1,7 @@
 import base64
 
 from utils.bridge_downloader import bridge_downloader
-from utils.helpers import handle_command_error
+from utils.bridge_downloader import bridge_downloader
 
 from . import *
 
@@ -16,34 +16,30 @@ from . import *
 )
 async def sticker_handler(client: Client, message: Message):
     """Sticker creation plugin."""
-    try:
-        quoted = message.quoted if message.has_quoted_msg else None
-        target = quoted if quoted and quoted.is_media else (message if message.is_media else None)
+    quoted = message.quoted if message.has_quoted_msg else None
+    target = quoted if quoted and quoted.is_media else (message if message.is_media else None)
 
-        if not target:
-            return await smart_reply(message, "✨ Reply to an image or video to make a sticker.")
+    if not target:
+        return await smart_reply(message, "✨ Reply to an image or video to make a sticker.")
 
-        status_msg = await smart_reply(message, "✨ **Making your sticker...**")
+    status_msg = await smart_reply(message, "✨ **Making your sticker...**")
 
-        # Download media via high-reliability Bridge
-        media_data = await bridge_downloader.download_media(client, message)
-        if not media_data:
-            return await status_msg.edit("❌ Failed to download media.")
+    # Download media via high-reliability Bridge
+    media_data = await bridge_downloader.download_media(client, message)
+    if not media_data:
+        return await status_msg.edit("❌ Failed to download media.")
 
-        b64_data = base64.b64encode(media_data).decode("utf-8")
-        mimetype = target.mimetype or "image/webp"
+    b64_data = base64.b64encode(media_data).decode("utf-8")
+    mimetype = target.mimetype or "image/webp"
 
-        # Send as sticker
-        await client.media.send_sticker(
-            message.chat_id.serialized,
-            b64_data,
-            reply_to=target.id,
-        )
+    # Send as sticker
+    await client.media.send_sticker(
+        message.chat_id.serialized,
+        b64_data,
+        reply_to=target.id,
+    )
 
-        await status_msg.delete()
-
-    except Exception as e:
-        await handle_command_error(client, message, e, context="Sticker command failure")
+    await status_msg.delete()
 
 
 @astra_command(
@@ -56,47 +52,43 @@ async def sticker_handler(client: Client, message: Message):
 )
 async def kang_handler(client: Client, message: Message):
     """Advanced sticker cloning/creation."""
-    try:
-        quoted = message.quoted if message.has_quoted_msg else None
-        target = quoted if quoted and quoted.is_media else (message if message.is_media else None)
+    quoted = message.quoted if message.has_quoted_msg else None
+    target = quoted if quoted and quoted.is_media else (message if message.is_media else None)
 
-        if not target:
-            return await smart_reply(message, "✨ Reply to a sticker, image, or video to kang it.")
+    if not target:
+        return await smart_reply(message, "✨ Reply to a sticker, image, or video to kang it.")
 
-        status_msg = await smart_reply(message, "✨ **Kanging your sticker...**")
+    status_msg = await smart_reply(message, "✨ **Kanging your sticker...**")
 
-        # Download media
-        media_data = await bridge_downloader.download_media(client, message)
-        if not media_data:
-            return await status_msg.edit("❌ Failed to download media.")
+    # Download media
+    media_data = await bridge_downloader.download_media(client, message)
+    if not media_data:
+        return await status_msg.edit("❌ Failed to download media.")
 
-        # Process with PIL for high quality (512x512 transparency)
-        img = Image.open(io.BytesIO(media_data)).convert("RGBA")
-        
-        # Resize to 512x512 max while keeping aspect ratio
-        img.thumbnail((512, 512))
-        
-        # Create a 512x512 transparent canvas
-        new_img = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
-        # Center the thumbnail
-        new_img.paste(img, ((512 - img.width) // 2, (512 - img.height) // 2))
-        
-        # Save to buffer
-        out_buffer = io.BytesIO()
-        new_img.save(out_buffer, format="WebP", lossless=True, quality=90)
-        b64_data = base64.b64encode(out_buffer.getvalue()).decode("utf-8")
+    # Process with PIL for high quality (512x512 transparency)
+    img = Image.open(io.BytesIO(media_data)).convert("RGBA")
 
-        # Send as sticker
-        await client.media.send_sticker(
-            message.chat_id.serialized,
-            b64_data,
-            reply_to=target.id,
-        )
+    # Resize to 512x512 max while keeping aspect ratio
+    img.thumbnail((512, 512))
 
-        await status_msg.delete()
+    # Create a 512x512 transparent canvas
+    new_img = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
+    # Center the thumbnail
+    new_img.paste(img, ((512 - img.width) // 2, (512 - img.height) // 2))
 
-    except Exception as e:
-        await handle_command_error(client, message, e, context="Kang command failure")
+    # Save to buffer
+    out_buffer = io.BytesIO()
+    new_img.save(out_buffer, format="WebP", lossless=True, quality=90)
+    b64_data = base64.b64encode(out_buffer.getvalue()).decode("utf-8")
+
+    # Send as sticker
+    await client.media.send_sticker(
+        message.chat_id.serialized,
+        b64_data,
+        reply_to=target.id,
+    )
+
+    await status_msg.delete()
 
 
 @astra_command(
@@ -108,25 +100,21 @@ async def kang_handler(client: Client, message: Message):
 )
 async def stkrinfo_handler(client: Client, message: Message):
     """Extract sticker metadata."""
-    try:
-        quoted = message.quoted if message.has_quoted_msg else None
-        target = quoted if quoted and quoted.is_media else (message if message.is_media else None)
+    quoted = message.quoted if message.has_quoted_msg else None
+    target = quoted if quoted and quoted.is_media else (message if message.is_media else None)
 
-        if not target or target.type != MessageType.STICKER:
-            return await smart_reply(message, "✨ Reply to a sticker to see its info.")
+    if not target or target.type != MessageType.STICKER:
+        return await smart_reply(message, "✨ Reply to a sticker to see its info.")
 
-        info = f"🎭 **Sticker Metadata**\n━━━━━━━━━━━━━━━━━━━━\n"
-        info += f"🆔 **ID:** `{target.id}`\n"
-        info += f"📁 **Mime:** `{target.mimetype or 'image/webp'}`\n"
-        if target.size:
-            info += f"📦 **Size:** `{target.size // 1024} KB`\n"
-        info += f"🕒 **Time:** `{time.strftime('%H:%M:%S', time.localtime(target.timestamp))}`\n"
-        
-        # Extract further info from PIL if requested/available
-        await smart_reply(message, info)
+    info = f"🎭 **Sticker Metadata**\n━━━━━━━━━━━━━━━━━━━━\n"
+    info += f"🆔 **ID:** `{target.id}`\n"
+    info += f"📁 **Mime:** `{target.mimetype or 'image/webp'}`\n"
+    if target.size:
+        info += f"📦 **Size:** `{target.size // 1024} KB`\n"
+    info += f"🕒 **Time:** `{time.strftime('%H:%M:%S', time.localtime(target.timestamp))}`\n"
 
-    except Exception as e:
-        await handle_command_error(client, message, e, context="Sticker info failure")
+    # Extract further info from PIL if requested/available
+    await smart_reply(message, info)
 
 
 @astra_command(
@@ -139,31 +127,27 @@ async def stkrinfo_handler(client: Client, message: Message):
 )
 async def stoi_handler(client: Client, message: Message):
     """Convert sticker to image."""
-    try:
-        quoted = message.quoted if message.has_quoted_msg else None
-        target = quoted if quoted and quoted.is_media else (message if message.is_media else None)
+    quoted = message.quoted if message.has_quoted_msg else None
+    target = quoted if quoted and quoted.is_media else (message if message.is_media else None)
 
-        if not target or target.type != MessageType.STICKER:
-            return await smart_reply(message, "✨ Reply to a sticker to convert it to an image.")
+    if not target or target.type != MessageType.STICKER:
+        return await smart_reply(message, "✨ Reply to a sticker to convert it to an image.")
 
-        status_msg = await smart_reply(message, "✨ **Converting to image...**")
+    status_msg = await smart_reply(message, "✨ **Converting to image...**")
 
-        media_data = await bridge_downloader.download_media(client, message)
-        if not media_data:
-            return await status_msg.edit("❌ Failed to download sticker.")
+    media_data = await bridge_downloader.download_media(client, message)
+    if not media_data:
+        return await status_msg.edit("❌ Failed to download sticker.")
 
-        # Convert WebP to JPEG/PNG
-        img = Image.open(io.BytesIO(media_data)).convert("RGB")
-        out_buffer = io.BytesIO()
-        img.save(out_buffer, format="JPEG", quality=90)
-        b64_data = base64.b64encode(out_buffer.getvalue()).decode("utf-8")
+    # Convert WebP to JPEG/PNG
+    img = Image.open(io.BytesIO(media_data)).convert("RGB")
+    out_buffer = io.BytesIO()
+    img.save(out_buffer, format="JPEG", quality=90)
+    b64_data = base64.b64encode(out_buffer.getvalue()).decode("utf-8")
 
-        media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "sticker.jpg"}
-        await client.send_media(message.chat_id.serialized, media, caption="✨ Converted from Sticker")
-        await status_msg.delete()
-
-    except Exception as e:
-        await handle_command_error(client, message, e, context="Sticker to image failure")
+    media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "sticker.jpg"}
+    await client.send_media(message.chat_id.serialized, media, caption="✨ Converted from Sticker")
+    await status_msg.delete()
 
 
 @astra_command(
@@ -175,27 +159,23 @@ async def stoi_handler(client: Client, message: Message):
 )
 async def getstkr_handler(client: Client, message: Message):
     """Download sticker file."""
-    try:
-        quoted = message.quoted if message.has_quoted_msg else None
-        target = quoted if quoted and quoted.is_media else (message if message.is_media else None)
+    quoted = message.quoted if message.has_quoted_msg else None
+    target = quoted if quoted and quoted.is_media else (message if message.is_media else None)
 
-        if not target or target.type != MessageType.STICKER:
-            return await smart_reply(message, "✨ Reply to a sticker to get the file.")
+    if not target or target.type != MessageType.STICKER:
+        return await smart_reply(message, "✨ Reply to a sticker to get the file.")
 
-        status_msg = await smart_reply(message, "✨ **Fetching sticker file...**")
+    status_msg = await smart_reply(message, "✨ **Fetching sticker file...**")
 
-        media_data = await bridge_downloader.download_media(client, message)
-        if not media_data:
-            return await status_msg.edit("❌ Failed to download sticker.")
+    media_data = await bridge_downloader.download_media(client, message)
+    if not media_data:
+        return await status_msg.edit("❌ Failed to download sticker.")
 
-        b64_data = base64.b64encode(media_data).decode("utf-8")
-        media = {"mimetype": "image/webp", "data": b64_data, "filename": "sticker.webp"}
-        
-        await client.send_media(message.chat_id.serialized, media, document=True)
-        await status_msg.delete()
+    b64_data = base64.b64encode(media_data).decode("utf-8")
+    media = {"mimetype": "image/webp", "data": b64_data, "filename": "sticker.webp"}
 
-    except Exception as e:
-        await handle_command_error(client, message, e, context="Get sticker failure")
+    await client.send_media(message.chat_id.serialized, media, document=True)
+    await status_msg.delete()
 
 
 @astra_command(

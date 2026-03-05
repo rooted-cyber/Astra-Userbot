@@ -6,7 +6,7 @@ import shutil
 import uuid
 from typing import Optional
 
-from . import *  # Astra helpers (astra_command, extract_args, smart_reply, report_error)
+from . import *  # Astra helpers (astra_command, extract_args, smart_reply)
 
 # Package mapping notes: linux (apt) vs darwin (brew)
 # Verified package names for Ubuntu 22.04/24.04 and macOS
@@ -278,162 +278,157 @@ def security_filter(code: str) -> Optional[str]:
 )
 async def multi_lang_exec_handler(client: Client, message: Message):
     """Execute code in the selected programming language."""
-    try:
-        if not message.body or " " not in message.body:
-            return await smart_reply(
-                message,
-                "⚠️ Usage:\n`.run <language> <code> [-t <seconds>] [-i <inputs>]`\n\n💡 Use `,,` for multi-inputs/datasets.",
-            )
-
-        # Extract language and payload
-        parts = message.body.split(None, 2)
-        if len(parts) < 3:
-            return await smart_reply(
-                message,
-                "⚠️ Usage:\n`.run <language> <code> [-t <seconds>] [-i <inputs>]`",
-            )
-
-        lang = parts[1].lower()
-        full_payload = parts[2]
-
-        # ----------------- ADVANCED PARSING -----------------
-        # 1. Parse Input (-i or --input)
-        stdin_data = ""
-        input_marker = None
-        if " --input " in full_payload:
-            input_marker = " --input "
-        elif " -i " in full_payload:
-            input_marker = " -i "
-
-        if input_marker:
-            code_and_t, raw_input = full_payload.rsplit(input_marker, 1)
-            # Hierarchical Splitting (Universal Newline Delimiter)
-            # Every delimiter is flattened to a newline for robust scanf/input() consumption
-            stdin_data = raw_input.replace(",,", "\n").replace("|", "\n").replace(",", "\n")
-            stdin_data = "\n".join([i.strip() for i in stdin_data.split("\n")])
-        else:
-            code_and_t = full_payload
-
-        # 2. Parse Timeout (-t)
-        timeout_val = 60.0
-        match = re.search(r"\s-t\s(\d+)(\s|$)", code_and_t)
-        if match:
-            timeout_val = min(float(match.group(1)), 300.0)
-            code = code_and_t[: match.start()] + code_and_t[match.end() :]
-        else:
-            code = code_and_t
-        # ---------------------------------------------------
-
-        # 🧹 Pre-processing
-        code = normalize_code(code)
-
-        # Automatic Markdown Code Block Stripping
-        if code.strip().startswith("```"):
-            code = re.sub(r"^```[a-zA-Z0-9+_]*\n?", "", code.strip())
-            code = re.sub(r"\n?```$", "", code)
-
-        # Identify language
-        selected = None
-        for key, data in LANG_EXECUTORS.items():
-            if lang in data["aliases"]:
-                selected = data
-                break
-
-        if not selected:
-            return await smart_reply(message, f"❌ Unsupported language: `{lang}`")
-
-        # 🚀 Send "Executing" status
-        icon = selected.get("icon", "🚀")
-        name = selected.get("name", lang.upper())
-        status_msg = await smart_reply(message, f"{icon} *Executing {name}...*")
-
-        # ----------------- SECURITY CHECK (v6.0) -----------------
-        from utils.state import state
-
-        is_full_dev = state.state.get("FULL_DEV", False)
-        is_i_dev = state.state.get("I_DEV", False)
-
-        if not is_full_dev:
-            violation = security_filter(code)
-            if violation and not is_i_dev:
-                warning_text = (
-                    f"🚨 **SECURITY RESTRICTION** 🚨\n"
-                    f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"🛑 **Blocked:** Potential privacy leak (`{violation}`).\n"
-                    f"━━━━━━━━━━━━━━━━━━━━"
-                )
-                return await smart_reply(message, warning_text)
-        # ---------------------------------------------------------
-
-        binary = selected["binary"]
-        if not is_installed(binary):
-            await status_msg.edit(f"❌ `{name}` not found. Suggestion: `.installdeps {lang}`")
-            return
-
-        # ----------------- FILENAME & CLASS HANDLING -----------------
-        if lang in ["java", "kotlin"]:
-            match = re.search(r"(?:public\s+)?class\s+(\w+)", code)
-            base_name = match.group(1) if match else f"Astra_{uuid.uuid4().hex[:8]}"
-        else:
-            base_name = f"astra_{uuid.uuid4().hex}"
-
-        filename = f"/tmp/{base_name}{selected['ext']}"
-        with open(filename, "w") as f:
-            f.write(code.strip())
-
-        # Execute
-        run_cmd = selected["run_cmd"](binary, filename)
-
-        process = await asyncio.create_subprocess_shell(
-            run_cmd,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+    if not message.body or " " not in message.body:
+        return await smart_reply(
+            message,
+            "⚠️ Usage:\n`.run <language> <code> [-t <seconds>] [-i <inputs>]`\n\n💡 Use `,,` for multi-inputs/datasets.",
         )
 
-        try:
-            # ⏳ Pipe processed stdin (hierarchical) and wait
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(input=stdin_data.encode() if stdin_data else None), timeout=timeout_val
+    # Extract language and payload
+    parts = message.body.split(None, 2)
+    if len(parts) < 3:
+        return await smart_reply(
+            message,
+            "⚠️ Usage:\n`.run <language> <code> [-t <seconds>] [-i <inputs>]`",
+        )
+
+    lang = parts[1].lower()
+    full_payload = parts[2]
+
+    # ----------------- ADVANCED PARSING -----------------
+    # 1. Parse Input (-i or --input)
+    stdin_data = ""
+    input_marker = None
+    if " --input " in full_payload:
+        input_marker = " --input "
+    elif " -i " in full_payload:
+        input_marker = " -i "
+
+    if input_marker:
+        code_and_t, raw_input = full_payload.rsplit(input_marker, 1)
+        # Hierarchical Splitting (Universal Newline Delimiter)
+        # Every delimiter is flattened to a newline for robust scanf/input() consumption
+        stdin_data = raw_input.replace(",,", "\n").replace("|", "\n").replace(",", "\n")
+        stdin_data = "\n".join([i.strip() for i in stdin_data.split("\n")])
+    else:
+        code_and_t = full_payload
+
+    # 2. Parse Timeout (-t)
+    timeout_val = 60.0
+    match = re.search(r"\s-t\s(\d+)(\s|$)", code_and_t)
+    if match:
+        timeout_val = min(float(match.group(1)), 300.0)
+        code = code_and_t[: match.start()] + code_and_t[match.end() :]
+    else:
+        code = code_and_t
+    # ---------------------------------------------------
+
+    # 🧹 Pre-processing
+    code = normalize_code(code)
+
+    # Automatic Markdown Code Block Stripping
+    if code.strip().startswith("```"):
+        code = re.sub(r"^```[a-zA-Z0-9+_]*\n?", "", code.strip())
+        code = re.sub(r"\n?```$", "", code)
+
+    # Identify language
+    selected = None
+    for key, data in LANG_EXECUTORS.items():
+        if lang in data["aliases"]:
+            selected = data
+            break
+
+    if not selected:
+        return await smart_reply(message, f"❌ Unsupported language: `{lang}`")
+
+    # 🚀 Send "Executing" status
+    icon = selected.get("icon", "🚀")
+    name = selected.get("name", lang.upper())
+    status_msg = await smart_reply(message, f"{icon} *Executing {name}...*")
+
+    # ----------------- SECURITY CHECK (v6.0) -----------------
+    from utils.state import state
+
+    is_full_dev = state.state.get("FULL_DEV", False)
+    is_i_dev = state.state.get("I_DEV", False)
+
+    if not is_full_dev:
+        violation = security_filter(code)
+        if violation and not is_i_dev:
+            warning_text = (
+                f"🚨 **SECURITY RESTRICTION** 🚨\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"🛑 **Blocked:** Potential privacy leak (`{violation}`).\n"
+                f"━━━━━━━━━━━━━━━━━━━━"
             )
-            stdout_str = stdout.decode().strip() if stdout else ""
-            stderr_str = stderr.decode().strip() if stderr else ""
-        except asyncio.TimeoutError:
-            try:
-                process.kill()
-            except:
-                pass
-            return await status_msg.edit(f"⏱️ *Execution Timeout ({int(timeout_val)}s):* `{name}` terminated.")
+            return await smart_reply(message, warning_text)
+    # ---------------------------------------------------------
 
-        # 📏 Smart Output Truncation
-        def truncate(text, limit=1800):
-            if len(text) > limit:
-                return text[:limit] + f"\n... (truncated {len(text) - limit} chars)"
-            return text
+    binary = selected["binary"]
+    if not is_installed(binary):
+        await status_msg.edit(f"❌ `{name}` not found. Suggestion: `.installdeps {lang}`")
+        return
 
-        output = ""
-        if stdin_data:
-            # Display preview of hierarchical inputs
-            display_in = stdin_data.replace("\n", " | ")
-            output += f"📥 *Inputs:* `{truncate(display_in, 100)}`\n"
+    # ----------------- FILENAME & CLASS HANDLING -----------------
+    if lang in ["java", "kotlin"]:
+        match = re.search(r"(?:public\s+)?class\s+(\w+)", code)
+        base_name = match.group(1) if match else f"Astra_{uuid.uuid4().hex[:8]}"
+    else:
+        base_name = f"astra_{uuid.uuid4().hex}"
 
-        if stdout_str:
-            output += f"✅ *Output ({name}):*\n```\n{truncate(stdout_str)}\n```\n"
-        if stderr_str:
-            output += f"❌ *Error ({name}):*\n```\n{truncate(stderr_str)}\n```"
+    filename = f"/tmp/{base_name}{selected['ext']}"
+    with open(filename, "w") as f:
+        f.write(code.strip())
 
-        if not output.strip():
-            output = f"✅ {name} Execution Complete."
+    # Execute
+    run_cmd = selected["run_cmd"](binary, filename)
 
-        await status_msg.edit(output)
+    process = await asyncio.create_subprocess_shell(
+        run_cmd,
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
 
-        # Cleanup
-        if os.path.exists(filename):
-            os.remove(filename)
+    try:
+        # ⏳ Pipe processed stdin (hierarchical) and wait
+        stdout, stderr = await asyncio.wait_for(
+            process.communicate(input=stdin_data.encode() if stdin_data else None), timeout=timeout_val
+        )
+        stdout_str = stdout.decode().strip() if stdout else ""
+        stderr_str = stderr.decode().strip() if stderr else ""
+    except asyncio.TimeoutError:
+        try:
+            process.kill()
+        except:
+            pass
+        return await status_msg.edit(f"⏱️ *Execution Timeout ({int(timeout_val)}s):* `{name}` terminated.")
 
-    except Exception as e:
-        await smart_reply(message, f"❌ Error: {str(e)}")
-        await report_error(client, e, context="multi-lang exec failed")
+    # 📏 Smart Output Truncation
+    def truncate(text, limit=1800):
+        if len(text) > limit:
+            return text[:limit] + f"\n... (truncated {len(text) - limit} chars)"
+        return text
+
+    output = ""
+    if stdin_data:
+        # Display preview of hierarchical inputs
+        display_in = stdin_data.replace("\n", " | ")
+        output += f"📥 *Inputs:* `{truncate(display_in, 100)}`\n"
+
+    if stdout_str:
+        output += f"✅ *Output ({name}):*\n```\n{truncate(stdout_str)}\n```\n"
+    if stderr_str:
+        output += f"❌ *Error ({name}):*\n```\n{truncate(stderr_str)}\n```"
+
+    if not output.strip():
+        output = f"✅ {name} Execution Complete."
+
+    await status_msg.edit(output)
+
+    # Cleanup
+    if os.path.exists(filename):
+        os.remove(filename)
 
 
 @astra_command(

@@ -22,6 +22,8 @@ class Config:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
     # Bot Identity
+    TIMEZONE = "Asia/Kolkata"
+
     @property
     def BOT_NAME(self) -> str:
         from utils.state import state

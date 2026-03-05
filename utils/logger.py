@@ -1,7 +1,10 @@
 import logging
 import os
 import sys
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
+from config import config
 
 # Standard ANSI Color Escapes
 class Colors:
@@ -20,6 +23,12 @@ class AstraFormatter(logging.Formatter):
     """
     Modern, emoji-free logging formatter with high-contrast ANSI styling.
     """
+
+    def formatTime(self, record, datefmt=None):
+        dt = datetime.fromtimestamp(record.created, tz=ZoneInfo(config.TIMEZONE))
+        if datefmt:
+            return dt.strftime(datefmt)
+        return dt.isoformat()
 
     LEVEL_STYLES = {
         logging.DEBUG: (Colors.GRAY, "»"),
@@ -60,7 +69,15 @@ def setup_logging(script_dir: str):
 
     # 1. Plain Text File Logger (Complete Debug)
     log_file = os.path.join(script_dir, "astra_full_debug.txt")
-    file_formatter = logging.Formatter("%(asctime)s - [%(levelname)s] - %(name)s - %(message)s")
+    
+    class FileFormatter(logging.Formatter):
+        def formatTime(self, record, datefmt=None):
+            dt = datetime.fromtimestamp(record.created, tz=ZoneInfo(config.TIMEZONE))
+            if datefmt:
+                return dt.strftime(datefmt)
+            return dt.isoformat()
+
+    file_formatter = FileFormatter("%(asctime)s - [%(levelname)s] - %(name)s - %(message)s")
 
     file_handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)

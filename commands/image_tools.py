@@ -3,7 +3,6 @@ import io
 
 from PIL import Image, ImageFilter, ImageOps
 from utils.bridge_downloader import bridge_downloader
-from utils.helpers import handle_command_error
 
 from . import *
 
@@ -20,46 +19,42 @@ async def apply_filter(client: Client, message: Message, filter_type: str):
         message, f"🎨 **Astra Creative Studio**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Applying {filter_type} filter...*"
     )
 
-    try:
-        # Download media via bridge (handles quoted resolution internally)
-        media_data = await bridge_downloader.download_media(client, message)
-        if not media_data:
-            return await status_msg.edit("❌ Failed to download image.")
+    # Download media via bridge (handles quoted resolution internally)
+    media_data = await bridge_downloader.download_media(client, message)
+    if not media_data:
+        return await status_msg.edit("❌ Failed to download image.")
 
-        # Process with PIL
-        img = Image.open(io.BytesIO(media_data))
+    # Process with PIL
+    img = Image.open(io.BytesIO(media_data))
 
-        if filter_type == "grey":
-            img = ImageOps.grayscale(img)
-        elif filter_type == "sepia":
-            # Sepia transformation
-            width, height = img.size
-            pixels = img.load()
-            for py in range(height):
-                for px in range(width):
-                    r, g, b = img.getpixel((px, py))
-                    tr = int(0.393 * r + 0.769 * g + 0.189 * b)
-                    tg = int(0.349 * r + 0.686 * g + 0.168 * b)
-                    tb = int(0.272 * r + 0.534 * g + 0.131 * b)
-                    pixels[px, py] = (min(tr, 255), min(tg, 255), min(tb, 255))
-        elif filter_type == "invert":
-            img = ImageOps.invert(img.convert("RGB"))
-        elif filter_type == "mirror":
-            img = ImageOps.mirror(img)
-        elif filter_type == "blur":
-            img = img.filter(ImageFilter.BLUR)
+    if filter_type == "grey":
+        img = ImageOps.grayscale(img)
+    elif filter_type == "sepia":
+        # Sepia transformation
+        width, height = img.size
+        pixels = img.load()
+        for py in range(height):
+            for px in range(width):
+                r, g, b = img.getpixel((px, py))
+                tr = int(0.393 * r + 0.769 * g + 0.189 * b)
+                tg = int(0.349 * r + 0.686 * g + 0.168 * b)
+                tb = int(0.272 * r + 0.534 * g + 0.131 * b)
+                pixels[px, py] = (min(tr, 255), min(tg, 255), min(tb, 255))
+    elif filter_type == "invert":
+        img = ImageOps.invert(img.convert("RGB"))
+    elif filter_type == "mirror":
+        img = ImageOps.mirror(img)
+    elif filter_type == "blur":
+        img = img.filter(ImageFilter.BLUR)
 
-        # Save to buffer
-        out_buffer = io.BytesIO()
-        img.save(out_buffer, format="JPEG", quality=90)
-        b64_data = base64.b64encode(out_buffer.getvalue()).decode("utf-8")
+    # Save to buffer
+    out_buffer = io.BytesIO()
+    img.save(out_buffer, format="JPEG", quality=90)
+    b64_data = base64.b64encode(out_buffer.getvalue()).decode("utf-8")
 
-        media = {"mimetype": "image/jpeg", "data": b64_data, "filename": f"{filter_type}.jpg"}
-        await client.send_media(message.chat_id, media, caption=f"🎨 **Filter Applied:** `{filter_type}`")
-        await status_msg.delete()
-
-    except Exception as e:
-        await handle_command_error(client, message, e, context=f"Image filter ({filter_type}) failure")
+    media = {"mimetype": "image/jpeg", "data": b64_data, "filename": f"{filter_type}.jpg"}
+    await client.send_media(message.chat_id, media, caption=f"🎨 **Filter Applied:** `{filter_type}`")
+    await status_msg.delete()
 
 
 @astra_command(name="grey", description="Apply grayscale filter.", category="Tools & Utilities", is_public=True)

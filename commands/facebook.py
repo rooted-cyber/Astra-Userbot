@@ -1,4 +1,3 @@
-from utils.helpers import handle_command_error
 from utils.media_channel import MediaChannel
 
 from . import *
@@ -14,17 +13,13 @@ from . import *
 )
 async def facebook_handler(client: Client, message: Message):
     """Download Facebook video with optimized MediaChannel"""
-    try:
-        args_list = extract_args(message)
-        if not args_list:
-            return await smart_reply(message, " ❌ Please provide a Facebook URL.")
+    args_list = extract_args(message)
+    if not args_list:
+        return await smart_reply(message, " ❌ Please provide a Facebook URL.")
 
-        url = args_list[0]
-        status_msg = await smart_reply(message, " 🔍 *Initializing Facebook Engine...*")
+    url = args_list[0]
+    status_msg = await smart_reply(message, " 🔍 *Initializing Facebook Engine...*")
 
-        channel = MediaChannel(client, message, status_msg)
-        file_path, metadata = await channel.run_bridge(url, "video")
-        await channel.upload_file(file_path, metadata, "video")
-
-    except Exception as e:
-        await handle_command_error(client, message, e, context="Facebook command failure")
+    channel = MediaChannel(client, message, status_msg)
+    file_path, metadata = await channel.run_bridge(url, "video")
+    await channel.upload_file(file_path, metadata, "video")

@@ -11,27 +11,23 @@ from . import *
 )
 async def afk_handler(client: Client, message: Message):
     """Set AFK status."""
-    try:
-        args_list = extract_args(message)
-        from utils.state import state
+    args_list = extract_args(message)
+    from utils.state import state
 
-        if args_list and args_list[0].lower() in ["off", "false", "disable"]:
-            if state.get_afk()["is_afk"]:
-                state.set_afk(False)
-                await smart_reply(message, "☀️ **Astra AFK Mode:** Disabled manually.")
-            else:
-                await smart_reply(message, "⚠️ **Astra AFK Mode:** Already disabled.")
-            return
+    if args_list and args_list[0].lower() in ["off", "false", "disable"]:
+        if state.get_afk()["is_afk"]:
+            state.set_afk(False)
+            await smart_reply(message, "☀️ **Astra AFK Mode:** Disabled manually.")
+        else:
+            await smart_reply(message, "⚠️ **Astra AFK Mode:** Already disabled.")
+        return
 
-        reason = " ".join(args_list) if args_list else "Currently away."
-        state.set_afk(True, reason)
-        await smart_reply(
-            message,
-            f"🌙 **Astra AFK Mode Enabled**\n━━━━━━━━━━━━━━━━━━━━\n💬 **Reason:** `{reason}`\n\n_Type `.afk off` to disable._",
-        )
-    except Exception as e:
-        await smart_reply(message, f"❌ **System Error:** {str(e)}")
-        await report_error(client, e, context="Command afk failed")
+    reason = " ".join(args_list) if args_list else "Currently away."
+    state.set_afk(True, reason)
+    await smart_reply(
+        message,
+        f"🌙 **Astra AFK Mode Enabled**\n━━━━━━━━━━━━━━━━━━━━\n💬 **Reason:** `{reason}`\n\n_Type `.afk off` to disable._",
+    )
 
 
 @Client.on_message(Filters.all & ~Filters.me)

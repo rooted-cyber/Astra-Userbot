@@ -22,28 +22,24 @@ async def spam_handler(client: Client, message: Message):
     """
     Rapidly sends a specified number of messages.
     """
+    args_list = extract_args(message)
+    if len(args_list) < 2:
+        return await smart_reply(message, " 📋 Usage: `.spam <count> <message>`")
+
     try:
-        args_list = extract_args(message)
-        if len(args_list) < 2:
-            return await smart_reply(message, " 📋 Usage: `.spam <count> <message>`")
+        count = int(args_list[0])
+        text = " ".join(args_list[1:])
+    except ValueError:
+        return await smart_reply(message, " ⚠️ Count must be a number.")
 
-        try:
-            count = int(args_list[0])
-            text = " ".join(args_list[1:])
-        except ValueError:
-            return await smart_reply(message, " ⚠️ Count must be a number.")
+    if count > 100:
+        return await smart_reply(message, " ⚠️ Safety Limit: Max 100 messages allowed.")
 
-        if count > 100:
-            return await smart_reply(message, " ⚠️ Safety Limit: Max 100 messages allowed.")
+    await message.delete()
 
-        await message.delete()
-
-        for _ in range(count):
-            await client.send_message(message.chat_id, text)
-            await asyncio.sleep(0.1)  # Slight delay to prevent immediate ban
-
-    except Exception as e:
-        await report_error(client, e, context="Spam command failure")
+    for _ in range(count):
+        await client.send_message(message.chat_id, text)
+        await asyncio.sleep(0.1)  # Slight delay to prevent immediate ban
 
 
 @astra_command(
@@ -58,26 +54,22 @@ async def dspam_handler(client: Client, message: Message):
     """
     Sends messages with a specified delay interval.
     """
+    args_list = extract_args(message)
+    if len(args_list) < 3:
+        return await smart_reply(message, " 📋 Usage: `.dspam <delay> <count> <message>`")
+
     try:
-        args_list = extract_args(message)
-        if len(args_list) < 3:
-            return await smart_reply(message, " 📋 Usage: `.dspam <delay> <count> <message>`")
+        delay = float(args_list[0])
+        count = int(args_list[1])
+        text = " ".join(args_list[2:])
+    except ValueError:
+        return await smart_reply(message, " ⚠️ Delay and Count must be numbers.")
 
-        try:
-            delay = float(args_list[0])
-            count = int(args_list[1])
-            text = " ".join(args_list[2:])
-        except ValueError:
-            return await smart_reply(message, " ⚠️ Delay and Count must be numbers.")
+    if count > 100:
+        return await smart_reply(message, " ⚠️ Safety Limit: Max 100 messages allowed.")
 
-        if count > 100:
-            return await smart_reply(message, " ⚠️ Safety Limit: Max 100 messages allowed.")
+    await message.delete()
 
-        await message.delete()
-
-        for _ in range(count):
-            await client.send_message(message.chat_id, text)
-            await asyncio.sleep(delay)
-
-    except Exception as e:
-        await report_error(client, e, context="DelaySpam command failure")
+    for _ in range(count):
+        await client.send_message(message.chat_id, text)
+        await asyncio.sleep(delay)
