@@ -1,79 +1,215 @@
-
 import os
 import sys
 import asyncio
 import time
 import hashlib
+import platform
+import shutil
+import psutil
+import traceback
+from datetime import datetime
 from config import config
 from . import *
 
+# Utility for uptime calculation
+from utils.state import BOOT_TIME
+from utils.database import db
+
+def get_uptime_str():
+    """Returns a professional uptime string."""
+    delta = int(time.time() - BOOT_TIME)
+    days = delta // 86400
+    hours = (delta % 86400) // 3600
+    minutes = (delta % 3600) // 60
+    
+    parts = []
+    if days > 0: parts.append(f"{days}d")
+    if hours > 0: parts.append(f"{hours}h")
+    if minutes > 0: parts.append(f"{minutes}m")
+    
+    return " ".join(parts) if parts else "just now"
+
+def get_size_format(b, factor=1024, suffix="B"):
+    """
+    Scale bytes to its proper format
+    e.g:
+        1253656 => '1.20MB'
+        1253656678 => '1.17GB'
+    """
+    for unit in ["", "K", "M", "G", "T", "P"]:
+        if b < factor:
+            return f"{b:.2f}{unit}{suffix}"
+        b /= factor
+    return f"{b:.2f}Y{suffix}"
+
 @astra_command(
     name="restart",
-    description="Restarts the bot process",
+    description="Restarts the Astra Userbot process.",
     category="System",
     owner_only=True
 )
 async def restart_cmd(client: Client, message: Message):
     """Restart Bot"""
-    await smart_reply(message, " Rebooting...")
-    # Small delay to ensure the message is sent and seen
-    time.sleep(2)
-    # Restart the application
+    uptime = get_uptime_str()
+    await smart_reply(
+        message, 
+        f"🔄 **Astra System Reboot**\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"🛰️ **Status:** Initializing restart sequence...\n"
+        f"🕒 **Uptime:** `{uptime}`\n\n"
+        f"💡 _Astra will be back online in seconds._"
+    )
+    
+    await asyncio.sleep(1.5)
     os.execv(sys.executable, [sys.executable] + sys.argv)
 
 @astra_command(
     name="shutdown",
-    description="Shuts down the bot process",
+    description="Shuts down the Astra Userbot process.",
     category="System",
     owner_only=True
 )
 async def shutdown_cmd(client: Client, message: Message):
     """Shutdown Bot"""
-    await smart_reply(message, " Powering off...")
-    # Small delay to ensure the message is sent
-    time.sleep(2)
-    # Exit the application
+    uptime = get_uptime_str()
+    await smart_reply(
+        message, 
+        f"⏻ **Astra Power Off**\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"🛑 **Status:** Shutting down core engines...\n"
+        f"🕒 **Uptime:** `{uptime}`\n\n"
+        f"⚠️ _Manual intervention required to start again._"
+    )
+    
+    await asyncio.sleep(1.5)
     sys.exit(0)
 
 @astra_command(
+    name="health",
+    description="Displays comprehensive system health and database diagnostics.",
+    category="System",
+    owner_only=True,
+    aliases=["status", "h"]
+)
+async def health_cmd(client: Client, message: Message):
+    """System Health Diagnostics"""
+    status_msg = await smart_reply(message, "🏥 **Astra Diagnostics**\n━━━━━━━━━━━━━━━━━━━━\n🧬 *Scanning system vitals...*")
+    
+    try:
+        # 1. System Metrics
+        cpu_usage = psutil.cpu_percent(interval=None)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        # 2. Database Metrics
+        db_stats = await db.get_stats()
+        
+        # 3. Process Info
+        proc = psutil.Process(os.getpid())
+        proc_mem = proc.memory_info().rss
+        
+        uptime = get_uptime_str()
+        
+        health_report = (
+            f"🏥 **Astra System Health**\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"🛰️ **Uptime:** `{uptime}`\n"
+            f"🧠 **Memory:** `{get_size_format(proc_mem)}` (used by bot)\n"
+            f"📊 **System CPU:** `{cpu_usage}%`\n"
+            f"💾 **System RAM:** `{memory.percent}%` used\n"
+            f"📂 **Disk Space:** `{get_size_format(disk.free)}` free\n\n"
+            f"🗄️ **Database Stats**\n"
+            f"• Records: `{db_stats['sqlite']['state_records']}` state | `{db_stats['sqlite']['meme_records']}` memes\n"
+            f"• Disk Usage: `{db_stats['sqlite']['size_mb']} MB` (SQLite)\n"
+            f"• MongoDB: `{'✅ Connected' if db_stats['mongodb']['connected'] else '❌ Disconnected'}`\n\n"
+            f"✨ _System is operating within optimal parameters._"
+        )
+        
+        await status_msg.edit(health_report)
+    except Exception as e:
+        from utils.error_reporter import ErrorReporter
+        await ErrorReporter.report(client, message, e, context="Health Check Failure")
+
+@astra_command(
+    name="sysinfo",
+    description="Displays detailed information about the hosting environment.",
+    category="System",
+    owner_only=True,
+    aliases=["sys", "platform"]
+)
+async def sysinfo_cmd(client: Client, message: Message):
+    """Detailed System Info"""
+    try:
+        os_info = f"{platform.system()} {platform.release()}"
+        arch_info = platform.machine()
+        python_ver = platform.python_version()
+        
+        report = (
+            f"🖥️ **System Information**\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"🏠 **OS:** `{os_info}`\n"
+            f"🧠 **Arch:** `{arch_info}`\n"
+            f"🐍 **Python:** `{python_ver}`\n"
+            f"⚙️ **Platform:** `{platform.platform()}`\n"
+            f"📅 **Booted:** `{datetime.fromtimestamp(BOOT_TIME).strftime('%Y-%m-%d %H:%M:%S')}`\n"
+            f"━━━━━━━━━━━━━━━━━━━━"
+        )
+        await smart_reply(message, report)
+    except Exception as e:
+        from utils.error_reporter import ErrorReporter
+        await ErrorReporter.report(client, message, e, context="SysInfo Failure")
+
+@astra_command(
     name="update",
-    description="Updates the bot from GitHub.",
+    description="Updates Astra from the GitHub repository.",
     category="System",
     owner_only=True,
     usage=".update [-b branch] [-f]"
 )
 async def update_cmd(client: Client, message: Message):
-    """ Update Handler """
+    """ Advanced Update Handler """
     args = extract_args(message)
     force = "-f" in args
-    
-    # Parse branch (Default to master as requested)
     branch = "master"
     if "-b" in args:
         idx = args.index("-b")
         if len(args) > idx + 1:
             branch = args[idx + 1]
     
-    status_msg = await smart_reply(message, f"📡 *Astra Update Engine:* Syncing with `{branch}`...")
+    status_msg = await smart_reply(message, f"📡 **Astra Update Engine**\n━━━━━━━━━━━━━━━━━━━━\n🔍 *Syncing with `{branch}`...*")
     
     try:
-        # Check for Git
         if not os.path.exists(".git"):
-            return await status_msg.edit("❌ *Error:* Directory is not a git repository.")
+            return await status_msg.edit("❌ **Error:** Directory is not a git repository.")
 
-        # 1. Fetch latest from remote
-        await status_msg.edit(f"📥 *Fetching updates for branch:* `{branch}`...")
+        if not force:
+            proc_status = await asyncio.create_subprocess_exec(
+                'git', 'status', '--porcelain',
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout_status, _ = await proc_status.communicate()
+            if stdout_status.strip():
+                return await status_msg.edit(
+                    f"⚠️ **Uncommitted Changes Detected**\n"
+                    f"━━━━━━━━━━━━━━━━━━━━\n"
+                    f"You have local modifications that would be overwritten by a reset.\n\n"
+                    f"💡 *Options:*\n"
+                    f"1. Commit your changes locally.\n"
+                    f"2. Use `.update -f` to overwrite them (irreversible)."
+                )
+
+        await status_msg.edit(f"📥 **Astra Update Engine**\n━━━━━━━━━━━━━━━━━━━━\n📡 *Fetching updates for:* `{branch}`...")
         proc = await asyncio.create_subprocess_exec(
             'git', 'fetch', 'origin', branch,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
-        await proc.communicate()
+        _, stderr = await proc.communicate()
         
         if proc.returncode != 0:
-            return await status_msg.edit(f"❌ *Fetch failed:* Ensure the branch `{branch}` exists on remote.")
+            return await status_msg.edit(f"❌ **Fetch Failed**\n━━━━━━━━━━━━━━━━━━━━\n`{stderr.decode().strip()}`")
 
-        # 2. Compare versions
         proc_local = await asyncio.create_subprocess_exec('git', 'rev-parse', 'HEAD', stdout=asyncio.subprocess.PIPE)
         local_hash_raw, _ = await proc_local.communicate()
         
@@ -84,240 +220,179 @@ async def update_cmd(client: Client, message: Message):
         remote_hash = remote_hash_raw.decode().strip()
 
         if local_hash == remote_hash and not force:
-            await asyncio.sleep(0.5)
             return await status_msg.edit(
-                f"✅ **Astra is already up to date.**\n"
-                f"Branch: `{branch}`\n"
-                f"Version: `{config.VERSION}` - **{config.VERSION_NAME}** (`{local_hash[:7]}`)\n\n"
-                f"💡 Use `.update -f` to force a reset if you've made local changes."
+                f"✅ **Astra is up to date**\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"📂 **Branch:** `{branch}`\n"
+                f"🏷️ **Build:** `{local_hash[:7]}`\n"
+                f"🚀 **Version:** `{config.VERSION}`\n\n"
+                f"✨ _No new updates found._"
             )
 
-        # 3. Handle Diff if not forced
         if local_hash != remote_hash and not force:
             proc_diff = await asyncio.create_subprocess_exec(
-                'git', 'log', '--format=%h | %an | %ar | %s', '--max-count=5', f'HEAD..origin/{branch}',
+                'git', 'log', '--format=%h | %s', '--max-count=5', f'HEAD..origin/{branch}',
                 stdout=asyncio.subprocess.PIPE
             )
             diff_text, _ = await proc_diff.communicate()
             
-            # Fetch Author
             proc_author = await asyncio.create_subprocess_exec(
                 'git', 'log', '-1', '--format=%an', f'origin/{branch}',
                 stdout=asyncio.subprocess.PIPE
             )
             author_text, _ = await proc_author.communicate()
-            author_name = author_text.decode().strip() or "Unknown Dev"
+            author_name = author_text.decode().strip() or "Astra Dev"
+            summary = diff_text.decode().strip() or "Minor internal improvements."
             
-            summary = diff_text.decode().strip() or "No commit summary available."
             update_prompt = (
-                f"🚀 **Astra Update Engine**\n"
+                f"🚀 **Update Available**\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"✨ **Updates available.**\n\n"
                 f"📂 **Branch:** `{branch}`\n"
-                f"👤 **Author:** `{author_name}`\n"
-                f"🕒 **Checked at:** `{time.strftime('%H:%M:%S')}`\n\n"
-                f"📋 **Latest Changes:**\n```\n{summary}```\n\n"
-                f"⚠️ *Run `.update -f` to apply these changes and restart.*"
+                f"👤 **Author:** `{author_name}`\n\n"
+                f"📋 **Changelog:**\n```\n{summary}```\n\n"
+                f"⚠️ *Type `.update -f` to apply changes and restart.*"
             )
             return await status_msg.edit(update_prompt)
 
-        # 4. Execution Phase (Forced)
         def get_file_hash(filepath):
             if not os.path.exists(filepath): return ""
             with open(filepath, "rb") as f:
                 return hashlib.md5(f.read()).hexdigest()
 
         req_hash_before = get_file_hash("requirements.txt")
-
-        await status_msg.edit(f"🔄 *Applying updates from `{branch}`...*")
+        await status_msg.edit(f"🔄 **Astra Update Engine**\n━━━━━━━━━━━━━━━━━━━━\n⚙️ *Merging updates from `{branch}`...*")
+        
         proc_reset = await asyncio.create_subprocess_exec(
             'git', 'reset', '--hard', f'origin/{branch}',
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
-        stdout, stderr = await proc_reset.communicate()
+        _, stderr = await proc_reset.communicate()
         
         if proc_reset.returncode != 0:
-            return await status_msg.edit(f"❌ *Reset failed:* {stderr.decode()}")
+            return await status_msg.edit(f"❌ **Update Failed**\n━━━━━━━━━━━━━━━━━━━━\n`{stderr.decode().strip()}`")
 
-        # 5. Dependency Sync
         req_hash_after = get_file_hash("requirements.txt")
-        
         if req_hash_after != req_hash_before:
-            await status_msg.edit("📦 *Requirements changed. Installing dependencies...*")
+            await status_msg.edit(f"📦 **Astra Update Engine**\n━━━━━━━━━━━━━━━━━━━━\n📦 *Installing new dependencies...*")
             pip_proc = await asyncio.create_subprocess_exec(
                 sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt',
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
             await pip_proc.communicate()
-            
-            if pip_proc.returncode != 0:
-                 await status_msg.edit("⚠️ *Warning:* Dependency installation failed. Bot might crash after restart.")
 
-        # 6. Finalization
-        await status_msg.edit("✅ **Update Complete!**\n\n*Restarting Astra Userbot to apply changes...*")
-        await asyncio.sleep(1)
+        await status_msg.edit("✅ **Update Complete**\n━━━━━━━━━━━━━━━━━━━━\n🚀 _Astra is restarting to apply changes..._")
+        await asyncio.sleep(1.5)
         os.execv(sys.executable, [sys.executable] + sys.argv)
 
     except Exception as e:
-        await status_msg.edit(f"❌ *System Error during update:* {str(e)}")
+        from utils.error_reporter import ErrorReporter
+        await ErrorReporter.report(client, message, e, context="System Update Failure")
 
 @astra_command(
     name="reload",
-    description="Hot-reloads all plugins and project modules.",
+    description="Hot-reloads all Astra modules and plugins.",
     category="System",
     owner_only=True
 )
 async def reload_cmd(client: Client, message: Message):
     """Hot-reloads all plugins and project modules."""
-    status_msg = await smart_reply(message, "⏳ *Hot-reloading Astra Userbot...*")
+    status_msg = await smart_reply(message, "⏳ **Astra Hot-Reload**\n━━━━━━━━━━━━━━━━━━━━\n🔄 *Resyncing all modules...*")
     
     try:
         from utils.plugin_utils import reload_all_plugins
         count = reload_all_plugins(client)
         
-        await asyncio.sleep(0.5)
         await status_msg.edit(
-            f" Reloaded!\n"
-            f"📦 **Modules:** {count} plugins resynced.\n"
-            f"🕒 **Time:** {time.strftime('%H:%M:%S')}"
+            f"✅ **Reload Successful**\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📦 **Plugins:** `{count}` resynced\n"
+            f"🕒 **Time:** `{time.strftime('%H:%M:%S')}`\n\n"
+            f"✨ _System core is now fresh._"
         )
     except Exception as e:
-        await report_error(client, e, context='Reload command failure')
-
-@astra_command(
-    name="cleanup",
-    description="Purge temporary files and local cache.",
-    category="Owner",
-    owner_only=True
-)
-async def cleanup_handler(client: Client, message: Message):
-    """Purges the temp directory and cache."""
-    status_msg = await smart_reply(message, " Cleaning up...")
-    
-    try:
-        import shutil
-        temp_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "temp")
-        cache_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "cache")
-        
-        purged_count = 0
-        for d in [temp_dir, cache_dir]:
-            if os.path.exists(d):
-                for f in os.listdir(d):
-                    path = os.path.join(d, f)
-                    try:
-                        if os.path.isfile(path):
-                            os.remove(path)
-                            purged_count += 1
-                        elif os.path.islink(path):
-                            os.unlink(path)
-                            purged_count += 1
-                        elif os.path.isdir(path):
-                            shutil.rmtree(path)
-                            purged_count += 1
-                    except:
-                        continue
-        
-        await status_msg.edit(f" Cleaned\\nItems: `{purged_count}`\\n")
-    except Exception as e:
-        await handle_command_error(client, message, e, context='Cleanup failure')
+        from utils.error_reporter import ErrorReporter
+        await ErrorReporter.report(client, message, e, context="Module Reload Failure")
 
 @astra_command(
     name="logs",
-    description="Fetch the recent bot logs or the full log file.",
+    description="Retrieves recent Astra system logs.",
     category="System",
     owner_only=True,
     usage=".logs [full]"
 )
 async def logs_cmd(client: Client, message: Message):
-    """
-    Fetches the last 50 lines of logs as text.
-    Uploads the full log file if 'full' is passed as an argument.
-    """
+    """Fetches last 100 lines or uploads full file."""
     args = extract_args(message)
     is_full = "full" in [a.lower() for a in args]
     
-    status_msg = await smart_reply(message, "⏳ *Retrieving logs...*")
-    
     log_file = "astra_full_debug.txt"
     if not os.path.exists(log_file):
-        return await status_msg.edit("❌ *Error:* Log file `astra_full_debug.txt` not found.")
+        return await smart_reply(message, "❌ **Error:** Log file not found.")
+
+    status_msg = await smart_reply(message, "⏳ **Log Retrieval**\n━━━━━━━━━━━━━━━━━━━━\n📝 *Reading Astra console...*")
+    
     try:
-        # Efficiently read the last 100 lines
         def tail(filename, n=100):
-            try:
-                from collections import deque
-                with open(filename, "r", encoding='utf-8', errors='ignore') as f:
-                    return list(deque(f, n))
-            except Exception as e:
-                return [f"Unable to read log file: {str(e)}"]
+            from collections import deque
+            with open(filename, "r", encoding='utf-8', errors='ignore') as f:
+                return list(deque(f, n))
 
         lines = tail(log_file)
-        recent_logs = "".join(lines)
-        
-        # Format for WhatsApp - ensure it fits message limits
-        if len(recent_logs) > 3500:
-            recent_logs = recent_logs[-3500:]
+        log_content = "".join(lines)
+        if not log_content: return await status_msg.edit("ℹ️ **Console is empty.**")
+
+        if len(log_content) > 3500: log_content = log_content[-3500:]
             
-        preview = f"📜 **Astra Console (Live Logs):**\n```\n{recent_logs}\n```\n🕒 **Fetched at:** `{time.strftime('%H:%M:%S')}`"
+        await status_msg.edit(f"📜 **Astra Live Console**\n━━━━━━━━━━━━━━━━━━━━\n```\n{log_content}\n```\n🕒 **Last Check:** `{time.strftime('%H:%M:%S')}`")
         
-        # Always send text preview (unless logs are empty)
-        if recent_logs:
-            await status_msg.edit(preview)
-        else:
-            await status_msg.edit("ℹ️ *Log file is currently empty.*")
-        
-        # Upload full file ONLY if requested
         if is_full:
             await smart_reply(message, "📤 *Uploading full log file...*")
             import base64
             with open(log_file, "rb") as f:
                 b64_data = base64.b64encode(f.read()).decode('utf-8')
                 
-            media = {
-                "mimetype": "text/plain",
-                "data": b64_data,
-                "filename": "astra_logs.txt"
-            }
-            
-            await client.send_media(
-                message.chat_id,
-                media,
-                caption="📄 **Full Astra Debug Logs**",
-                reply_to=message.id
-            )
-
+            media = {"mimetype": "text/plain", "data": b64_data, "filename": "astra_full_logs.txt"}
+            await client.send_media(message.chat_id, media, caption="📄 **Full Astra System Logs**", reply_to=message.id)
     except Exception as e:
-        await status_msg.edit(f"❌ *Error retrieving logs:* {str(e)}")
+        from utils.error_reporter import ErrorReporter
+        await ErrorReporter.report(client, message, e, context="Log Retrieval Failure")
 
 @astra_command(
     name="clearcache",
-    description="🧹 Clears the Astra Media Gateway cache to free up disk space.",
+    description="Clears the media gateway cache.",
     category="System",
     aliases=["ccache"],
     owner_only=True
 )
 async def clearcache_cmd(client: Client, message: Message):
     """Purges the media cache directory."""
-    status_msg = await smart_reply(message, " Clearing cache...")
-    
+    status_msg = await smart_reply(message, "🧹 **Maintenance**\n━━━━━━━━━━━━━━━━━━━━\n🗑️ *Clearing media cache...*")
     try:
         from utils.cache_manager import cache
         result = cache.clear_cache()
-        
         if result["success"]:
-            files = result["files_deleted"]
-            freed = result["freed_mb"]
-            await asyncio.sleep(0.5)
-            await status_msg.edit(
-                f" Cache cleared.\\n\\n"
-                f"🗑️ *Deleted Files:* `{files}`\\n"
-                f"💾 *Space Freed:* `{freed} MB`\n"
-                f"🚀 *Astra Media Engine is clean.*"
-            )
+            await status_msg.edit(f"✅ **Cache Purged**\n━━━━━━━━━━━━━━━━━━━━\n🗑️ **Deleted:** `{result['files_deleted']}` files\n💾 **Recovered:** `{result['freed_mb']} MB`\n\n🚀 _Disk space optimized._")
         else:
-            await status_msg.edit(f"❌ *Cache clearing failed:* {result.get('error')}")
-            
+            await status_msg.edit(f"❌ **Purge Failed**\n━━━━━━━━━━━━━━━━━━━━\n`{result.get('error')}`")
     except Exception as e:
-        await report_error(client, e, context='Clear cache failure')
+        from utils.error_reporter import ErrorReporter
+        await ErrorReporter.report(client, message, e, context="Cache Purge Failure")
+
+@astra_command(
+    name="start",
+    description="Bot health check and responsiveness test.",
+    category="System",
+    owner_only=True,
+    aliases=["test"]
+)
+async def start_cmd(client: Client, message: Message):
+    """Test command to verify bot responsiveness."""
+    try:
+        msg = await smart_reply(message, "🤖 **Scanning Astra core...**")
+        await asyncio.sleep(0.5)
+        await msg.edit("🤖 **Astra Userbot is active!**\n\n🚀 _System core is responsive and ready for your commands._")
+    except Exception as e:
+        from utils.error_reporter import ErrorReporter
+        await ErrorReporter.report(client, message, e, context="Start Check Failure")

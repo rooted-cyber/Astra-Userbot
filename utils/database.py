@@ -187,5 +187,44 @@ class Database:
         if self.mongo_db:
             asyncio.create_task(self.mongo_db.state.delete_one({"_id": key}))
 
+    async def get_stats(self) -> dict:
+        """Returns statistics about the database."""
+        if not self.initialized:
+            await self.initialize()
+            
+        # SQLite Stats
+        cursor = await self.sqlite_conn.execute("SELECT COUNT(*) FROM state")
+        state_count = (await cursor.fetchone())[0]
+        
+        cursor = await self.sqlite_conn.execute("SELECT COUNT(*) FROM seen_memes")
+        meme_count = (await cursor.fetchone())[0]
+        
+        sqlite_size = 0
+        if os.path.exists(config.SQLITE_PATH):
+            sqlite_size = os.path.getsize(config.SQLITE_PATH) / 1024 / 1024 # MB
+            
+        stats = {
+            "sqlite": {
+                "state_records": state_count,
+                "meme_records": meme_count,
+                "size_mb": round(sqlite_size, 2)
+            }
+        }
+        
+        # MongoDB Stats
+        if self.mongo_db:
+            try:
+                m_state_count = await self.mongo_db.state.count_documents({})
+                stats["mongodb"] = {
+                    "state_records": m_state_count,
+                    "connected": True
+                }
+            except:
+                stats["mongodb"] = {"connected": False}
+        else:
+            stats["mongodb"] = {"connected": False}
+            
+        return stats
+
 
 db = Database()
