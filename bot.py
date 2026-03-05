@@ -30,7 +30,6 @@ def apply_framework_patches():
 
     async def patched_edit(self, text: str, **kwargs) -> bool:
         import time
-        # Constant delay for stability
         time.sleep(0.5)
         try:
             return await original_edit(self, text, **kwargs)
