@@ -184,7 +184,7 @@ async def meme_fetcher_handler(client: Client, message: Message):
     except: pass
 
     # 2. Try Reddit RSS (free, no auth)
-    subreddits = ["memes", "dankmemes", "wholesomememes"]
+    subreddits = ["memes", "dankmemes", "wholesomememes", "IndianDankMemes", "pata_h_aaj_kya_hua"]
     try:
         sub = random.choice(subreddits)
         async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
