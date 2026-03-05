@@ -1,6 +1,7 @@
 import aiohttp
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -15,13 +16,13 @@ async def shorten_handler(client: Client, message: Message):
     """URL shortener plugin."""
     args = extract_args(message)
     if not args:
-        return await smart_reply(message, "❌ **Usage:** `.shorten <url>`")
+        return await edit_or_reply(message, "❌ **Usage:** `.shorten <url>`")
 
     url = args[0]
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
 
-    status_msg = await smart_reply(message, "✂️ **Shortening URL...**")
+    status_msg = await edit_or_reply(message, "✂️ **Shortening URL...**")
 
     try:
         api_url = f"http://tinyurl.com/api-create.php?url={url}"

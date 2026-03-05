@@ -9,7 +9,7 @@ import time
 import traceback
 from typing import Optional
 
-from astra.models import Message
+from astra.types import Message
 
 # Core Utility Functions
 # ----------------------
@@ -95,28 +95,39 @@ class RateLimiter:
         return True
 
 
-async def smart_reply(message: Message, content: str, **kwargs):
+async def edit_or_reply(message: Message, content: str, **kwargs):
     """
-    An intelligent delivery mechanism that edits the message if sent by the bot,
-    or replies if sent by another user. Handles edge cases where editing is restricted.
+    Edits the triggering message if sent by us, otherwise replies.
+    Falls back to a plain send if both edit and reply fail
+    (e.g. message deleted, chat read-only, too old to edit).
     """
     try:
-        # If the bot itself sent the message, editing provides a cleaner UI.
         if message.from_me:
-            await asyncio.sleep(0.5)
             await message.edit(content)
             return message
-        else:
-            return await message.reply(content, **kwargs)
     except Exception:
-        # Fallback to standard reply if edit fails (e.g., message already deleted or too old).
+        pass
+
+    try:
         return await message.reply(content, **kwargs)
+    except Exception:
+        pass
+
+    # Last resort: just send to the chat directly
+    try:
+        return await message._client.send_message(message.chat_id, content, **kwargs)
+    except Exception:
+        return None
+
+
+# Keep backward compat alias
+edit_or_reply = edit_or_reply
 
 
 async def safe_edit(message: Message, content: str, **kwargs):
     """
     A robust version of edit() that automatically falls back to
-    smart_reply() or message.reply() if editing is not possible.
+    edit_or_reply() or message.reply() if editing is not possible.
     Includes built-in protection against common WhatsApp edit restrictions.
     """
     try:
@@ -126,10 +137,10 @@ async def safe_edit(message: Message, content: str, **kwargs):
             return await message.edit(content, **kwargs)
         else:
             # If not from me, we must reply
-            return await smart_reply(message, content, **kwargs)
+            return await edit_or_reply(message, content, **kwargs)
     except Exception:
         # Global fallback for any failure (message deleted, too old, etc.)
-        return await smart_reply(message, content, **kwargs)
+        return await edit_or_reply(message, content, **kwargs)
 
 
 # Error reporting is now handled by the centralized ErrorReporter module.
@@ -143,7 +154,7 @@ async def get_contact_name(client, jid: str) -> str:
     Priority: Pushname > Contact Name > Formatted Number > Short JID
     """
     try:
-        from astra.models import JID
+        from astra.types import JID
 
         jid_obj = JID.parse(jid) if isinstance(jid, str) else jid
 

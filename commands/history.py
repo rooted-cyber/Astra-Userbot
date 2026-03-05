@@ -8,6 +8,7 @@ Experimental tool for range-based message retrieval.
 import time
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -28,7 +29,7 @@ async def fetch_history_handler(client: Client, message: Message):
     # Start ID is the quoted message (optional)
     anchor_id = message.quoted.id if message.quoted else message.quoted_message_id
 
-    status_msg = await smart_reply(
+    status_msg = await edit_or_reply(
         message, f" ⏳ *Fetching {'latest ' if not anchor_id else ''}{limit} messages...*"
     )
 

@@ -3,6 +3,7 @@ from urllib.parse import quote_plus
 import aiohttp
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -17,10 +18,10 @@ async def urban_handler(client: Client, message: Message):
     """Urban Dictionary lookup plugin."""
     args = extract_args(message)
     if not args:
-        return await smart_reply(message, "❌ **Usage:** `.urban <word>`")
+        return await edit_or_reply(message, "❌ **Usage:** `.urban <word>`")
 
     word = " ".join(args)
-    status_msg = await smart_reply(message, f"🏙️ **Searching Urban Dictionary for:** `{word}`...")
+    status_msg = await edit_or_reply(message, f"🏙️ **Searching Urban Dictionary for:** `{word}`...")
 
     try:
         api_url = f"http://api.urbandictionary.com/v0/define?term={quote_plus(word)}"

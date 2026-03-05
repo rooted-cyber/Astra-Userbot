@@ -1,6 +1,7 @@
 from utils.state import state
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -17,7 +18,7 @@ async def mute_handler(client: Client, message: Message):
 
     is_group = str(message.chat_id).endswith("@g.us")
     if not is_group:
-        return await smart_reply(message, " ❌ This command only works in groups.")
+        return await edit_or_reply(message, " ❌ This command only works in groups.")
 
     action = args_list[0].lower() if args_list else ("on" if message.body.lower().startswith(".mute") else "off")
 
@@ -33,4 +34,4 @@ async def mute_handler(client: Client, message: Message):
     state.state["group_configs"][gid]["muted"] = is_muted
     await state.save()
 
-    await smart_reply(message, f" 🤫 Group commands are now *{'MUTED' if is_muted else 'UNMUTED'}* for this group.")
+    await edit_or_reply(message, f" 🤫 Group commands are now *{'MUTED' if is_muted else 'UNMUTED'}* for this group.")

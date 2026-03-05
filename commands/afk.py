@@ -1,4 +1,5 @@
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -17,14 +18,14 @@ async def afk_handler(client: Client, message: Message):
     if args_list and args_list[0].lower() in ["off", "false", "disable"]:
         if state.get_afk()["is_afk"]:
             state.set_afk(False)
-            await smart_reply(message, "☀️ **Astra AFK Mode:** Disabled manually.")
+            await edit_or_reply(message, "☀️ **Astra AFK Mode:** Disabled manually.")
         else:
-            await smart_reply(message, "⚠️ **Astra AFK Mode:** Already disabled.")
+            await edit_or_reply(message, "⚠️ **Astra AFK Mode:** Already disabled.")
         return
 
     reason = " ".join(args_list) if args_list else "Currently away."
     state.set_afk(True, reason)
-    await smart_reply(
+    await edit_or_reply(
         message,
         f"🌙 **Astra AFK Mode Enabled**\n━━━━━━━━━━━━━━━━━━━━\n💬 **Reason:** `{reason}`\n\n_Type `.afk off` to disable._",
     )
@@ -48,7 +49,7 @@ async def afk_mention_responder(client: Client, message: Message):
             is_tagged = True
 
         if not str(message.chat_id).endswith("@g.us") or is_tagged:
-            await smart_reply(
+            await edit_or_reply(
                 message, f"🌙 **Astra User is AFK**\n━━━━━━━━━━━━━━━━━━━━\n💬 **Reason:** `{afk_state['reason']}`"
             )
     except Exception:

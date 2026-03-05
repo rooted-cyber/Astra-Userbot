@@ -1,6 +1,7 @@
 from utils.media_channel import MediaChannel
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -15,10 +16,10 @@ async def soundcloud_handler(client: Client, message: Message):
     """Download SoundCloud track with optimized MediaChannel"""
     args_list = extract_args(message)
     if not args_list:
-        return await smart_reply(message, " ❌ Please provide a SoundCloud URL.")
+        return await edit_or_reply(message, " ❌ Please provide a SoundCloud URL.")
 
     url = args_list[0]
-    status_msg = await smart_reply(message, " 🔍 *Initializing SoundCloud Engine...*")
+    status_msg = await edit_or_reply(message, " 🔍 *Initializing SoundCloud Engine...*")
 
     channel = MediaChannel(client, message, status_msg)
     # SoundCloud is audio

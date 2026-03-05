@@ -19,6 +19,7 @@ except ImportError:
     remove_bg = None
 
 from . import *
+from utils.helpers import edit_or_reply, edit_or_reply
 
 @astra_command(
     name="qrgen",
@@ -53,7 +54,7 @@ async def qrgen_handler(client: Client, message: Message):
         with open(temp_path, "wb") as f:
             f.write(bio.read())
 
-        await client.api.send_media(message.chat_id, temp_path, "image/png", caption=f"QR Code for: `{text}`")
+        await client.send_media(message.chat_id, temp_path, "image/png", caption=f"QR Code for: `{text}`")
         await status.delete()
         
         if os.path.exists(temp_path):
@@ -128,7 +129,7 @@ async def rmbg_handler(client: Client, message: Message):
         with open(temp_out, "wb") as o:
             o.write(output_data)
 
-        await client.api.send_media(message.chat_id, temp_out, "image/png")
+        await client.send_media(message.chat_id, temp_out, "image/png")
         await status.delete()
         
         # Cleanup

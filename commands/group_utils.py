@@ -2,6 +2,7 @@ import asyncio
 import random
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -15,9 +16,9 @@ from . import *
 async def pick_handler(client: Client, message: Message):
     """Random user picker."""
     if not str(message.chat_id).endswith("@g.us"):
-        return await smart_reply(message, "❌ Groups only.")
+        return await edit_or_reply(message, "❌ Groups only.")
 
-    status_msg = await smart_reply(message, "🎲 **Rolling the dice...**")
+    status_msg = await edit_or_reply(message, "🎲 **Rolling the dice...**")
 
     info = await client.group.get_info(message.chat_id)
     participants = info.participants
@@ -40,9 +41,9 @@ async def pick_handler(client: Client, message: Message):
 async def tagall_handler(client: Client, message: Message):
     """Batched tagging to avoid spam flags."""
     if not str(message.chat_id).endswith("@g.us"):
-        return await smart_reply(message, "❌ Groups only.")
+        return await edit_or_reply(message, "❌ Groups only.")
 
-    status_msg = await smart_reply(message, "📣 **Preparing batched notification...**")
+    status_msg = await edit_or_reply(message, "📣 **Preparing batched notification...**")
 
     info = await client.group.get_info(message.chat_id)
     participants = info.participants
@@ -77,9 +78,9 @@ async def tagall_handler(client: Client, message: Message):
 async def tagadmin_handler(client: Client, message: Message):
     """Admin tagger."""
     if not str(message.chat_id).endswith("@g.us"):
-        return await smart_reply(message, "❌ Groups only.")
+        return await edit_or_reply(message, "❌ Groups only.")
 
-    status_msg = await smart_reply(message, "🛡️ **Calling all admins...**")
+    status_msg = await edit_or_reply(message, "🛡️ **Calling all admins...**")
 
     info = await client.group.get_info(message.chat_id)
     admins = [p.id for p in info.participants if p.is_admin or p.is_super_admin]
@@ -107,13 +108,13 @@ async def sd_handler(client: Client, message: Message):
     """Self-destructing message."""
     args = extract_args(message)
     if len(args) < 2:
-        return await smart_reply(message, "❌ **Usage:** `.sd <seconds> <text>`")
+        return await edit_or_reply(message, "❌ **Usage:** `.sd <seconds> <text>`")
 
     try:
         timer = int(args[0])
         text = " ".join(args[1:])
     except ValueError:
-        return await smart_reply(message, "❌ Seconds must be a number.")
+        return await edit_or_reply(message, "❌ Seconds must be a number.")
 
     await message.delete()  # Remove the command
 

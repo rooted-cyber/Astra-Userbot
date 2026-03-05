@@ -1,6 +1,7 @@
 from utils.database import db
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -14,17 +15,17 @@ async def setreply_handler(client: Client, message: Message):
     """Adds a new auto-reply trigger."""
     args = extract_args(message)
     if not args or "|" not in message.body:
-        return await smart_reply(message, "❌ **Usage:** `.setreply keyword | your response`")
+        return await edit_or_reply(message, "❌ **Usage:** `.setreply keyword | your response`")
 
     parts = message.body.split(".setreply", 1)[1].split("|", 1)
     keyword = parts[0].strip().lower()
     response = parts[1].strip()
 
     if not keyword or not response:
-        return await smart_reply(message, "❌ Invalid keyword or response.")
+        return await edit_or_reply(message, "❌ Invalid keyword or response.")
 
     await db.set(f"autoreply:{keyword}", response)
-    await smart_reply(
+    await edit_or_reply(
         message, f"✅ **Auto-Reply Set**\n━━━━━━━━━━━━━━━━━━━━\nTrigger: `{keyword}`\nResponse: `{response}`"
     )
 
@@ -40,11 +41,11 @@ async def delreply_handler(client: Client, message: Message):
     """Removes an auto-reply trigger."""
     args = extract_args(message)
     if not args:
-        return await smart_reply(message, "❌ **Usage:** `.delreply keyword`")
+        return await edit_or_reply(message, "❌ **Usage:** `.delreply keyword`")
 
     keyword = args[0].lower()
     await db.delete(f"autoreply:{keyword}")
-    await smart_reply(message, f"✅ **Auto-Reply Deleted:** `{keyword}`")
+    await edit_or_reply(message, f"✅ **Auto-Reply Deleted:** `{keyword}`")
 
 
 @astra_command(
@@ -55,14 +56,14 @@ async def listreply_handler(client: Client, message: Message):
     replies = await db.get_all_with_prefix("autoreply:")
 
     if not replies:
-        return await smart_reply(message, "📝 **Auto-Reply Registry**\n━━━━━━━━━━━━━━━━━━━━\n*No triggers found.*")
+        return await edit_or_reply(message, "📝 **Auto-Reply Registry**\n━━━━━━━━━━━━━━━━━━━━\n*No triggers found.*")
 
     text = "📝 **Auto-Reply Registry**\n━━━━━━━━━━━━━━━━━━━━\n"
     for key, val in replies.items():
         kw = key.replace("autoreply:", "")
         text += f"• `{kw}` → {val[:50]}...\n"
 
-    await smart_reply(message, text)
+    await edit_or_reply(message, text)
 
 
 # --- WATCHER ---

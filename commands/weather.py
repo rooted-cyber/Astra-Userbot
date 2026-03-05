@@ -1,6 +1,7 @@
 import aiohttp
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -18,7 +19,7 @@ async def weather_handler(client: Client, message: Message):
     args_list = extract_args(message)
     city = " ".join(args_list) or "London"
 
-    status_msg = await smart_reply(
+    status_msg = await edit_or_reply(
         message, f"☁️ **Astra Weather Radar**\n━━━━━━━━━━━━━━━━━━━━\n🔍 **Target:** `{city}`..."
     )
 

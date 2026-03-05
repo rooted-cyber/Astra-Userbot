@@ -4,6 +4,7 @@ import time
 from utils.database import db
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -14,7 +15,7 @@ from . import *
 )
 async def analytics_handler(client: Client, message: Message):
     """Owner-only analytics dashboard."""
-    status_msg = await smart_reply(message, "📊 **Generating Astra Intelligence Report...**")
+    status_msg = await edit_or_reply(message, "📊 **Generating Astra Intelligence Report...**")
 
     # 1. Fetch Total Stats
     total_cmds = await db.get("total_commands_v1", 0)

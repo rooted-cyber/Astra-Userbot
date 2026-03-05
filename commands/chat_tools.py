@@ -3,6 +3,7 @@
 import asyncio
 
 from . import *
+from utils.helpers import edit_or_reply, edit_or_reply
 
 
 @astra_command(
@@ -17,7 +18,7 @@ async def pinchat_handler(client: Client, message: Message):
     """Pins or unpins a chat."""
     args = extract_args(message)
     api = client.api
-    unpin = (args and args[0].lower() == "unpin") or message.command_name == "unpin"
+    unpin = (args and args[0].lower() == "unpin") or message.text.split()[0].lower().endswith("unpin")
 
     try:
         if unpin:
@@ -177,7 +178,7 @@ async def search_handler(client: Client, message: Message):
 async def presence_handler(client: Client, message: Message):
     """Toggles online/offline presence."""
     args = extract_args(message)
-    cmd = message.command_name if hasattr(message, "command_name") else ""
+    cmd = message.text.split()[0][1:].lower() if message.text else ""
 
     if cmd == "online" or (args and args[0].lower() in ("on", "online", "available")):
         available = True

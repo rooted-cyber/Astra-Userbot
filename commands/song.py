@@ -1,4 +1,5 @@
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -13,7 +14,7 @@ async def song_handler(client: Client, message: Message):
     """Song downloader (audio only)."""
     args = extract_args(message)
     if not args:
-        return await smart_reply(message, "❌ **Usage:** `.song <song name>`")
+        return await edit_or_reply(message, "❌ **Usage:** `.song <song name>`")
 
     query = " ".join(args)
     is_url = query.startswith("http://") or query.startswith("https://")
@@ -23,7 +24,7 @@ async def song_handler(client: Client, message: Message):
         if "song" not in query.lower() and "audio" not in query.lower():
             query += " audio song"
 
-    status_msg = await smart_reply(
+    status_msg = await edit_or_reply(
         message, f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n🎵 **Query:** `{query}`..."
     )
 
@@ -79,7 +80,7 @@ async def vsong_handler(client: Client, message: Message):
     # ... extraction logic similar to song_handler ...
     args = extract_args(message)
     if not args:
-        return await smart_reply(message, "❌ **Usage:** `.vsong <video name>`")
+        return await edit_or_reply(message, "❌ **Usage:** `.vsong <video name>`")
 
     query = " ".join(args)
     is_url = query.startswith("http://") or query.startswith("https://")
@@ -89,7 +90,7 @@ async def vsong_handler(client: Client, message: Message):
         if "video" not in query.lower():
             query += " full video"
 
-    status_msg = await smart_reply(
+    status_msg = await edit_or_reply(
         message, f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n🎬 **Query:** `{query}`..."
     )
 

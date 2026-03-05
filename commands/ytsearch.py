@@ -1,4 +1,5 @@
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -13,10 +14,10 @@ async def ytsearch_handler(client: Client, message: Message):
     """YouTube search plugin."""
     args = extract_args(message)
     if not args:
-        return await smart_reply(message, "❌ **Usage:** `.ytsearch <query>`")
+        return await edit_or_reply(message, "❌ **Usage:** `.ytsearch <query>`")
 
     query = " ".join(args)
-    status_msg = await smart_reply(message, f"📺 Searching YouTube for `{query}`...")
+    status_msg = await edit_or_reply(message, f"📺 Searching YouTube for `{query}`...")
 
     try:
         import yt_dlp

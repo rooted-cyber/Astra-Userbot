@@ -7,6 +7,7 @@ Delivers useless but interesting facts from public APIs.
 import aiohttp
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 # Configuration: Reliable public trivia API
 FACT_API_URL = "https://uselessfacts.jsph.pl/random.json?language=en"
@@ -27,7 +28,7 @@ async def fact_handler(client: Client, message: Message):
     async with aiohttp.ClientSession() as session:
         async with session.get(FACT_API_URL, timeout=aiohttp.ClientTimeout(total=10)) as resp:
             if resp.status != 200:
-                return await smart_reply(message, "⚠️ **Astra Knowledge Base:** Trivia service offline.")
+                return await edit_or_reply(message, "⚠️ **Astra Knowledge Base:** Trivia service offline.")
 
             data = await resp.json()
-            await smart_reply(message, f"💡 **Astra Fact Generator**\n━━━━━━━━━━━━━━━━━━━━\n{data['text']}")
+            await edit_or_reply(message, f"💡 **Astra Fact Generator**\n━━━━━━━━━━━━━━━━━━━━\n{data['text']}")

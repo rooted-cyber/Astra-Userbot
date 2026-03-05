@@ -3,6 +3,7 @@ from urllib.parse import quote_plus
 import aiohttp
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -17,10 +18,10 @@ async def lyrics_handler(client: Client, message: Message):
     """Lyrics lookup plugin."""
     args = extract_args(message)
     if not args:
-        return await smart_reply(message, "❌ **Usage:** `.lyrics <song name>`")
+        return await edit_or_reply(message, "❌ **Usage:** `.lyrics <song name>`")
 
     query = " ".join(args)
-    status_msg = await smart_reply(message, f"🎵 **Searching lyrics for:** `{query}`...")
+    status_msg = await edit_or_reply(message, f"🎵 **Searching lyrics for:** `{query}`...")
 
     # Lyrist API is generally more robust and returns JSON directly
     # Format: https://lyrist.vercel.app/api/<song>/<artist> or just /api/<song>

@@ -1,6 +1,7 @@
 import aiohttp
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -15,10 +16,10 @@ async def github_handler(client: Client, message: Message):
     """GitHub info plugin."""
     args = extract_args(message)
     if not args:
-        return await smart_reply(message, "❌ **Usage:** `.github <username>` or `.github <user/repo>`")
+        return await edit_or_reply(message, "❌ **Usage:** `.github <username>` or `.github <user/repo>`")
 
     query = args[0]
-    status_msg = await smart_reply(message, f"🐙 **Fetching GitHub info for:** `{query}`...")
+    status_msg = await edit_or_reply(message, f"🐙 **Fetching GitHub info for:** `{query}`...")
 
     try:
         async with aiohttp.ClientSession() as session:

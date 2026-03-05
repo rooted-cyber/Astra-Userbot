@@ -1,4 +1,5 @@
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -15,7 +16,7 @@ async def youtube_handler(client: Client, message: Message):
     """
     args_list = extract_args(message)
     if not args_list:
-        return await smart_reply(message, " ❌ Please provide a valid YouTube URL.")
+        return await edit_or_reply(message, " ❌ Please provide a valid YouTube URL.")
 
     url_input = args_list[0]
     args_lower = [arg.lower() for arg in args_list]
@@ -24,7 +25,7 @@ async def youtube_handler(client: Client, message: Message):
     video_keywords = ["video", "vid", "mp4", "mkv", "720p", "1080p"]
     mode = "video" if any(kw in args_lower for kw in video_keywords) else "audio"
 
-    status_msg = await smart_reply(
+    status_msg = await edit_or_reply(
         message, "⚡ **Astra Media Engine**\n━━━━━━━━━━━━━━━━━━━━\n🔍 *Initializing request...*"
     )
 

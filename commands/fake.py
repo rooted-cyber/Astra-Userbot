@@ -11,6 +11,7 @@ import aiohttp
 from utils.helpers import safe_edit
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -25,7 +26,7 @@ async def fake_handler(client: Client, message: Message):
     """
     Fetches random user data and formats it into an identity card.
     """
-    status_msg = await smart_reply(message, " 🕵️ *Generating fake identity...*")
+    status_msg = await edit_or_reply(message, " 🕵️ *Generating fake identity...*")
 
     url = "https://randomuser.me/api/"
     async with aiohttp.ClientSession() as session:

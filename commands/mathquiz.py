@@ -7,6 +7,7 @@ Generates randomized arithmetic challenges with spoiler-hidden answers.
 import random
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -38,4 +39,4 @@ async def mathquiz_handler(client: Client, message: Message):
     # Render Quiz Card
     report = f"🔢 **Astra Quick Math Quiz**\n\nSolve: `{a} {op} {b} = ?`\n\n💡 *Answer:* ||{result}||"
 
-    await smart_reply(message, report)
+    await edit_or_reply(message, report)

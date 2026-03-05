@@ -3,6 +3,7 @@ import urllib.parse
 
 import aiohttp
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -15,13 +16,13 @@ from . import *
 async def txtimg_handler(client: Client, message: Message):
     args = extract_args(message)
     if not args and not message.has_quoted_msg:
-        return await smart_reply(
+        return await edit_or_reply(
             message,
             "📝 **Astra Text Card**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Usage:** `.txtimg Hello World` or reply to text.",
         )
 
     text = " ".join(args) if args else message.quoted.body
-    status_msg = await smart_reply(
+    status_msg = await edit_or_reply(
         message, "✨ **Astra Creative Studio**\n━━━━━━━━━━━━━━━━━━━━\n🎨 *Rendering your text card...*"
     )
 
@@ -56,12 +57,12 @@ async def kcode_handler(client: Client, message: Message):
     """
     args = extract_args(message)
     if not args and not message.has_quoted_msg:
-        return await smart_reply(
+        return await edit_or_reply(
             message, "🎨 **Astra K-Code**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Usage:** `.kcode Hello World`"
         )
 
     text = " ".join(args) if args else message.quoted.body
-    status_msg = await smart_reply(message, "🎨 **Astra K-Code**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Rendering premium card...*")
+    status_msg = await edit_or_reply(message, "🎨 **Astra K-Code**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Rendering premium card...*")
 
     url = "https://carbonara.solopov.dev/api/cook"
     payload = {

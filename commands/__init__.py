@@ -3,7 +3,7 @@
 import logging
 
 from utils.error_reporter import ErrorReporter
-from utils.helpers import get_contact_name, smart_reply
+from utils.helpers import get_contact_name, edit_or_reply
 from utils.plugin_utils import (
     COMMANDS_METADATA,
     PLUGIN_HANDLES,
@@ -15,6 +15,24 @@ from utils.plugin_utils import (
 )
 
 from astra import Client, Filters
-from astra.models import Message, MessageType
+from astra.types import Message, MessageType
 
 logger = logging.getLogger("Plugins")
+
+__all__ = [
+    "ErrorReporter",
+    "get_contact_name",
+    "edit_or_reply",
+    "COMMANDS_METADATA",
+    "PLUGIN_HANDLES",
+    "astra_command",
+    "authorized_filter",
+    "extract_args",
+    "load_plugin",
+    "unload_plugin",
+    "Client",
+    "Filters",
+    "Message",
+    "MessageType",
+    "logger",
+]

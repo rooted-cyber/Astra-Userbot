@@ -1,6 +1,7 @@
 """Privacy settings commands using the new Astra v3 API."""
 
 from . import *
+from utils.helpers import edit_or_reply, edit_or_reply
 
 
 @astra_command(

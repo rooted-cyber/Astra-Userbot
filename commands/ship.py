@@ -8,6 +8,7 @@ Supports manual JID input, mentions, or replies.
 import random
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -70,4 +71,4 @@ async def ship_handler(client: Client, message: Message):
         f"💬 **Result:** {comment}"
     )
 
-    await smart_reply(message, report)
+    await edit_or_reply(message, report)

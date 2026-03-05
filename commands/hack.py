@@ -8,6 +8,7 @@ WARNING: This is purely visual and does not actually hack anything.
 import asyncio
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -49,7 +50,7 @@ async def hack_handler(client: Client, message: Message):
         except:
             pass
 
-    status_msg = await smart_reply(message, f" 💻 *Initiating Hack on {target_name}...*")
+    status_msg = await edit_or_reply(message, f" 💻 *Initiating Hack on {target_name}...*")
 
     steps = [
         f" 🔍 *Scanning vulnerabilities on {target_name}...*",

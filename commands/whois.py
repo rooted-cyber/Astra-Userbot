@@ -1,4 +1,5 @@
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -30,9 +31,9 @@ async def whois_handler(client: Client, message: Message):
         target_jid = message.sender or (message.chat_id if not str(message.chat_id).endswith("@g.us") else "")
 
     if not target_jid:
-        return await smart_reply(message, " 👤 Provide a user to fetch info.")
+        return await edit_or_reply(message, " 👤 Provide a user to fetch info.")
 
-    status_msg = await smart_reply(message, " 🔍 *Fetching user intelligence...*")
+    status_msg = await edit_or_reply(message, " 🔍 *Fetching user intelligence...*")
 
     # 2. Extract Data
     # Normalize JID for display

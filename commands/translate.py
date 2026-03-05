@@ -3,6 +3,7 @@ from urllib.parse import quote
 import aiohttp
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -34,9 +35,9 @@ async def translate_handler(client: Client, message: Message):
         # .tr hello -> target: en (default), text: hello
         text_to_translate = args[0]
     else:
-        return await smart_reply(message, "❌ **Usage:** `.tr <lang_code> <text>` or reply with `.tr <lang_code>`")
+        return await edit_or_reply(message, "❌ **Usage:** `.tr <lang_code> <text>` or reply with `.tr <lang_code>`")
 
-    status_msg = await smart_reply(message, f"🌏 **Translating to:** `{dest_lang}`...")
+    status_msg = await edit_or_reply(message, f"🌏 **Translating to:** `{dest_lang}`...")
 
     try:
         # Google Translate mobile API (no key required for small requests)

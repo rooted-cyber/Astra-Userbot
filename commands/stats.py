@@ -4,6 +4,7 @@ import time
 import psutil
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -56,4 +57,4 @@ async def stats_handler(client: Client, message: Message):
         "✨ *System is running optimally.*"
     )
 
-    await smart_reply(message, stats_text)
+    await edit_or_reply(message, stats_text)

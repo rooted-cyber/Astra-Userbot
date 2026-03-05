@@ -8,6 +8,7 @@ WARNING: Use with caution to avoid account bans.
 import asyncio
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -24,16 +25,16 @@ async def spam_handler(client: Client, message: Message):
     """
     args_list = extract_args(message)
     if len(args_list) < 2:
-        return await smart_reply(message, " 📋 Usage: `.spam <count> <message>`")
+        return await edit_or_reply(message, " 📋 Usage: `.spam <count> <message>`")
 
     try:
         count = int(args_list[0])
         text = " ".join(args_list[1:])
     except ValueError:
-        return await smart_reply(message, " ⚠️ Count must be a number.")
+        return await edit_or_reply(message, " ⚠️ Count must be a number.")
 
     if count > 100:
-        return await smart_reply(message, " ⚠️ Safety Limit: Max 100 messages allowed.")
+        return await edit_or_reply(message, " ⚠️ Safety Limit: Max 100 messages allowed.")
 
     await message.delete()
 
@@ -56,17 +57,17 @@ async def dspam_handler(client: Client, message: Message):
     """
     args_list = extract_args(message)
     if len(args_list) < 3:
-        return await smart_reply(message, " 📋 Usage: `.dspam <delay> <count> <message>`")
+        return await edit_or_reply(message, " 📋 Usage: `.dspam <delay> <count> <message>`")
 
     try:
         delay = float(args_list[0])
         count = int(args_list[1])
         text = " ".join(args_list[2:])
     except ValueError:
-        return await smart_reply(message, " ⚠️ Delay and Count must be numbers.")
+        return await edit_or_reply(message, " ⚠️ Delay and Count must be numbers.")
 
     if count > 100:
-        return await smart_reply(message, " ⚠️ Safety Limit: Max 100 messages allowed.")
+        return await edit_or_reply(message, " ⚠️ Safety Limit: Max 100 messages allowed.")
 
     await message.delete()
 

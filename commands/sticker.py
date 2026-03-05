@@ -6,6 +6,7 @@ from PIL import Image
 from utils.bridge_downloader import bridge_downloader
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 
 @astra_command(
@@ -19,9 +20,9 @@ from . import *
 async def sticker_handler(client: Client, message: Message):
     """Sticker creation plugin."""
     if not message.has_quoted_msg and not message.is_media:
-        return await smart_reply(message, "✨ Reply to an image or video to make a sticker.")
+        return await edit_or_reply(message, "✨ Reply to an image or video to make a sticker.")
 
-    status_msg = await smart_reply(message, "✨ **Making your sticker...**")
+    status_msg = await edit_or_reply(message, "✨ **Making your sticker...**")
 
     # Download media via high-reliability Bridge
     media_data = await bridge_downloader.download_media(client, message)
@@ -51,9 +52,9 @@ async def sticker_handler(client: Client, message: Message):
 async def kang_handler(client: Client, message: Message):
     """Advanced sticker cloning/creation."""
     if not message.has_quoted_msg and not message.is_media:
-        return await smart_reply(message, "✨ Reply to a sticker, image, or video to kang it.")
+        return await edit_or_reply(message, "✨ Reply to a sticker, image, or video to kang it.")
 
-    status_msg = await smart_reply(message, "✨ **Kanging your sticker...**")
+    status_msg = await edit_or_reply(message, "✨ **Kanging your sticker...**")
 
     # Download media
     media_data = await bridge_downloader.download_media(client, message)
@@ -100,7 +101,7 @@ async def stkrinfo_handler(client: Client, message: Message):
     has_quoted_sticker = message.has_quoted_msg and message.quoted_type == MessageType.STICKER
 
     if not is_sticker and not has_quoted_sticker:
-        return await smart_reply(message, "✨ Reply to a sticker to see its info.")
+        return await edit_or_reply(message, "✨ Reply to a sticker to see its info.")
 
     info = f"🎭 **Sticker Metadata**\n━━━━━━━━━━━━━━━━━━━━\n"
     info += f"🆔 **ID:** `{message.id}`\n"
@@ -109,7 +110,7 @@ async def stkrinfo_handler(client: Client, message: Message):
         info += f"📦 **Size:** `{message.size // 1024} KB`\n"
     info += f"🕒 **Time:** `{time.strftime('%H:%M:%S', time.localtime(message.timestamp))}`\n"
 
-    await smart_reply(message, info)
+    await edit_or_reply(message, info)
 
 
 @astra_command(
@@ -126,9 +127,9 @@ async def stoi_handler(client: Client, message: Message):
     has_quoted_sticker = message.has_quoted_msg and message.quoted_type == MessageType.STICKER
 
     if not is_sticker and not has_quoted_sticker:
-        return await smart_reply(message, "✨ Reply to a sticker to convert it to an image.")
+        return await edit_or_reply(message, "✨ Reply to a sticker to convert it to an image.")
 
-    status_msg = await smart_reply(message, "✨ **Converting to image...**")
+    status_msg = await edit_or_reply(message, "✨ **Converting to image...**")
 
     media_data = await bridge_downloader.download_media(client, message)
     if not media_data:
@@ -158,9 +159,9 @@ async def getstkr_handler(client: Client, message: Message):
     has_quoted_sticker = message.has_quoted_msg and message.quoted_type == MessageType.STICKER
 
     if not is_sticker and not has_quoted_sticker:
-        return await smart_reply(message, "✨ Reply to a sticker to get the file.")
+        return await edit_or_reply(message, "✨ Reply to a sticker to get the file.")
 
-    status_msg = await smart_reply(message, "✨ **Fetching sticker file...**")
+    status_msg = await edit_or_reply(message, "✨ **Fetching sticker file...**")
 
     media_data = await bridge_downloader.download_media(client, message)
     if not media_data:

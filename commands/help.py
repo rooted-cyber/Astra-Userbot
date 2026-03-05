@@ -3,6 +3,7 @@ import logging
 from config import config
 
 from . import *
+from utils.helpers import edit_or_reply, smart_reply
 
 logger = logging.getLogger("Astra.Help")
 
@@ -133,7 +134,7 @@ async def help_handler(client: Client, message: Message):
                     f"┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n"
                     f"💡 `{pfx}help <cmd>` for usage details"
                 )
-                return await smart_reply(message, txt)
+                return await edit_or_reply(message, txt)
 
             # ② CATEGORY search (e.g. ".help fun & memes")
             full_query = " ".join(args).lower().strip()
@@ -160,7 +161,7 @@ async def help_handler(client: Client, message: Message):
                     f"┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n"
                     f"💡 `{pfx}help <cmd>` for usage details"
                 )
-                return await smart_reply(message, txt)
+                return await edit_or_reply(message, txt)
 
             # ③ COMMAND search (e.g. ".help ping")
             cmd = next(
@@ -196,9 +197,9 @@ async def help_handler(client: Client, message: Message):
                     txt += f"\n┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n  🔗 *Also in `{mod_name}`:*\n  {peers_str}{extra}\n"
 
                 txt += f"┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n⚡ *Astra Engine v{config.VERSION}*"
-                return await smart_reply(message, txt)
+                return await edit_or_reply(message, txt)
 
-            return await smart_reply(message, f"❌ `{q}` not found.\n💡 Try `{pfx}help` for the full menu.")
+            return await edit_or_reply(message, f"❌ `{q}` not found.\n💡 Try `{pfx}help` for the full menu.")
 
         # ── MAIN MENU ───────────────────────────
         total = len(COMMANDS_METADATA)
@@ -237,10 +238,10 @@ async def help_handler(client: Client, message: Message):
             f"✨ *Premium WhatsApp Automation*"
         )
 
-        await smart_reply(message, txt)
+        await edit_or_reply(message, txt)
 
     except Exception as e:
         import traceback
 
         logger.error(f"Help Error: {e}\n{traceback.format_exc()}")
-        await smart_reply(message, f"❌ Help System Failure: `{e}`")
+        await edit_or_reply(message, f"❌ Help System Failure: `{e}`")
