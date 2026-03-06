@@ -25,23 +25,35 @@ class Database:
         if self.initialized:
             return
 
-        )
-        await self.sqlite_conn.commit()
+        async with self._lock:
+            # Double-check initialization state inside the lock
+            if self.initialized:
+                return
 
-        # Initialize MongoDB
-        if config.MONGO_URI:
-            try:
-                self.mongo_client = AsyncIOMotorClient(config.MONGO_URI)
-                # Parse DB name from URI or use default
-                db_name = config.MONGO_URI.split("/")[-1].split("?")[0] or "astra_userbot"
-                self.mongo_db = self.mongo_client[db_name]
-                logger.info("Connected to MongoDB")
-            except Exception as e:
-                logger.error(f"Failed to connect to MongoDB: {e}")
-                self.mongo_client = None
+            # Initialize SQLite
+            self.sqlite_conn = await aiosqlite.connect(config.SQLITE_PATH)
+            await self.sqlite_conn.execute(
+                "CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER)"
+            )
+            await self.sqlite_conn.execute(
+                "CREATE TABLE IF NOT EXISTS seen_memes (post_id TEXT PRIMARY KEY, subreddit TEXT, fetched_at INTEGER)"
+            )
+            await self.sqlite_conn.commit()
 
-        await self._sync_on_startup()
-        self.initialized = True
+            # Initialize MongoDB
+            if config.MONGO_URI:
+                try:
+                    self.mongo_client = AsyncIOMotorClient(config.MONGO_URI)
+                    # Parse DB name from URI or use default
+                    db_name = config.MONGO_URI.split("/")[-1].split("?")[0] or "astra_userbot"
+                    self.mongo_db = self.mongo_client[db_name]
+                    logger.info("Connected to MongoDB")
+                except Exception as e:
+                    logger.error(f"Failed to connect to MongoDB: {e}")
+                    self.mongo_client = None
+
+            await self._sync_on_startup()
+            self.initialized = True
 
     async def _sync_on_startup(self):
         """Syncs data between SQLite and MongoDB."""
