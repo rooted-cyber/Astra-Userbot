@@ -177,3 +177,94 @@ async def privacy_handler(client: Client, message: Message):
         await status_msg.edit(f"{UI.mono('[ OK ]')} {UI.mono(category)} scope synchronized to {UI.bold(str(value))}.")
     except Exception as e:
         await status_msg.edit(f"{UI.mono('[ ERROR ]')} Synchronization failed: {UI.mono(str(e))}")
+
+
+@astra_command(
+    name="install",
+    description="Install a new plugin by replying to a .py file.",
+    category="Owner",
+    usage="(reply to .py file)",
+    owner_only=True,
+)
+async def install_handler(client: Client, message: Message):
+    if not message.has_quoted_msg:
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target plugin buffer (.py) required.")
+
+    quoted = message.quoted
+    filename = getattr(quoted, "filename", None) or "plugin.py"
+
+    if not filename.endswith(".py"):
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Invalid asset format. Only .py files are allowed.")
+
+    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Extracting plugin payload: {UI.mono(filename)}...")
+
+    try:
+        # Use high-reliability bridge downloader
+        from utils.bridge_downloader import bridge_downloader
+        media_data = await bridge_downloader.download_media(client, message)
+        if not media_data:
+            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Payload extraction failure.")
+
+        import os
+        import shutil
+
+        # Clean filename
+        clean_name = filename.lower().replace(" ", "_")
+        module_name = clean_name[:-3]
+        target_dir = os.path.join(os.getcwd(), "commands")
+        target_path = os.path.join(target_dir, clean_name)
+
+        # Write the downloaded data to the target path
+        with open(target_path, "wb") as f:
+            f.write(media_data)
+
+        # Load the plugin
+        from utils.plugin_utils import load_plugin
+        if load_plugin(client, f"commands.{module_name}"):
+            await status_msg.edit(
+                f"{UI.header('PLUGIN INSTALLED')}\n"
+                f"• Asset: {UI.mono(clean_name)}\n"
+                f"• Scope: {UI.mono('commands.' + module_name)}\n"
+                f"• Status: {UI.bold('ACTIVE')}\n\n"
+                f"{UI.italic('Plugin is now persistent and live.')}"
+            )
+        else:
+            await status_msg.edit(f"{UI.mono('[ ERROR ]')} Dynamic loading failed. Check logs for syntax issues.")
+
+    except Exception as e:
+        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Installation reached a critical failure: {UI.mono(str(e))}")
+
+
+@astra_command(
+    name="uninstall",
+    description="Remove a plugin and delete its file.",
+    category="Owner",
+    usage="<plugin_name> (e.g. .uninstall my_plugin)",
+    owner_only=True,
+)
+async def uninstall_handler(client: Client, message: Message):
+    args = extract_args(message)
+    if not args:
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Plugin identifier required.")
+
+    plugin_name = args[0].lower().replace(".py", "")
+    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Purging plugin scope: {UI.mono(plugin_name)}...")
+
+    try:
+        import os
+        from utils.plugin_utils import unload_plugin
+
+        target_path = os.path.join(os.getcwd(), "commands", f"{plugin_name}.py")
+
+        # 1. Unload from memory
+        unload_plugin(client, f"commands.{plugin_name}")
+
+        # 2. Remove from disk
+        if os.path.exists(target_path):
+            os.remove(target_path)
+            await status_msg.edit(f"{UI.mono('[ OK ]')} Plugin {UI.mono(plugin_name)} purged from disk and memory.")
+        else:
+            await status_msg.edit(f"{UI.mono('[ ERROR ]')} Scope {UI.mono(plugin_name)} not found on disk.")
+
+    except Exception as e:
+        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Purge failed: {UI.mono(str(e))}")
