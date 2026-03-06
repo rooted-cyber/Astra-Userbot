@@ -106,7 +106,7 @@ async def apply_video_edit(client: Client, message: Message, edit_type: str):
         await loop.run_in_executor(None, process_video)
 
         if edit_type == "togif":
-            await client.send_media(message.chat_id, temp_out, mimetype="image/gif", caption="🎬 **Media Effect:** `togif`")
+            await client.send_file(message.chat_id, temp_out, caption="🎬 **Media Effect:** `togif`")
         elif edit_type == "audio":
             await client.send_audio(message.chat_id, temp_out, caption="🎬 **Media Effect:** `audio` (Extracted)")
         else:
