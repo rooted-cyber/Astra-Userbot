@@ -8,6 +8,7 @@ import aiohttp
 
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
 
 # Configuration: API endpoint with safety filters
 JOKE_API_URL = "https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit"
@@ -29,14 +30,14 @@ async def joke_handler(client: Client, message: Message):
     async with aiohttp.ClientSession() as session:
         async with session.get(JOKE_API_URL, timeout=aiohttp.ClientTimeout(total=10)) as resp:
             if resp.status != 200:
-                return await edit_or_reply(message, " ⚠️ Joke service is currently unavailable.")
+                return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Joke service offline.")
 
             joke_data = await resp.json()
 
             # Render logic based on joke type
             if joke_data.get("type") == "single":
-                content = f" 😂 *Astra Humour:*\n\n{joke_data['joke']}"
+                content = f"{UI.header('HUMOUR SEGMENT')}\n{joke_data['joke']}"
             else:
-                content = f" 😂 *Astra Humour:*\n\n{joke_data['setup']}\n\n... _{joke_data['delivery']}_"
+                content = f"{UI.header('HUMOUR SEGMENT')}\n{joke_data['setup']}\n\n{UI.italic(joke_data['delivery'])}"
 
             await edit_or_reply(message, content)

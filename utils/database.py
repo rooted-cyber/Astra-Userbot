@@ -8,6 +8,7 @@ from typing import Any
 import aiosqlite
 from config import config
 from motor.motor_asyncio import AsyncIOMotorClient
+from utils.helpers import safe_task
 
 logger = logging.getLogger("Astra.Database")
 
@@ -213,8 +214,9 @@ class Database:
 
         # Update MongoDB (fire and forget)
         if self.mongo_db is not None:
-            asyncio.create_task(
-                self._mongo_update_task("state", {"_id": key}, {"$set": {"value": value, "updated_at": now}})
+            safe_task(
+                self._mongo_update_task("state", {"_id": key}, {"$set": {"value": value, "updated_at": now}}),
+                log_context=f"DB.set:{key}"
             )
 
     async def increment(self, key: str, amount: int = 1):
@@ -231,8 +233,9 @@ class Database:
 
         # Update MongoDB using $inc (fire and forget)
         if self.mongo_db is not None:
-            asyncio.create_task(
-                self._mongo_update_task("state", {"_id": key}, {"$inc": {"value": amount}, "$set": {"updated_at": now}})
+            safe_task(
+                self._mongo_update_task("state", {"_id": key}, {"$inc": {"value": amount}, "$set": {"updated_at": now}}),
+                log_context=f"DB.increment:{key}"
             )
 
     async def delete(self, key: str):
@@ -241,7 +244,7 @@ class Database:
         await self.sqlite_conn.execute("DELETE FROM state WHERE key = ?", (key,))
         await self.sqlite_conn.commit()
         if self.mongo_db is not None:
-            asyncio.create_task(self._mongo_delete_task("state", {"_id": key}))
+            safe_task(self._mongo_delete_task("state", {"_id": key}), log_context=f"DB.delete:{key}")
 
     async def get_stats(self) -> dict:
         """Returns statistics about the database."""

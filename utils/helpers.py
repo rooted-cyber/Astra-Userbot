@@ -14,6 +14,26 @@ from astra.types import Message
 # Core Utility Functions
 # ----------------------
 
+def safe_task(coro_or_future, log_context: str = "Unhandled Task"):
+    """
+    Executes a coroutine or future as a background task.
+    Safely catches and logs all exceptions to prevent 'Task exception was never retrieved'.
+    Uses ensure_future to handle both coroutines and futures.
+    """
+    import logging
+    logger = logging.getLogger("Astra.SafeTask")
+
+    async def wrapper():
+        try:
+            if asyncio.iscoroutine(coro_or_future):
+                await coro_or_future
+            else:
+                await asyncio.wrap_future(coro_or_future)
+        except Exception as e:
+            logger.error(f"[{log_context}] Background task failed: {e}", exc_info=True)
+
+    return asyncio.ensure_future(wrapper())
+
 
 async def check_binary(name: str) -> bool:
     """
@@ -98,13 +118,23 @@ class RateLimiter:
 async def edit_or_reply(message: Message, content: str, **kwargs):
     """
     Edits the triggering message if sent by us, otherwise replies.
-    Falls back to a plain send if both edit and reply fail
-    (e.g. message deleted, chat read-only, too old to edit).
+    Falls back to a plain send if both edit and reply fail.
+    Handles 'Cannot edit message' errors by immediately falling back to reply.
     """
     try:
+        # Check if the message is from us and is potentially editable (not too old, not deleted)
         if message.from_me:
-            await message.edit(content)
-            return message
+            try:
+                # We add a small delay to avoid race conditions with bridge processing
+                time.sleep(0.5)
+                await message.edit(content)
+                return message
+            except Exception as e:
+                # If editing fails (e.g., Cannot edit message error), we move on to reply
+                if "Cannot edit message" in str(e) or "editMessage" in str(e):
+                    pass # Handled by the next try block
+                else:
+                    raise e
     except Exception:
         pass
 
@@ -133,7 +163,7 @@ async def safe_edit(message: Message, content: str, **kwargs):
     try:
         # If edit is possible (it's from me), attempt it
         if message.from_me:
-            await asyncio.sleep(0.5)
+            time.sleep(0.5)
             return await message.edit(content, **kwargs)
         else:
             # If not from me, we must reply

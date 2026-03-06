@@ -10,6 +10,7 @@ from utils.bridge_downloader import bridge_downloader
 
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
 
 
 @astra_command(
@@ -22,16 +23,16 @@ from utils.helpers import edit_or_reply
 async def setname_handler(client: Client, message: Message):
     args = extract_args(message)
     if not args:
-        return await edit_or_reply(message, " ⚠️ Provide a new name. Usage: `.setname My New Name`")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} New display identifier required.")
 
     new_name = " ".join(args)
-    status_msg = await edit_or_reply(message, f" 🔄 Updating profile name to: *{new_name}*...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Re-indexing profile name...")
 
     try:
         await client.account.set_name(new_name)
-        await status_msg.edit(f" ✅ Profile name updated to: *{new_name}*")
+        await status_msg.edit(f"{UI.mono('[ OK ]')} Profile identifier synchronized: {UI.bold(new_name)}")
     except Exception as e:
-        await status_msg.edit(f" ❌ Failed to update name: {str(e)}")
+        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Synchronization failed: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -45,16 +46,16 @@ async def setname_handler(client: Client, message: Message):
 async def setbio_handler(client: Client, message: Message):
     args = extract_args(message)
     if not args:
-        return await edit_or_reply(message, " ⚠️ Provide a bio text. Usage: `.bio Available`")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} New manifest entry required.")
 
     new_bio = " ".join(args)
-    status_msg = await edit_or_reply(message, " 🔄 Updating profile bio...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Updating profile manifest...")
 
     try:
         await client.account.set_about_text(new_bio)
-        await status_msg.edit(f" ✅ Bio updated to: *{new_bio}*")
+        await status_msg.edit(f"{UI.mono('[ OK ]')} Profile manifest updated.")
     except Exception as e:
-        await status_msg.edit(f" ❌ Failed to update bio: {str(e)}")
+        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Update failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -66,15 +67,15 @@ async def setbio_handler(client: Client, message: Message):
 )
 async def setpfp_handler(client: Client, message: Message):
     if not message.has_quoted_msg or not (message.quoted_type and message.quoted_type == MessageType.IMAGE):
-        return await edit_or_reply(message, " ⚠️ Reply to an image to set it as your profile picture.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target image buffer required.")
 
-    status_msg = await edit_or_reply(message, " ⏳ *Updating profile picture...*")
+    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Rendering profile asset...")
 
     try:
         # Use high-reliability bridge downloader
         media_data = await bridge_downloader.download_media(client, message)
         if not media_data:
-            return await status_msg.edit(" ❌ Failed to extract media from message.")
+            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Asset extraction failed.")
 
         media_b64 = base64.b64encode(media_data).decode("utf-8")
 
@@ -82,11 +83,11 @@ async def setpfp_handler(client: Client, message: Message):
         success = await client.account.update_profile_pic(media_b64)
 
         if success:
-            await status_msg.edit(" ✅ Profile picture updated successfully!")
+            await status_msg.edit(f"{UI.mono('[ OK ]')} Profile asset synchronized.")
         else:
-            await status_msg.edit(" ❌ Profile picture update returned false.")
+            await status_msg.edit(f"{UI.mono('[ ERROR ]')} Profile update rejected by protocol.")
     except Exception as e:
-        await status_msg.edit(f" ❌ Failed to update PFP: {str(e)}")
+        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Protocol failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -99,27 +100,27 @@ async def setpfp_handler(client: Client, message: Message):
 )
 async def setgpic_handler(client: Client, message: Message):
     if not str(message.chat_id).endswith("@g.us"):
-        return await edit_or_reply(message, " ❌ This command only works in groups.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target workspace out of bounds (Group only).")
     if not message.has_quoted_msg or not (message.quoted_type and message.quoted_type == MessageType.IMAGE):
-        return await edit_or_reply(message, " ⚠️ Reply to an image to set it as group picture.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target image buffer required.")
 
-    status_msg = await edit_or_reply(message, " ⏳ *Updating group picture...*")
+    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Rendering group asset...")
 
     try:
         # Use high-reliability bridge downloader
         media_data = await bridge_downloader.download_media(client, message)
         if not media_data:
-            return await status_msg.edit(" ❌ Failed to extract media from message.")
+            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Asset extraction failed.")
 
         media_b64 = base64.b64encode(media_data).decode("utf-8")
         success = await client.group.update_profile_pic(message.chat_id, media_b64)
 
         if success:
-            await status_msg.edit(" ✅ Group picture updated successfully!")
+            await status_msg.edit(f"{UI.mono('[ OK ]')} Group asset synchronized.")
         else:
-            await status_msg.edit(" ❌ Group picture update returned false.")
+            await status_msg.edit(f"{UI.mono('[ ERROR ]')} Group update rejected by protocol.")
     except Exception as e:
-        await status_msg.edit(f" ❌ Failed to update group PFP: {str(e)}")
+        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Protocol failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -133,16 +134,16 @@ async def privacy_handler(client: Client, message: Message):
     args = extract_args(message)
 
     if not args:
-        status_msg = await edit_or_reply(message, " 🔍 *Fetching privacy settings...*")
+        status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Fetching privacy manifest...")
         try:
             settings = await client.account.get_settings()
-            text = " 🛡️ **Privacy Settings**\n\n"
+            text = f"{UI.header('PRIVACY MANIFEST')}\n"
             for k, v in settings.items():
-                text += f" • *{k.replace('_', ' ').title()}:* `{v}`\n"
-            text += "\n_Use `.privacy <category> <value>` to update._\n_Categories: last_seen, profile_pic, about, status, read_receipts_"
+                text += f"• {UI.bold(k.replace('_', ' ').title())}: {UI.mono(v)}\n"
+            text += f"\n{UI.italic('Set via .privacy <category> <value>')}\n{UI.mono('Scope: last_seen, profile_pic, about, status, read_receipts')}"
             await status_msg.edit(text)
         except Exception as e:
-            await status_msg.edit(f" ❌ Failed to fetch settings: {str(e)}")
+            await status_msg.edit(f"{UI.mono('[ ERROR ]')} Manifest retrieval failure: {UI.mono(str(e))}")
         return
 
     if len(args) < 2:
@@ -158,7 +159,7 @@ async def privacy_handler(client: Client, message: Message):
     if category == "read_receipts":
         value = value in ["true", "on", "yes", "enabled", "all"]
 
-    status_msg = await edit_or_reply(message, f" 🔄 Updating *{category}* to *{value}*...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Synchronizing {UI.mono(category)} scope...")
 
     try:
         method_map = {
@@ -170,9 +171,9 @@ async def privacy_handler(client: Client, message: Message):
         }
 
         if category not in method_map:
-            return await status_msg.edit(f" ❌ Invalid category: {category}")
+            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Invalid security scope: {UI.mono(category)}")
 
         await method_map[category](value)
-        await status_msg.edit(f" ✅ Privacy setting *{category}* updated to *{value}*!")
+        await status_msg.edit(f"{UI.mono('[ OK ]')} {UI.mono(category)} scope synchronized to {UI.bold(str(value))}.")
     except Exception as e:
-        await status_msg.edit(f" ❌ Privacy update failed: {str(e)}")
+        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Synchronization failed: {UI.mono(str(e))}")

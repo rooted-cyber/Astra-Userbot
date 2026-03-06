@@ -4,8 +4,9 @@ from typing import Any
 
 from config import config
 from utils.database import db
-from utils.helpers import get_contact_name, edit_or_reply
+from utils.helpers import get_contact_name, edit_or_reply, safe_task
 from utils.state import state
+from utils.ui_templates import UI
 
 from astra import Client
 from astra.models import Message
@@ -74,11 +75,11 @@ async def enforce_pm_protection(client: Client, message: Message):
     # Note: StateManager could be improved to handle this increment and save automatically,
     # but for now we manually call save or just use the transient memory.
     # Actually, state.save() background tasks everything.
-    asyncio.create_task(db.set("pm_warnings", state.state["pm_warnings"]))
+    safe_task(db.set("pm_warnings", state.state["pm_warnings"]), log_context="PM_Permit:Sync")
 
     if warnings > config.PM_WARN_LIMIT:
         await edit_or_reply(
-            message, f" 🚫 *Automatic Block:* You have exceeded the warning limit ({config.PM_WARN_LIMIT})."
+            message, f"{UI.mono('[ BLOCK ]')} Access limit exceeded ({config.PM_WARN_LIMIT}). Profile restricted."
         )
         try:
             # We use the bridge call directly if client doesn't have a high-level block
@@ -91,10 +92,11 @@ async def enforce_pm_protection(client: Client, message: Message):
     # Issue Warning
     pm_name = await get_contact_name(client, sender_id)
     warning_text = (
-        f"🛡️ *PM Protection Active*\n\n"
-        f"Hello *{pm_name}*, I do not accept private messages unless approved by my owner.\n\n"
-        f"⚠️ *Warning:* {warnings}/{config.PM_WARN_LIMIT}\n"
-        f"Please wait for my owner to approve you. Further messages may result in an automatic block."
+        f"{UI.header('PM SECURITY ALERT')}\n"
+        f"Identify: {UI.bold(pm_name)}\n"
+        f"Notice  : Unauthorized private session detected.\n"
+        f"Level   : {UI.mono(f'{warnings}/{config.PM_WARN_LIMIT}')} Warnings\n\n"
+        f"{UI.italic('Awaiting owner authorization. Persistent messaging results in automated restriction.')}"
     )
     await edit_or_reply(message, warning_text)
     return False

@@ -5,6 +5,7 @@ import aiohttp
 
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
 
 
 @astra_command(
@@ -21,10 +22,10 @@ async def wiki_handler(client: Client, message: Message):
     """
     args_list = extract_args(message)
     if not args_list:
-        return await edit_or_reply(message, " 📚 **Wikipedia Search**\n\nPlease provide a search term.")
+        return await edit_or_reply(message, f"{UI.bold('USAGE:')} {UI.mono('.wiki <query>')}")
 
     query = " ".join(args_list)
-    status_msg = await edit_or_reply(message, f"📚 Searching Wikipedia for `{query}`...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Accessing Wikipedia: {UI.mono(query[:30])}...")
 
     headers = {
         "User-Agent": "AstraUserbot/1.0 (https://github.com/paman7647/Astra-Userbot; contact@example.com) aiohttp/3.8"
@@ -37,7 +38,7 @@ async def wiki_handler(client: Client, message: Message):
 
         if not search_data["query"]["search"]:
             time.sleep(0.5)
-            return await status_msg.edit(f" ⚠️ No exact results found for `{query}`.")
+            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} No article found for {UI.mono(query)}.")
 
         best_match = search_data["query"]["search"][0]["title"]
 
@@ -46,14 +47,14 @@ async def wiki_handler(client: Client, message: Message):
         async with session.get(summary_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
             if resp.status != 200:
                 time.sleep(0.5)
-                return await status_msg.edit(" ⚠️ Failed to retrieve article summary.")
+                return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Failed to synchronize article summary.")
             data = await resp.json()
 
         # Compose text report
         response = (
-            f"📚 **Wikipedia: {data['title']}**\n\n"
+            f"{UI.header(f'WIKIPEDIA: {data['title']}')}\n"
             f"{data['extract']}\n\n"
-            f"🔗 [Read More]({data['content_urls']['desktop']['page']})"
+            f"{UI.bold('READ MORE:')} {data['content_urls']['desktop']['page']}"
         )
 
         # Handle Thumbnail if present

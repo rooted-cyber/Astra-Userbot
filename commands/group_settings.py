@@ -3,7 +3,7 @@
 import asyncio
 
 from . import *
-from utils.helpers import edit_or_reply, edit_or_reply
+from utils.helpers import edit_or_reply
 
 
 @astra_command(
@@ -20,12 +20,12 @@ async def lock_handler(client: Client, message: Message):
 
     args = extract_args(message)
     if not args:
-        return await edit_or_reply(message, "⚠️ **Usage:** `.lock <send|add|info|all>`")
+        return await edit_or_reply(message, f"{UI.bold('USAGE:')} {UI.mono('.lock <send|add|info|all>')}")
 
     target = args[0].lower()
     api = client.api
     gid = message.chat_id
-    status = await edit_or_reply(message, "🔒 Locking...")
+    status = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Restricting segment permissions...")
 
     try:
         if target in ("send", "all"):
@@ -35,10 +35,10 @@ async def lock_handler(client: Client, message: Message):
         if target in ("info", "all"):
             await api.set_admins_only_info(gid, True)
 
-        label = target if target != "all" else "send + add + info"
-        await status.edit(f"🔒 **Locked:** {label} (admins only)")
+        label = target if target != "all" else "full segment"
+        await status.edit(f"{UI.mono('[ OK ]')} Persistent lock applied: {UI.mono(label)}")
     except Exception as e:
-        await status.edit(f"❌ Failed: {e}")
+        await status.edit(f"{UI.mono('[ ERROR ]')} Permission failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -60,7 +60,7 @@ async def unlock_handler(client: Client, message: Message):
     target = args[0].lower()
     api = client.api
     gid = message.chat_id
-    status = await edit_or_reply(message, "🔓 Unlocking...")
+    status = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Synchronizing segment permissions...")
 
     try:
         if target in ("send", "all"):
@@ -70,10 +70,10 @@ async def unlock_handler(client: Client, message: Message):
         if target in ("info", "all"):
             await api.set_admins_only_info(gid, False)
 
-        label = target if target != "all" else "send + add + info"
-        await status.edit(f"🔓 **Unlocked:** {label} (all members)")
+        label = target if target != "all" else "full segment"
+        await status.edit(f"{UI.mono('[ OK ]')} Permission shield removed: {UI.mono(label)}")
     except Exception as e:
-        await status.edit(f"❌ Failed: {e}")
+        await status.edit(f"{UI.mono('[ ERROR ]')} Synchronize failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -96,9 +96,9 @@ async def setsubject_handler(client: Client, message: Message):
     name = " ".join(args)
     try:
         await client.api.set_group_subject(message.chat_id, name)
-        await edit_or_reply(message, f"✅ Group name changed to: **{name}**")
+        await edit_or_reply(message, f"{UI.mono('[ OK ]')} Subject re-indexed: {UI.bold(name)}")
     except Exception as e:
-        await edit_or_reply(message, f"❌ Failed: {e}")
+        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Index failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -121,9 +121,9 @@ async def setdesc_handler(client: Client, message: Message):
     desc = " ".join(args)
     try:
         await client.api.set_group_description(message.chat_id, desc)
-        await edit_or_reply(message, "✅ Group description updated.")
+        await edit_or_reply(message, f"{UI.mono('[ OK ]')} Manifest updated.")
     except Exception as e:
-        await edit_or_reply(message, f"❌ Failed: {e}")
+        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Manifest failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -146,32 +146,32 @@ async def joinreqs_handler(client: Client, message: Message):
     try:
         reqs = await api.get_membership_requests(gid)
         if not reqs:
-            return await edit_or_reply(message, "📋 No pending join requests.")
+            return await edit_or_reply(message, f"{UI.mono('[ EMPTY ]')} No pending nodes identified.")
 
         if not args:
             # Just list them
-            text = f"📋 **Pending Requests ({len(reqs)}):**\n\n"
+            text = f"{UI.header('PENDING NODES')}\n"
             for r in reqs[:20]:
                 rid = r.get("id", "unknown").split("@")[0]
-                text += f"• {rid}\n"
+                text += f"• {UI.mono(rid)}\n"
             if len(reqs) > 20:
-                text += f"\n_...and {len(reqs) - 20} more_"
-            text += f"\n\nUse `.joinreqs approve` or `.joinreqs reject`"
+                text += f"\n{UI.italic(f'...and {len(reqs) - 20} more')}"
+            text += f"\n\n{UI.bold('COMMANDS:')} {UI.mono('.joinreqs <approve|reject>')}"
             return await edit_or_reply(message, text)
 
         action = args[0].lower()
-        status = await edit_or_reply(message, f"⏳ Processing {len(reqs)} requests...")
+        status = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Processing {len(reqs)} nodes...")
 
         if action == "approve":
             await api.approve_membership(gid)
-            await status.edit(f"✅ Approved {len(reqs)} join request(s).")
+            await status.edit(f"{UI.mono('[ OK ]')} Approved {len(reqs)} access request(s).")
         elif action == "reject":
             await api.reject_membership(gid)
-            await status.edit(f"❌ Rejected {len(reqs)} join request(s).")
+            await status.edit(f"{UI.mono('[ OK ]')} Terminated {len(reqs)} access request(s).")
         else:
-            await status.edit("⚠️ Use `approve` or `reject`.")
+            await status.edit(f"{UI.mono('[ ERROR ]')} Invalid operation parameter.")
     except Exception as e:
-        await edit_or_reply(message, f"❌ Failed: {e}")
+        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Protocol failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -188,6 +188,6 @@ async def revoke_handler(client: Client, message: Message):
 
     try:
         new_link = await client.api.revoke_invite(message.chat_id)
-        await edit_or_reply(message, f"🔗 Invite link revoked.\n\nNew link: {new_link}")
+        await edit_or_reply(message, f"{UI.mono('[ OK ]')} Node link revoked.\nIdentifier: {new_link}")
     except Exception as e:
-        await edit_or_reply(message, f"❌ Failed: {e}")
+        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Protocol failure: {UI.mono(str(e))}")

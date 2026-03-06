@@ -10,9 +10,9 @@ import base64
 
 import aiohttp
 from utils.helpers import get_contact_name, safe_edit
-
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
 
 
 # --- CARBON CODE IMAGE ---
@@ -38,12 +38,11 @@ async def carbon_handler(client: Client, message: Message):
 
     if not code:
         return await edit_or_reply(
-            message, "💻 **Astra Carbon Utility**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Usage:** Reply to code or paste text."
+            message, f"{UI.mono('[ ERROR ]')} Source buffer required.\n{UI.bold('USAGE:')} {UI.mono('.carbon <text>')}"
         )
 
-    status_msg = await edit_or_reply(
-        message, "🎨 **Astra Carbon Utility**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Generating high-res image...*"
-    )
+    status_txt = f"{UI.header('CARBON ENGINE')}\n{UI.mono('[ BUSY ]')} Rendering code snippet..."
+    status_msg = await edit_or_reply(message, status_txt)
 
     # Carbonara API
     url = "https://carbonara.solopov.dev/api/cook"
@@ -56,10 +55,10 @@ async def carbon_handler(client: Client, message: Message):
                 b64_data = base64.b64encode(image_data).decode("utf-8")
 
                 media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "carbon.jpg"}
-                await client.send_media(message.chat_id, media, caption="💻 **Astra Code Snippet**")
+                await client.send_media(message.chat_id, media, caption=f"{UI.mono('[ OK ]')} Astra Pro Snippet")
                 await status_msg.delete()
             else:
-                await safe_edit(status_msg, "❌ **Astra Carbon:** Failed to generate image.")
+                await safe_edit(status_msg, f"{UI.mono('[ ERROR ]')} Carbon rendering failed.")
 
 
 # --- QUOTLY STICKER ---
@@ -78,7 +77,7 @@ async def quotly_handler(client: Client, message: Message):
     """
     if not message.has_quoted_msg:
         return await edit_or_reply(
-            message, "🗨️ **Astra Quotly**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Usage:** Reply to a message to quote it."
+            message, f"{UI.mono('[ ERROR ]')} Target message required for rendering."
         )
 
     args = extract_args(message)
@@ -86,10 +85,8 @@ async def quotly_handler(client: Client, message: Message):
     if args and args[0].isdigit():
         count = min(int(args[0]), 10)  # Cap at 10 for performance
 
-    status_msg = await edit_or_reply(
-        message,
-        f"🎨 **Astra Quotly**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Rendering sequence {'(x' + str(count) + ')' if count > 1 else ''}...*",
-    )
+    status_txt = f"{UI.header('QUOTLY RENDER')}\n{UI.mono('[ BUSY ]')} Processing sequence {UI.mono(f'x{count}') if count > 1 else ''}..."
+    status_msg = await edit_or_reply(message, status_txt)
 
     start_quoted = message.quoted
     messages_to_quote = []
@@ -117,14 +114,14 @@ async def quotly_handler(client: Client, message: Message):
         text = msg.body
         if msg.is_media and not text:
             media_type_map = {
-                "image": "📸 Photo",
-                "video": "🎥 Video",
-                "audio": "🎵 Audio",
-                "ptt": "🎙️ Voice Note",
-                "sticker": "✨ Sticker",
-                "document": "📄 Document",
+                "image": "PHOTO_ASSET",
+                "video": "VIDEO_ASSET",
+                "audio": "AUDIO_ASSET",
+                "ptt": "VOICE_ASSET",
+                "sticker": "STICKER_ASSET",
+                "document": "DOCUMENT_ASSET",
             }
-            text = media_type_map.get(msg.type.value, "📦 Media")
+            text = media_type_map.get(msg.type.value, "MEDIA_ASSET")
 
         # Resolve Identity
         # Handle both structured JID objects and raw strings
@@ -179,4 +176,4 @@ async def quotly_handler(client: Client, message: Message):
                     )
                     await status_msg.delete()
                     return
-    await safe_edit(status_msg, "❌ **Astra Quotly:** Failed to render sequence.")
+    await safe_edit(status_msg, f"{UI.mono('[ ERROR ]')} Quotly rendering failure.")

@@ -7,6 +7,7 @@ from utils.bridge_downloader import bridge_downloader
 
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
 
 
 @astra_command(
@@ -20,9 +21,9 @@ from utils.helpers import edit_or_reply
 async def sticker_handler(client: Client, message: Message):
     """Sticker creation plugin."""
     if not message.has_quoted_msg and not message.is_media:
-        return await edit_or_reply(message, "✨ Reply to an image or video to make a sticker.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target media required (image/video).")
 
-    status_msg = await edit_or_reply(message, "✨ **Making your sticker...**")
+    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Converting to sticker...")
 
     # Download media via high-reliability Bridge
     media_data = await bridge_downloader.download_media(client, message)
@@ -52,9 +53,9 @@ async def sticker_handler(client: Client, message: Message):
 async def kang_handler(client: Client, message: Message):
     """Advanced sticker cloning/creation."""
     if not message.has_quoted_msg and not message.is_media:
-        return await edit_or_reply(message, "✨ Reply to a sticker, image, or video to kang it.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target media required (sticker/image/video).")
 
-    status_msg = await edit_or_reply(message, "✨ **Kanging your sticker...**")
+    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Kanging media segment...")
 
     # Download media
     media_data = await bridge_downloader.download_media(client, message)
@@ -101,14 +102,14 @@ async def stkrinfo_handler(client: Client, message: Message):
     has_quoted_sticker = message.has_quoted_msg and message.quoted_type == MessageType.STICKER
 
     if not is_sticker and not has_quoted_sticker:
-        return await edit_or_reply(message, "✨ Reply to a sticker to see its info.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Reply to a sticker to fetch metadata.")
 
-    info = f"🎭 **Sticker Metadata**\n━━━━━━━━━━━━━━━━━━━━\n"
-    info += f"🆔 **ID:** `{message.id}`\n"
-    info += f"📁 **Mime:** `{message.mimetype or 'image/webp'}`\n"
+    info = f"{UI.header('STICKER METADATA')}\n"
+    info += f"ID     : {UI.mono(message.id)}\n"
+    info += f"Mimetype : {UI.mono(message.mimetype or 'image/webp')}\n"
     if message.size:
-        info += f"📦 **Size:** `{message.size // 1024} KB`\n"
-    info += f"🕒 **Time:** `{time.strftime('%H:%M:%S', time.localtime(message.timestamp))}`\n"
+        info += f"Size   : {UI.mono(f'{message.size // 1024} KB')}\n"
+    info += f"Time   : {UI.mono(time.strftime('%H:%M:%S', time.localtime(message.timestamp)))}\n"
 
     await edit_or_reply(message, info)
 
@@ -127,9 +128,9 @@ async def stoi_handler(client: Client, message: Message):
     has_quoted_sticker = message.has_quoted_msg and message.quoted_type == MessageType.STICKER
 
     if not is_sticker and not has_quoted_sticker:
-        return await edit_or_reply(message, "✨ Reply to a sticker to convert it to an image.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Reply to a sticker for image conversion.")
 
-    status_msg = await edit_or_reply(message, "✨ **Converting to image...**")
+    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Stripping sticker layer...")
 
     media_data = await bridge_downloader.download_media(client, message)
     if not media_data:
@@ -142,7 +143,7 @@ async def stoi_handler(client: Client, message: Message):
     b64_data = base64.b64encode(out_buffer.getvalue()).decode("utf-8")
 
     media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "sticker.jpg"}
-    await client.send_media(str(message.chat_id), media, caption="✨ Converted from Sticker")
+    await client.send_media(str(message.chat_id), media, caption=f"{UI.mono('[ OK ]')} Converted from sticker segment.")
     await status_msg.delete()
 
 
@@ -159,9 +160,9 @@ async def getstkr_handler(client: Client, message: Message):
     has_quoted_sticker = message.has_quoted_msg and message.quoted_type == MessageType.STICKER
 
     if not is_sticker and not has_quoted_sticker:
-        return await edit_or_reply(message, "✨ Reply to a sticker to get the file.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Reply to a sticker to export file.")
 
-    status_msg = await edit_or_reply(message, "✨ **Fetching sticker file...**")
+    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Fetching sticker binary...")
 
     media_data = await bridge_downloader.download_media(client, message)
     if not media_data:

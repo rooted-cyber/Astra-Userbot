@@ -1,4 +1,4 @@
-import asyncio
+import time
 
 from . import *
 from utils.helpers import edit_or_reply
@@ -11,11 +11,11 @@ async def broadcast_handler(client: Client, message: Message):
     """Mass broadcast to all chats."""
     args = extract_args(message)
     if not args:
-        return await edit_or_reply(message, "❌ **Usage:** `.bc <text>`")
+        return await edit_or_reply(message, f"{UI.bold('USAGE:')} {UI.mono('.bc <text>')}")
 
     text = " ".join(args)
     status_msg = await edit_or_reply(
-        message, "📡 **Astra Broadcast Engine**\n━━━━━━━━━━━━━━━━━━━━\n🔄 *Fetching chats and initializing...*"
+        message, f"{UI.header('BROADCAST ENGINE')}\n{UI.mono('[ BUSY ]')} Initializing distribution..."
     )
 
     all_chats = await client.chat.get_all_chats()
@@ -24,13 +24,13 @@ async def broadcast_handler(client: Client, message: Message):
     failed = 0
 
     await status_msg.edit(
-        f"📡 **Astra Broadcast Engine**\n━━━━━━━━━━━━━━━━━━━━\n📤 **Sending to {total} chats...**\n🚀 *Progress updates every 5 chats...*"
+        f"{UI.header('BROADCAST ENGINE')}\n{UI.mono('[ BUSY ]')} Synchronizing {UI.mono(total)} chats...\n{UI.italic('Processing distribution window...')}"
     )
 
     for i, chat in enumerate(all_chats):
         try:
-            # Basic Spam Protection: 1.5s delay
-            await asyncio.sleep(1.5)
+            # Slower cooldown for large scale distribution
+            time.sleep(1.5)
             await client.send_message(chat.id, text)
             success += 1
         except:
@@ -38,11 +38,17 @@ async def broadcast_handler(client: Client, message: Message):
 
         if (i + 1) % 5 == 0:
             await status_msg.edit(
-                f"📡 **Astra Broadcast Engine**\n━━━━━━━━━━━━━━━━━━━━\n📤 **Progress:** `{i + 1}/{total}`\n✅ **Sent:** `{success}`\n❌ **Failed:** `{failed}`"
+                f"{UI.header('BROADCAST ENGINE')}\n"
+                f"Progress : {UI.mono(f'{i + 1}/{total}')}\n"
+                f"Success  : {UI.mono(success)}\n"
+                f"Failed   : {UI.mono(failed)}"
             )
 
     await status_msg.edit(
-        f"📡 **Astra Broadcast Complete**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Success:** `{success}`\n❌ **Failed:** `{failed}`\n🕒 **Total Chats:** `{total}`"
+        f"{UI.header('BROADCAST COMPLETE')}\n"
+        f"Success  : {UI.mono(success)}\n"
+        f"Failed   : {UI.mono(failed)}\n"
+        f"Total    : {UI.mono(total)}"
     )
 
 
@@ -57,11 +63,11 @@ async def broadcast_gc_handler(client: Client, message: Message):
     """Mass broadcast to groups only."""
     args = extract_args(message)
     if not args:
-        return await edit_or_reply(message, "❌ **Usage:** `.bcgc <text>`")
+        return await edit_or_reply(message, f"{UI.bold('USAGE:')} {UI.mono('.bcgc <text>')}")
 
     text = " ".join(args)
     status_msg = await edit_or_reply(
-        message, "🏢 **Astra Group Broadcast**\n━━━━━━━━━━━━━━━━━━━━\n🔄 *Filtering groups...*"
+        message, f"{UI.header('GROUP BROADCAST')}\n{UI.mono('[ BUSY ]')} Filtering group segments..."
     )
 
     all_chats = await client.chat.get_all_chats()
@@ -74,12 +80,12 @@ async def broadcast_gc_handler(client: Client, message: Message):
         return await status_msg.edit("❌ No groups found.")
 
     await status_msg.edit(
-        f"🏢 **Astra Group Broadcast**\n━━━━━━━━━━━━━━━━━━━━\n📤 **Sending to {total} groups...**"
+        f"{UI.header('GROUP BROADCAST')}\n{UI.mono('[ BUSY ]')} Synchronizing {UI.mono(total)} groups..."
     )
 
     for i, gc in enumerate(groups):
         try:
-            await asyncio.sleep(2)  # Slower for groups
+            time.sleep(2)  # Slower for groups
             await client.send_message(gc.id, text)
             success += 1
         except:
@@ -87,9 +93,14 @@ async def broadcast_gc_handler(client: Client, message: Message):
 
         if (i + 1) % 3 == 0:
             await status_msg.edit(
-                f"🏢 **Astra Group Broadcast**\n━━━━━━━━━━━━━━━━━━━━\n📤 **Progress:** `{i + 1}/{total}`\n✅ **Sent:** `{success}`"
+                f"{UI.header('GROUP BROADCAST')}\n"
+                f"Progress : {UI.mono(f'{i + 1}/{total}')}\n"
+                f"Success  : {UI.mono(success)}"
             )
 
     await status_msg.edit(
-        f"🏢 **Astra Group Broadcast Complete**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Success:** `{success}`\n❌ **Failed:** `{failed}`\n🏢 **Total Groups:** `{total}`"
+        f"{UI.header('BROADCAST COMPLETE')}\n"
+        f"Success  : {UI.mono(success)}\n"
+        f"Failed   : {UI.mono(failed)}\n"
+        f"Total    : {UI.mono(total)}"
     )

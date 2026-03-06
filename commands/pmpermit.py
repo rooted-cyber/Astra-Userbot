@@ -2,6 +2,7 @@ from utils.state import state
 
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
 
 
 @astra_command(
@@ -17,19 +18,19 @@ async def pmpermit_handler(client: Client, message: Message):
     args_list = extract_args(message)
 
     if not args_list:
-        status = "Active 🛡️" if state.get_config("ENABLE_PM_PROTECTION") else "Inactive 🔓"
+        status = f"{UI.mono('[ ACTIVE ]')} Shielded" if state.get_config("ENABLE_PM_PROTECTION") else f"{UI.mono('[ INACTIVE ]')} Open"
         permitted_count = len(state.state.get("pm_permits", []))
 
         help_text = (
-            f"🛡️ **Astra PM Security**\n━━━━━━━━━━━━━━━━━━━━\n"
-            f"📍 **Status:** {status}\n"
-            f"👥 **Permitted Users:** `{permitted_count}`\n"
-            f"⚠️ **Warning Limit:** `{state.get_config('PM_WARN_LIMIT')}`\n\n"
-            f"📝 **Commands:**\n"
-            f"▫️ `.pmpermit <on|off>` - Toggle Protection\n"
-            f"▫️ `.pmpermit approve` - Permit user (in reply or with ID)\n"
-            f"▫️ `.pmpermit deny` - Revoke access\n"
-            f"▫️ `.pmpermit list` - Show permitted users"
+            f"{UI.header('PM SECURITY PROTOCOL')}\n"
+            f"Status : {status}\n"
+            f"Nodes  : {UI.mono(permitted_count)} Trusted\n"
+            f"Limit  : {UI.mono(state.get_config('PM_WARN_LIMIT'))} Warnings\n\n"
+            f"{UI.bold('OPERATIONS:')}\n"
+            f"• {UI.mono('.pmpermit <on|off>')} - Toggle Shield\n"
+            f"• {UI.mono('.pmpermit approve')} - Authorize User\n"
+            f"• {UI.mono('.pmpermit deny ')} - Revoke Access\n"
+            f"• {UI.mono('.pmpermit list ')} - List Trusted Nodes"
         )
         return await edit_or_reply(message, help_text)
 
@@ -37,10 +38,10 @@ async def pmpermit_handler(client: Client, message: Message):
 
     if action == "on":
         state.set_config("ENABLE_PM_PROTECTION", True)
-        await edit_or_reply(message, "✅ **Astra PM Security:** Protection Enabled! 🛡️")
+        await edit_or_reply(message, f"{UI.mono('[ OK ]')} PM Security Shield enabled.")
     elif action == "off":
         state.set_config("ENABLE_PM_PROTECTION", False)
-        await edit_or_reply(message, "🔓 **Astra PM Security:** Protection Disabled.")
+        await edit_or_reply(message, f"{UI.mono('[ OK ]')} PM Security Shield disabled.")
     elif action in ["approve", "permit", "a"]:
         target_id = None
         if len(args_list) > 1:
@@ -53,7 +54,7 @@ async def pmpermit_handler(client: Client, message: Message):
 
         if not target_id:
             return await edit_or_reply(
-                message, "⚠️ **Astra PM Security:** Please provide a user ID or reply to a message."
+                message, f"{UI.mono('[ ERROR ]')} Target identification required."
             )
 
         # Handle JID objects or strings
@@ -67,7 +68,7 @@ async def pmpermit_handler(client: Client, message: Message):
 
         state.permit_user(target_str)
         name = await get_contact_name(client, target_str)
-        await edit_or_reply(message, f"✅ **Astra PM Security:** `{name}` has been permitted to DM. 🛡️")
+        await edit_or_reply(message, f"{UI.mono('[ OK ]')} {UI.mono(name)} authorized via Security Protocol.")
 
     elif action in ["deny", "d"]:
         target_id = None
@@ -81,7 +82,7 @@ async def pmpermit_handler(client: Client, message: Message):
 
         if not target_id:
             return await edit_or_reply(
-                message, "⚠️ **Astra PM Security:** Please provide a user ID or reply to a message."
+                message, f"{UI.mono('[ ERROR ]')} Target identification required."
             )
 
         # Handle JID objects or strings
@@ -91,18 +92,18 @@ async def pmpermit_handler(client: Client, message: Message):
 
         state.deny_user(target_str)
         name = await get_contact_name(client, target_str)
-        await edit_or_reply(message, f"❌ **Astra PM Security:** `{name}` access has been revoked.")
+        await edit_or_reply(message, f"{UI.mono('[ OK ]')} {UI.mono(name)} access revoked.")
     elif action == "list":
         permitted = state.state.get("pm_permits", [])
         if not permitted:
-            return await edit_or_reply(message, "🚫 **Astra PM Security:** No users permitted yet.")
+            return await edit_or_reply(message, f"{UI.mono('[ EMPTY ]')} No trusted nodes identified.")
 
-        list_text = "📑 **Astra Permitted Users:**\n━━━━━━━━━━━━━━━━━━━━\n"
+        list_text = f"{UI.header('TRUSTED NODES')}\n"
         for i, uid in enumerate(permitted, 1):
             name = await get_contact_name(client, uid)
-            list_text += f"{i}. **{name}** (`{uid.split('@')[0]}`)\n"
+            list_text += f"{i}. {UI.bold(name)} ({UI.mono(uid.split('@')[0])})\n"
 
         await edit_or_reply(message, list_text)
 
     else:
-        await edit_or_reply(message, "❌ **Astra PM Security:** Invalid action. Use on/off/approve/deny/list.")
+        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Invalid operation: {UI.mono(action)}")

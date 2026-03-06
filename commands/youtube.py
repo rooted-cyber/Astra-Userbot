@@ -1,5 +1,6 @@
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
 
 
 @astra_command(
@@ -7,7 +8,7 @@ from utils.helpers import edit_or_reply
     description="Download media from YouTube. Supports auto-search for queries.",
     category="Media & Downloads",
     aliases=["yt", "ytdl"],
-    usage="<url|query> [video|audio]\n\n💡 *Tip:* Use `.setcfg FAST_MEDIA on` for high-speed uploads without progress bars.",
+    usage="<url|query> [video|audio]",
     owner_only=False,
 )
 async def youtube_handler(client: Client, message: Message):
@@ -16,7 +17,7 @@ async def youtube_handler(client: Client, message: Message):
     """
     args_list = extract_args(message)
     if not args_list:
-        return await edit_or_reply(message, " ❌ Please provide a valid YouTube URL.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target URL or query required.")
 
     url_input = args_list[0]
     args_lower = [arg.lower() for arg in args_list]
@@ -26,7 +27,7 @@ async def youtube_handler(client: Client, message: Message):
     mode = "video" if any(kw in args_lower for kw in video_keywords) else "audio"
 
     status_msg = await edit_or_reply(
-        message, "⚡ **Astra Media Engine**\n━━━━━━━━━━━━━━━━━━━━\n🔍 *Initializing request...*"
+        message, f"{UI.header('MEDIA ENGINE')}\n{UI.mono('[ BUSY ]')} Initializing request..."
     )
 
     # Auto-Search Logic
@@ -37,7 +38,7 @@ async def youtube_handler(client: Client, message: Message):
             search_query = search_query.rsplit(" ", 1)[0]
 
         await status_msg.edit(
-            f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n📺 **Query:** `{search_query}`..."
+            f"{UI.header('MEDIA TRACKING')}\n{UI.mono('[ BUSY ]')} Resolving: {UI.mono(search_query[:30])}..."
         )
 
         try:
@@ -55,12 +56,15 @@ async def youtube_handler(client: Client, message: Message):
                         else "N/A"
                     )
                     await status_msg.edit(
-                        f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Found:** `{entry['title']}`\n⏱️ **Duration:** `{duration}`\n\n📥 *Routing to Gateway...*"
+                        f"{UI.header('MEDIA TRACKING')}\n"
+                        f"Title    : {UI.mono(entry['title'][:40])}\n"
+                        f"Duration : {UI.mono(duration)}\n\n"
+                        f"{UI.mono('[ BUSY ]')} Routing to local gateway..."
                     )
                 else:
-                    return await status_msg.edit(f"❌ No results found for `{search_query}`.")
+                    return await status_msg.edit(f"{UI.mono('[ ERROR ]')} No matches found for {UI.mono(search_query)}.")
         except Exception as e:
-            return await status_msg.edit(f"❌ YouTube Search failed: {str(e)}")
+            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Network failure: {UI.mono(str(e))}")
 
     # Use MediaChannel for a "real-time" experience
     from utils.media_channel import MediaChannel

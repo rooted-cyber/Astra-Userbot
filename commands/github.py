@@ -1,7 +1,8 @@
 import aiohttp
-
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
+import time
 
 
 @astra_command(
@@ -16,10 +17,10 @@ async def github_handler(client: Client, message: Message):
     """GitHub info plugin."""
     args = extract_args(message)
     if not args:
-        return await edit_or_reply(message, "❌ **Usage:** `.github <username>` or `.github <user/repo>`")
+        return await edit_or_reply(message, f"{UI.bold('USAGE:')} {UI.mono('.github <user/repo>')} or {UI.mono('.github <user>')}")
 
     query = args[0]
-    status_msg = await edit_or_reply(message, f"🐙 **Fetching GitHub info for:** `{query}`...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Querying GitHub API: {UI.mono(query)}...")
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -30,15 +31,14 @@ async def github_handler(client: Client, message: Message):
                     if resp.status == 200:
                         data = await resp.json()
                         text = (
-                            f"📦 **GITHUB REPOSITORY**\n"
-                            f"━━━━━━━━━━━━━━━━━━━━\n"
-                            f"📁 **Name:** `{data['full_name']}`\n"
-                            f"📝 **About:** {data['description'] or 'No description'}\n"
-                            f"⭐ **Stars:** `{data['stargazers_count']}`    🍴 **Forks:** `{data['forks_count']}`\n"
-                            f"🕒 **Updated:** `{data['updated_at'][:10]}`\n"
-                            f"🔗 **Link:** [GitHub Repo]({data['html_url']})\n"
-                            f"━━━━━━━━━━━━━━━━━━━━\n"
-                            f"🚀 *Astra Dev Tools*"
+                            f"{UI.header('GITHUB REPOSITORY')}\n"
+                            f"Name    : {UI.mono(data['full_name'])}\n"
+                            f"About   : {data['description'] or 'No description'}\n"
+                            f"Stars   : {UI.mono(data['stargazers_count'])} | Forks: {UI.mono(data['forks_count'])}\n"
+                            f"Updated : {UI.mono(data['updated_at'][:10])}\n"
+                            f"Link    : [GitHub Repo]({data['html_url']})\n"
+                            f"{UI.DIVIDER}\n"
+                            f"{UI.italic('Astra Development Protocol')}"
                         )
                         return await status_msg.edit(text)
             else:
@@ -48,16 +48,15 @@ async def github_handler(client: Client, message: Message):
                     if resp.status == 200:
                         data = await resp.json()
                         text = (
-                            f"👤 **GITHUB PROFILE**\n"
-                            f"━━━━━━━━━━━━━━━━━━━━\n"
-                            f"🆔 **Name:** `{data['name'] or data['login']}`\n"
-                            f"🏢 **Company:** `{data['company'] or 'N/A'}`\n"
-                            f"📍 **Location:** `{data['location'] or 'N/A'}`\n"
-                            f"📦 **Public Repos:** `{data['public_repos']}`\n"
-                            f"👥 **Followers:** `{data['followers']}`    🤝 **Following:** `{data['following']}`\n"
-                            f"🔗 **Link:** [GitHub Profile]({data['html_url']})\n"
-                            f"━━━━━━━━━━━━━━━━━━━━\n"
-                            f"🚀 *Astra Dev Tools*"
+                            f"{UI.header('GITHUB PROFILE')}\n"
+                            f"Identity : {UI.mono(data['name'] or data['login'])}\n"
+                            f"Company  : {UI.mono(data['company'] or 'N/A')}\n"
+                            f"Location : {UI.mono(data['location'] or 'N/A')}\n"
+                            f"Repos    : {UI.mono(data['public_repos'])}\n"
+                            f"Social   : {UI.mono(f'{data['followers']} Followers')} | {UI.mono(f'{data['following']} Following')}\n"
+                            f"Link     : [GitHub Profile]({data['html_url']})\n"
+                            f"{UI.DIVIDER}\n"
+                            f"{UI.italic('Astra Development Protocol')}"
                         )
                         return await status_msg.edit(text)
 

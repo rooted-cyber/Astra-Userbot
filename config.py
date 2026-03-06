@@ -109,6 +109,15 @@ class Config:
             return bool(val)
         return os.getenv("ALLOW_MULTI_PREFIX", "false").lower() == "true"
 
+    @property
+    def NO_HNDLR(self) -> bool:
+        """Global toggle for prefix-less commands."""
+        from utils.state import state
+        val = state.get_config("NO_HNDLR")
+        if val is not None:
+            return bool(val)
+        return os.getenv("NO_HNDLR", "false").lower() == "true"
+
     # Persistence & Synchronization
     # -----------------------------
     MONGO_URI = os.getenv("MONGO_URI")

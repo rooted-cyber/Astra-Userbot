@@ -1,10 +1,12 @@
 import time
+import re
 from config import config
 
 from utils.plugin_utils import PLUGIN_HANDLES, load_plugin, unload_plugin
 
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
 
 
 @astra_command(
@@ -21,17 +23,16 @@ async def admin_handler(client: Client, message: Message):
     args_list = extract_args(message)
 
     if not args_list:
-        usage = "<kick|add|promote|demote|tagall|create|leave> [@user|title]"
-        return await edit_or_reply(message, f"⚠️ **Usage:** `{config.PREFIX}admin {usage}`")
+        usage = f"{pfx}admin <kick|add|promote|demote|tagall|create|leave> [@user|title]"
+        return await edit_or_reply(message, f"{UI.bold('USAGE:')} {UI.mono(usage)}")
 
     is_group = str(message.chat_id).endswith("@g.us")
     action = args_list[0].lower()
 
-    import re
 
     if action == "create":
         if len(args_list) < 2:
-            return await edit_or_reply(message, "Please provide a group title.")
+            return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target group specification required.")
         me = await client.get_me()
         participants = [str(me.id)]
         title_parts = []
@@ -65,14 +66,21 @@ async def admin_handler(client: Client, message: Message):
             except Exception as e:
                 invite_link = f"(Failed to get invite link: {e})"
 
-        await edit_or_reply(message, f" ✅ Group *{title}* created!\nID: `{gid}`\nLink: {invite_link}")
+        res = (
+            f"{UI.bold('GROUP CREATED')}\n"
+            f"{UI.DIVIDER}\n"
+            f"Title : {UI.bold(title)}\n"
+            f"ID    : {UI.mono(gid)}\n"
+            f"Link  : {invite_link}\n"
+        )
+        await edit_or_reply(message, res)
         return
 
     if not is_group:
-        return await edit_or_reply(message, "This action only works in groups.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target workspace out of bounds (Group only).")
 
     if action == "leave":
-        await edit_or_reply(message, "👋 **Astra Admin:** Leaving group...")
+        await edit_or_reply(message, f"{UI.mono('[ SYSTEM ]')} Terminating group session...")
         await client.group.leave(message.chat_id)
         return
 
@@ -110,36 +118,36 @@ async def admin_handler(client: Client, message: Message):
 
     if action in ["kick", "remove"]:
         if not target_ids:
-            return await edit_or_reply(message, "Mention users or reply to their message to kick.")
+            return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target identification required.")
         await client.group.remove_participants(message.chat_id, target_ids)
-        await edit_or_reply(message, f"Processed `{len(target_ids)}` removals.")
+        await edit_or_reply(message, f"{UI.mono('[ ADMIN ]')} Processed {UI.mono(len(target_ids))} removals.")
 
     elif action == "add":
         if not target_ids:
-            return await edit_or_reply(message, "Provide user IDs, phone numbers or mention someone to add.")
+            return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target identification nodes required.")
         await client.group.add_participants(message.chat_id, target_ids)
-        await edit_or_reply(message, f"Processed `{len(target_ids)}` additions.")
+        await edit_or_reply(message, f"{UI.mono('[ ADMIN ]')} Processed {UI.mono(len(target_ids))} additions.")
 
     elif action == "promote":
         if not target_ids:
-            return await edit_or_reply(message, "Mention users to promote.")
+            return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target identification nodes required.")
         await client.group.promote_participants(message.chat_id, target_ids)
-        await edit_or_reply(message, f"Processed `{len(target_ids)}` promotions.")
+        await edit_or_reply(message, f"{UI.mono('[ ADMIN ]')} Processed {UI.mono(len(target_ids))} promotions.")
 
     elif action == "demote":
         if not target_ids:
-            return await edit_or_reply(message, "Mention users to demote.")
+            return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target identification nodes required.")
         await client.group.demote_participants(message.chat_id, target_ids)
-        await edit_or_reply(message, f"Processed `{len(target_ids)}` demotions.")
+        await edit_or_reply(message, f"{UI.mono('[ ADMIN ]')} Processed {UI.mono(len(target_ids))} demotions.")
 
     elif action in ["tagall", "everyone"]:
-        status = await edit_or_reply(message, "Tagging everyone...")
+        status = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Broadcasting mention...")
         info = await client.group.get_info(message.chat_id)
         if not info or not info.participants:
             time.sleep(0.5)
-            return await status.edit("Failed to fetch group info.")
+            return await status.edit(f"{UI.mono('[ ERROR ]')} Failed to synchronize participants.")
 
-        text = "📢 **Everyone Check!** \n━━━━━━━━━━━━━━━━━━━━\n"
+        text = f"{UI.bold('BROADCAST MENTION')}\n{UI.DIVIDER}\n"
         mentions = []
         for p in info.participants:
             jid = str(p.id)
@@ -150,7 +158,7 @@ async def admin_handler(client: Client, message: Message):
         await status.delete()
 
     else:
-        await edit_or_reply(message, " Unknown action. Use kick, add, promote, demote, tagall, create, leave.")
+        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Invalid operation: {UI.mono(action)}")
 
 
 @astra_command(
@@ -167,12 +175,12 @@ async def reload_handler(client: Client, message: Message):
 
     args = extract_args(message)
     if not args:
-        return await edit_or_reply(message, " Provide a plugin name to reload (or 'all').")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target plugin required (or 'all').")
 
     target = args[0].lower()
 
     if target == "all":
-        status_msg = await edit_or_reply(message, " 🔄 Reloading ALL plugins...")
+        status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Re-indexing registry...")
         count = 0
         failed = []
 
@@ -197,10 +205,10 @@ async def reload_handler(client: Client, message: Message):
 
         if failed:
             time.sleep(0.5)
-            await status_msg.edit(f" ⚠️ Reloaded {count} plugins.\nFailed: {', '.join(failed)}")
+            await status_msg.edit(f"{UI.mono('[ WARN ]')} Registry updated: {UI.mono(count)} loaded.\n{UI.bold('Failed:')} {UI.mono(', '.join(failed))}")
         else:
             time.sleep(0.5)
-            await status_msg.edit(f" ✅ Successfully reloaded {count} plugins!")
+            await status_msg.edit(f"{UI.mono('[ OK ]')} Registry fully synchronized: {UI.mono(count)} plugins.")
         return
 
     # Single Plugin Logic
@@ -212,16 +220,16 @@ async def reload_handler(client: Client, message: Message):
     file_path = os.path.join(commands_dir, f"{target}.py")
 
     if not os.path.exists(file_path) and plugin_name not in PLUGIN_HANDLES:
-        return await edit_or_reply(message, f" ❌ Plugin '{target}' not found.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Plugin {UI.mono(target)} not found.")
 
-    status_msg = await edit_or_reply(message, f" 🔄 Reloading `{target}`...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Reloading {UI.mono(target)}...")
 
     # 3. specific unload/load
     unload_plugin(client, plugin_name)
     time.sleep(0.5)
     if load_plugin(client, plugin_name):
         time.sleep(0.5)
-        await status_msg.edit(f" ✅ Plugin `{target}` reloaded successfully!")
+        await status_msg.edit(f"{UI.mono('[ OK ]')} Plugin {UI.mono(target)} reloaded.")
     else:
         time.sleep(0.5)
-        await status_msg.edit(f" ❌ Failed to reload `{target}`. Check logs.")
+        await status_msg.edit(f"{UI.mono('[ ERR ]')} Synchronize failed for {UI.mono(target)}.")

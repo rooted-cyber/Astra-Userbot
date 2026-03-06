@@ -1,5 +1,7 @@
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
+import time
 
 
 @astra_command(
@@ -25,7 +27,7 @@ async def ai_handler(client: Client, message: Message):
     if not prompt:
         return await edit_or_reply(
             message,
-            "📋 **Usage:** Please provide a prompt or reply to a message.\n*Example:* `.ai What is the capital of France?`",
+            f"{UI.bold('USAGE:')} {UI.mono('.ai <prompt>')} (or reply to a message)",
         )
 
     from config import config
@@ -40,7 +42,7 @@ async def ai_handler(client: Client, message: Message):
 
     gen_client = genai.Client(api_key=api_key)
 
-    status_msg = await edit_or_reply(message, "✨ **Astra AI**\n━━━━━━━━━━━━━━━━━━━━\n🧠 *Thinking...*")
+    status_msg = await edit_or_reply(message, f"{UI.header('AI ENGINE')}\n{UI.mono('[ BUSY ]')} Thinking...")
 
     import asyncio
 
@@ -50,7 +52,7 @@ async def ai_handler(client: Client, message: Message):
     )
 
     if response and response.text:
-        text = f"✨ **Astra AI**\n━━━━━━━━━━━━━━━━━━━━\n{response.text}"
+        text = f"{UI.header('AI RESPONSE')}\n{response.text}"
         await status_msg.edit(text)
     else:
-        await status_msg.edit("❌ **Astra AI:** Returned an empty response.")
+        await status_msg.edit(f"{UI.mono('[ ERROR ]')} No response from AI engine.")

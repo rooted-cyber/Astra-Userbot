@@ -1,46 +1,52 @@
+import time
 import platform
 import time
 
 from config import config
-
 from . import *
-
+from utils.ui_templates import UI
 
 @astra_command(
     name="ping",
-    description="Description: Measure the round-trip latency (RTT) between the Astra engine and WhatsApp's globally distributed servers. This command performs a real-time connectivity test to ensure optimal responsiveness and identifies potential network bottlenecks.\nSyntax: .ping\nExample: .ping",
+    description="Measure Astra Engine bridge latency.",
     category="Tools & Utilities",
     aliases=["p"],
-    usage=".ping (checks latency)",
+    usage=".ping",
     is_public=True,
 )
 async def ping_handler(client: Client, message: Message):
-    """Calculates round-trip latency with descriptive system context."""
+    """Calculates round-trip latency with minimalist technical output."""
     start_time = time.time()
 
-    # First edit without delay
-    status_msg = await message.reply(
-        "📡 **ASTRA CONNECTIVITY TEST**\n━━━━━━━━━━━━━━━━━━━━\n🔍 **Status:** `Measuring...`"
-    )
+    # Direct report generation (no intermediate edit)
 
     end_time = time.time()
     latency = round((end_time - start_time) * 1000)
 
-    # Determine status level
-    status = "Excellent" if latency < 200 else "Good" if latency < 500 else "Average"
+    # Determine status
+    status = UI.get_ping_status(latency)
 
-    # Final result with descriptive formatting
-    descriptive_ping = (
-        "🏓 **PONG!** 🚀\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"📡 **Latency:** `{latency}ms`\n"
-        f"🛰️ **Network:** `{status}`\n"
-        f"🏷️ **Version:** `{config.VERSION}` (**{config.VERSION_NAME}**)\n"
-        f"⚙️ **System:** `{platform.system()} ({platform.release()})`\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "✨ *Astra Engine is in peak form.*"
+    # Build pro-style report
+    ping_report = (
+        f"{UI.bold('LATENCY CORE REPORT')}\n"
+        f"{UI.DIVIDER}\n"
+        f"Latency  : {UI.mono(f'[{latency}ms]')}\n"
+        f"Network  : {UI.mono(status)}\n"
+        f"Version  : {UI.mono(config.VERSION)}\n"
+        f"System   : {UI.mono(platform.system())}\n"
+        f"{UI.DIVIDER}\n"
+        f"{UI.italic('Protocol: Astra Secure Bridge')}"
     )
 
-    # Second edit with manual delay
-    time.sleep(0.5)
-    await status_msg.edit(descriptive_ping)
+    # Determine reply target
+    reply_id = message.quoted_id if message.has_quoted_msg else message.id
+
+    # Send report immediately
+    await client.send_message(message.chat_id, ping_report, reply_to=reply_id)
+    
+    # Clean up trigger if possible (owner only)
+    try:
+        if message.from_me:
+            await message.delete()
+    except:
+        pass

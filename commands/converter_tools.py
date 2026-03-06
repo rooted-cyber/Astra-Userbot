@@ -6,14 +6,16 @@ from utils.bridge_downloader import bridge_downloader
 from utils.plugin_utils import extract_args
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
 
 @astra_command(name="todoc", description="Convert an image or video to a document file.", category="Tools & Utilities", aliases=["todocument"])
 async def todoc_handler(client: Client, message: Message):
     """Downloads replied media and uploads it as a document."""
     if not message.has_quoted_msg or message.quoted_type not in (MessageType.IMAGE, MessageType.VIDEO):
-        return await edit_or_reply(message, "📄 **Converter**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Reply to an image or video** to convert it to a document.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target image or video required.")
 
-    status_msg = await edit_or_reply(message, "📄 **Astra Converter**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Converting to document format...*")
+    status_txt = f"{UI.header('MEDIA CONVERSION')}\n{UI.mono('[ BUSY ]')} Encoding to document format..."
+    status_msg = await edit_or_reply(message, status_txt)
 
     try:
         ext = "mp4" if message.quoted_type == MessageType.VIDEO else "jpg"
@@ -21,7 +23,7 @@ async def todoc_handler(client: Client, message: Message):
         
         media_path = await message.quoted.download(temp_file)
         if not media_path:
-            return await status_msg.edit("❌ Failed to download original media.")
+            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Source download failed.")
 
         mimetype = "video/mp4" if ext == "mp4" else "image/jpeg"
         
@@ -29,7 +31,7 @@ async def todoc_handler(client: Client, message: Message):
         await client.send_file(
             message.chat_id, 
             temp_file, 
-            caption="📄 *Converted to Document*",
+            caption=f"{UI.mono('[ OK ]')} Data converted to document",
             document=True
         )
         await status_msg.delete()
@@ -44,9 +46,10 @@ async def todoc_handler(client: Client, message: Message):
 async def toimg_handler(client: Client, message: Message):
     """Downloads replied document and uploads it as an inline image."""
     if not message.has_quoted_msg or message.quoted_type != MessageType.DOCUMENT:
-        return await edit_or_reply(message, "🖼️ **Converter**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Reply to a document** to convert it to an image.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target document required.")
 
-    status_msg = await edit_or_reply(message, "🖼️ **Astra Converter**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Processing document as image...*")
+    status_txt = f"{UI.header('IMAGE EXTRACTION')}\n{UI.mono('[ BUSY ]')} Rendering document buffer..."
+    status_msg = await edit_or_reply(message, status_txt)
 
     try:
         # Standard file path handling
@@ -60,12 +63,12 @@ async def toimg_handler(client: Client, message: Message):
         await client.send_image(
             message.chat_id, 
             temp_file, 
-            caption="🖼️ *Converted to Image*"
+            caption=f"{UI.mono('[ OK ]')} Data converted to image"
         )
         await status_msg.delete()
 
     except Exception as e:
-        await status_msg.edit(f"❌ Conversion failed: {str(e)}")
+        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Conversion failure: {UI.mono(str(e))}")
     finally:
         if os.path.exists(temp_file):
             os.remove(temp_file)
@@ -74,9 +77,10 @@ async def toimg_handler(client: Client, message: Message):
 async def pdf2img_handler(client: Client, message: Message):
     """Downloads replied PDF document and extracts all pages as images."""
     if not message.has_quoted_msg or message.quoted_type != MessageType.DOCUMENT:
-        return await edit_or_reply(message, "📄 **Converter**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Reply to a PDF document** to extract images.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target PDF document required.")
 
-    status_msg = await edit_or_reply(message, "📄 **Astra Converter**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Extracting images from PDF... This might take a while.*")
+    status_txt = f"{UI.header('PDF RENDERING')}\n{UI.mono('[ BUSY ]')} Initializing OCR/Render pipeline..."
+    status_msg = await edit_or_reply(message, status_txt)
 
     temp_pdf = f"/tmp/astra_pdf_in_{int(time.time())}.pdf"
     
@@ -90,10 +94,8 @@ async def pdf2img_handler(client: Client, message: Message):
         doc = fitz.open(temp_pdf)
         num_pages = len(doc)
         
-        if num_pages == 0:
-            return await status_msg.edit("❌ The PDF appears to be empty.")
-            
-        await status_msg.edit(f"📄 **Astra Converter**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Extracting {num_pages} page(s) from PDF...*")
+        # Batch render pages
+        await status_msg.edit(f"{UI.mono('[ BUSY ]')} Processing {num_pages} sequence(s)...")
         
         # Determine DPI, usually 150-300 is good, keeping it moderate to save time/bandwidth
         zoom_x = 2.0  # horizontal zoom
@@ -111,7 +113,7 @@ async def pdf2img_handler(client: Client, message: Message):
             await client.send_image(
                 message.chat_id, 
                 temp_img, 
-                caption=f"📄 *Page {page_num + 1} of {num_pages}*"
+                caption=f"{UI.mono('[ OK ]')} Page {page_num + 1}/{num_pages} rendered"
             )
             
             if os.path.exists(temp_img):
@@ -119,7 +121,7 @@ async def pdf2img_handler(client: Client, message: Message):
                 
             # Prevent rate limiting on large PDFs
             if page_num < num_pages - 1:
-                await asyncio.sleep(0.5)
+                time.sleep(0.5)
 
         doc.close()
         await status_msg.delete()

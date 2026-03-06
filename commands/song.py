@@ -1,5 +1,7 @@
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
+import time
 
 
 @astra_command(
@@ -14,7 +16,7 @@ async def song_handler(client: Client, message: Message):
     """Song downloader (audio only)."""
     args = extract_args(message)
     if not args:
-        return await edit_or_reply(message, "❌ **Usage:** `.song <song name>`")
+        return await edit_or_reply(message, f"{UI.bold('USAGE:')} {UI.mono('.song <query>')}")
 
     query = " ".join(args)
     is_url = query.startswith("http://") or query.startswith("https://")
@@ -25,7 +27,7 @@ async def song_handler(client: Client, message: Message):
             query += " audio song"
 
     status_msg = await edit_or_reply(
-        message, f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n🎵 **Query:** `{query}`..."
+        message, f"{UI.header('MEDIA TRACKING')}\n{UI.mono('[ BUSY ]')} Resolving: {UI.mono(query[:30])}..."
     )
 
     import yt_dlp
@@ -45,7 +47,7 @@ async def song_handler(client: Client, message: Message):
             result = ydl.extract_info(f"ytsearch1:{query}", download=False)
             results = result.get("entries", [])
             if not results:
-                return await status_msg.edit(f"❌ No song found for `{query}`.")
+                return await status_msg.edit(f"{UI.mono('[ ERROR ]')} No matches found for {UI.mono(query)}.")
             res = results[0]
 
     target_url = res.get("webpage_url") or f"https://www.youtube.com/watch?v={res.get('id')}"
@@ -55,7 +57,10 @@ async def song_handler(client: Client, message: Message):
     )
 
     await status_msg.edit(
-        f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Found:** `{title}`\n⏱️ **Duration:** `{duration}`\n\n📥 *Routing to Gateway...*"
+        f"{UI.header('MEDIA TRACKING')}\n"
+        f"Title    : {UI.mono(title[:40])}\n"
+        f"Duration : {UI.mono(duration)}\n\n"
+        f"{UI.mono('[ BUSY ]')} Routing to local gateway..."
     )
 
     # Use MediaChannel for download/upload
@@ -77,10 +82,9 @@ async def song_handler(client: Client, message: Message):
 )
 async def vsong_handler(client: Client, message: Message):
     """Vsong downloader (video only)."""
-    # ... extraction logic similar to song_handler ...
     args = extract_args(message)
     if not args:
-        return await edit_or_reply(message, "❌ **Usage:** `.vsong <video name>`")
+        return await edit_or_reply(message, f"{UI.bold('USAGE:')} {UI.mono('.vsong <query>')}")
 
     query = " ".join(args)
     is_url = query.startswith("http://") or query.startswith("https://")
@@ -91,7 +95,7 @@ async def vsong_handler(client: Client, message: Message):
             query += " full video"
 
     status_msg = await edit_or_reply(
-        message, f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n🎬 **Query:** `{query}`..."
+        message, f"{UI.header('MEDIA TRACKING')}\n{UI.mono('[ BUSY ]')} Resolving: {UI.mono(query[:30])}..."
     )
 
     import yt_dlp
@@ -111,7 +115,7 @@ async def vsong_handler(client: Client, message: Message):
             result = ydl.extract_info(f"ytsearch1:{query}", download=False)
             results = result.get("entries", [])
             if not results:
-                return await status_msg.edit(f"❌ No video found for `{query}`.")
+                return await status_msg.edit(f"{UI.mono('[ ERROR ]')} No matches found for {UI.mono(query)}.")
             res = results[0]
 
     target_url = res.get("webpage_url") or f"https://www.youtube.com/watch?v={res.get('id')}"
@@ -121,7 +125,10 @@ async def vsong_handler(client: Client, message: Message):
     )
 
     await status_msg.edit(
-        f"⚡ **Astra Media Tracking**\n━━━━━━━━━━━━━━━━━━━━\n✅ **Found:** `{title}`\n⏱️ **Duration:** `{duration}`\n\n📥 *Routing to Gateway...*"
+        f"{UI.header('MEDIA TRACKING')}\n"
+        f"Title    : {UI.mono(title[:40])}\n"
+        f"Duration : {UI.mono(duration)}\n\n"
+        f"{UI.mono('[ BUSY ]')} Routing to local gateway..."
     )
 
     # Use MediaChannel for download/upload

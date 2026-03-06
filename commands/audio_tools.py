@@ -6,15 +6,17 @@ from utils.bridge_downloader import bridge_downloader
 from utils.plugin_utils import extract_args
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
 
 async def apply_audio_effect(client: Client, message: Message, effect: str):
     is_audio = message.type == MessageType.AUDIO
     has_quoted_audio = message.has_quoted_msg and message.quoted_type == MessageType.AUDIO
     
     if not is_audio and not has_quoted_audio:
-        return await edit_or_reply(message, "🎵 **Audio Tools**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Reply to an audio file** to apply this effect.")
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target audio segment required.")
 
-    status_msg = await edit_or_reply(message, f"🎵 **Astra Creative Studio**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Applying {effect} effect...*")
+    status_txt = f"{UI.header('AUDIO PROCESSING')}\n{UI.mono('[ BUSY ]')} Applying {UI.mono(effect)} filter..."
+    status_msg = await edit_or_reply(message, status_txt)
 
     target = message.quoted if has_quoted_audio else message
     temp_in = f"/tmp/astra_audio_in_{int(time.time())}.mp3"
@@ -23,7 +25,7 @@ async def apply_audio_effect(client: Client, message: Message, effect: str):
     try:
         media_path = await target.download(temp_in)
         if not media_path:
-            return await status_msg.edit("❌ Failed to download audio.")
+            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Source download failed.")
 
         # Build FFmpeg command based on effect
         filter_str = ""
@@ -40,7 +42,7 @@ async def apply_audio_effect(client: Client, message: Message, effect: str):
         elif effect == "8daudio":
             filter_str = "apulsator=hz=0.125"
         else:
-            return await status_msg.edit("❌ Unknown audio effect.")
+            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Invalid filter parameter.")
 
         cmd = [
             "ffmpeg", "-y", "-i", temp_in, 
@@ -57,19 +59,19 @@ async def apply_audio_effect(client: Client, message: Message, effect: str):
         stdout, stderr = await process.communicate()
 
         if process.returncode != 0:
-            return await status_msg.edit(f"❌ Audio processing failed:\n`{stderr.decode('utf-8')}`")
+            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} FFmpeg pipeline failure.")
 
         await client.send_media(
             message.chat_id, 
             temp_out, 
             "audio/mp3", 
-            caption=f"🎵 **Audio Effect:** `{effect}`",
+            caption=f"{UI.mono('[ OK ]')} Filter applied: {UI.mono(effect)}",
             options={"sendAudioAsVoice": True}
         )
         await status_msg.delete()
 
     except Exception as e:
-        await status_msg.edit(f"❌ Error playing with audio: {str(e)}")
+        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Fatal exception: {UI.mono(str(e))}")
     finally:
         if os.path.exists(temp_in):
             os.remove(temp_in)

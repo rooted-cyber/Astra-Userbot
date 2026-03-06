@@ -3,30 +3,25 @@ import os
 import platform
 import sys
 import time
+from datetime import datetime
 
 from config import config
-
 from . import *
 from utils.helpers import edit_or_reply
-
+from utils.ui_templates import UI
 
 @astra_command(
     name="alive",
-    description="Check bot responsiveness and view detailed system status.",
+    description="Check system status and engine integrity.",
     category="Tools & Utilities",
     aliases=[],
     usage=".alive",
     owner_only=True,
 )
 async def alive_handler(client: Client, message: Message):
-    """Renders a real-time professional status report matching high-end userbots."""
-    # 1. Real-time Feel: Initial Status
-    status_msg = await edit_or_reply(message, "⚙️ **Astra Engine:** `Pinging infrastructure...`")
-    start_ping = time.time()
-
-    # 2. Collect Metadata
+    """Renders a minimalist technical status report."""
+    
     from utils.state import BOOT_TIME
-
     uptime_sec = int(time.time() - BOOT_TIME)
 
     def format_uptime(seconds):
@@ -34,19 +29,9 @@ async def alive_handler(client: Client, message: Message):
         h = (seconds % 86400) // 3600
         m = (seconds % 3600) // 60
         s = seconds % 60
-        res = ""
-        if d:
-            res += f"{d}d "
-        if h:
-            res += f"{h}h "
-        if m:
-            res += f"{m}m "
-        res += f"{s}s"
-        return res.strip()
+        return f"{d}d {h}h {m}m {s}s" if d else f"{h}h {m}m {s}s"
 
-    # Resolve Engine & Version
     import astra
-
     engine_ver = getattr(astra, "__version__", "1.0.0")
     db_type = "MongoDB" if config.MONGO_URI else "SQLite"
 
@@ -58,79 +43,66 @@ async def alive_handler(client: Client, message: Message):
     except:
         pass
 
-    # 3. Build Professional Report
+    # Build Pro Report
     alive_report = (
-        f"💠 **ASTRA USERBOT IS ONLINE** 💠\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"👤 **Owner:** `{owner_name}`\n"
-        f"🏷️ **Version:** `{config.VERSION}` ({config.VERSION_NAME})\n"
-        f"⚙️ **Engine:** `v{engine_ver}` (Astra)\n"
-        f"🐍 **Python:** `v{sys.version.split()[0]}`\n"
-        f"🖥️ **OS:** `{platform.system()}`\n"
-        f"🗄️ **Database:** `{db_type}`\n"
-        f"⏱️ **Uptime:** `{format_uptime(uptime_sec)}`\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🔗 **Repo:** [Astra-Userbot](https://github.com/paman7647/Astra-Userbot)\n"
-        f"🔗 **Lib:** [Astra](https://github.com/paman7647/Astra)\n\n"
-        f"🚀 *System is optimized and serving with zero latency.*"
+        f"{UI.header('SYSTEM INTEGRITY')}\n"
+        f"Owner    : {UI.mono(owner_name)}\n"
+        f"Version  : {UI.mono(config.VERSION)}\n"
+        f"Engine   : {UI.mono(f'v{engine_ver}')}\n"
+        f"Database : {UI.mono(db_type)}\n"
+        f"Uptime   : {UI.mono(format_uptime(uptime_sec))}\n"
+        f"OS       : {UI.mono(platform.system())}\n"
+        f"{UI.DIVIDER}\n"
+        f"Status   : {UI.mono('[ OPTIMAL ]')}\n"
+        f"Service  : {UI.mono('Astra Secure Bridge')}"
     )
 
-    # 4. Handle Media/Text Output
+    # Image Handling
     img_source = config.alive_img
     b64 = None
     mimetype = "image/png"
 
     async def fetch_image(source: str):
         nonlocal b64, mimetype
+        if not source: return False
         is_url = source.startswith(("http://", "https://"))
         try:
             if is_url:
                 import aiohttp
-
-                async with aiohttp.ClientSession() as img_session:
-                    async with img_session.get(source, timeout=aiohttp.ClientTimeout(total=10)) as response:
-                        if response.status == 200:
-                            data = await response.read()
-                            b64 = base64.b64encode(data).decode()
-                            mimetype = response.headers.get("Content-Type", "image/png")
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(source, timeout=10) as resp:
+                        if resp.status == 200:
+                            b64 = base64.b64encode(await resp.read()).decode()
+                            mimetype = resp.headers.get("Content-Type", "image/png")
                             return True
-                        else:
-                            logger.warning(f"Alive Image URL returned {response.status}. Falling back to default.")
-                            return False
             elif os.path.exists(source):
                 with open(source, "rb") as f:
                     b64 = base64.b64encode(f.read()).decode()
-                    if source.endswith(".jpg") or source.endswith(".jpeg"):
-                        mimetype = "image/jpeg"
+                    mimetype = "image/jpeg" if source.lower().endswith((".jpg", ".jpeg")) else "image/png"
                     return True
-        except Exception as e:
-            logger.error(f"Failed to process alive image: {e}")
+        except: pass
         return False
 
-    # Attempt to fetch custom image
     success = await fetch_image(img_source)
-
-    # Fallback to default if custom fails
     if not success and img_source != os.path.join(config.BASE_DIR, "utils", "ub.png"):
         await fetch_image(os.path.join(config.BASE_DIR, "utils", "ub.png"))
 
-    if b64:
-        # Delete high-latency pin/edit msg if sending media
-        await status_msg.delete()
+    # Determine reply target
+    reply_id = message.quoted_id if message.has_quoted_msg else message.id
 
+    if b64:
         await client.send_media(
             message.chat_id,
-            {"mimetype": mimetype, "data": b64, "filename": "alive.png"},
+            {"mimetype": mimetype, "data": b64},
             caption=alive_report,
-            reply_to=message.id,
+            reply_to=reply_id,
         )
-        return
+    else:
+        await client.send_message(message.chat_id, alive_report, reply_to=reply_id)
 
-    # Transition high-latency msg to final text-only report if all images fail
-    from datetime import datetime
-    from zoneinfo import ZoneInfo
-
-    now_india = datetime.now(ZoneInfo(config.TIMEZONE)).strftime("%H:%M:%S")
-    alive_report += f"\n🕒 **Report Gen:** `{now_india}`"
-
-    await status_msg.edit(alive_report)
+    # Clean up trigger if possible
+    try:
+        if message.from_me:
+            await message.delete()
+    except:
+        pass

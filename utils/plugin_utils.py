@@ -120,9 +120,16 @@ def astra_command(
         # Build the native filter by ORing name and aliases
         names = [name] + aliases
 
+        # 1. Base Command Filter (with prefixes)
         crit = Filters.command(names[0], prefixes="!./")
         for alias in names[1:]:
             crit |= Filters.command(alias, prefixes="!./")
+
+        # 2. NO_HNDLR Support (without prefixes)
+        if config.NO_HNDLR:
+            for n in names:
+                # Add a filter that matches the word exactly without any prefix
+                crit |= Filters.regex(f"^{n}(\s|$)")
 
         # Apply Global Startup Filter (Ignore old messages)
         crit = crit & startup_filter
@@ -140,9 +147,10 @@ def astra_command(
             # 1. Analytics: Track command usage
             try:
                 from utils.database import db
+                from utils.helpers import safe_task
                 # We use the primary command name for stats
-                asyncio.create_task(db.increment(f"cmd_usage:{name}"))
-                asyncio.create_task(db.increment("total_commands_v2"))
+                safe_task(db.increment(f"cmd_usage:{name}"), log_context=f"Analytics:{name}")
+                safe_task(db.increment("total_commands_v2"), log_context="Analytics:Total")
             except:
                 pass
 

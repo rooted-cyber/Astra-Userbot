@@ -7,6 +7,8 @@ from utils.plugin_utils import extract_args
 
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
+import time
 
 
 async def apply_filter(client: Client, message: Message, filter_type: str):
@@ -16,7 +18,7 @@ async def apply_filter(client: Client, message: Message, filter_type: str):
     has_quoted_image = message.has_quoted_msg and message.quoted_type == MessageType.IMAGE
     if not is_image and not has_quoted_image:
         return await edit_or_reply(
-            message, "🖼️ **Image Tools**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Reply to an image** to apply this filter."
+            message, f"{UI.mono('[ ERROR ]')} Reply to an image to proceed."
         )
 
     args = extract_args(message)
@@ -27,16 +29,16 @@ async def apply_filter(client: Client, message: Message, filter_type: str):
         except ValueError:
             pass
 
-    status_txt = f"🎨 **Astra Creative Studio**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Applying {filter_type}"
+    status_txt = f"{UI.header('CREATIVE SUITE')}\n{UI.mono('[ BUSY ]')} Applying {UI.mono(filter_type)}"
     if filter_type in ("blur", "boxblur", "brightness", "contrast", "sharpen", "pixelate", "deepfry", "glitch"):
-        status_txt += f" ({intensity}% intensity)"
-    status_txt += "...*"
+        status_txt += f" ({UI.mono(f'{intensity}%')})"
+    status_txt += "..."
     status_msg = await edit_or_reply(message, status_txt)
 
     # Download media via bridge (handles quoted resolution internally)
     media_data = await bridge_downloader.download_media(client, message)
     if not media_data:
-        return await status_msg.edit("❌ Failed to download image.")
+        return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Media download failed.")
 
     # Process with PIL
     img = Image.open(io.BytesIO(media_data))
@@ -164,7 +166,7 @@ async def apply_filter(client: Client, message: Message, filter_type: str):
     b64_data = base64.b64encode(out_buffer.getvalue()).decode("utf-8")
 
     media = {"mimetype": "image/jpeg", "data": b64_data, "filename": f"{filter_type}.jpg"}
-    await client.send_media(message.chat_id, media, caption=f"🎨 **Filter Applied:** `{filter_type}`")
+    await client.send_media(message.chat_id, media, caption=f"{UI.mono('[ OK ]')} Filter applied: {UI.mono(filter_type)}")
     await status_msg.delete()
 
 
