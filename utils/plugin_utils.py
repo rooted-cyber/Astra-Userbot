@@ -99,7 +99,6 @@ def astra_command(
     module_name = module.__name__.split(".")[-1] if module else "General"
 
     # Register metadata (Replacing if exists)
-    global COMMANDS_METADATA
     new_entry = {
         "name": name,
         "description": description,
@@ -251,7 +250,6 @@ def unload_plugin(client: Client, plugin_name: str):
             client.events.off(handle)
 
         # Remove from metadata registry
-        global COMMANDS_METADATA
         COMMANDS_METADATA = [
             cmd for cmd in COMMANDS_METADATA if not str(cmd.get("name", "")).startswith(f"{plugin_name}.")
         ]
@@ -318,7 +316,6 @@ def reload_all_plugins(client: Client) -> int:
     success = 0
     if os.path.exists(commands_dir):
         # Clear metadata and help cache to start fresh
-        global COMMANDS_METADATA
         COMMANDS_METADATA.clear()
 
         try:

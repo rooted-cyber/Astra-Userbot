@@ -1,4 +1,5 @@
 import time
+from config import config
 
 from utils.plugin_utils import PLUGIN_HANDLES, load_plugin, unload_plugin
 

@@ -38,7 +38,7 @@ async def logo_handler(client: Client, message: Message):
     else:
         bg_path = os.path.join(LOGOS_DIR, random.choice(bg_files))
         img = Image.open(bg_path)
-        img = img.resize((1024, 1024), Image.LANCZOS)
+        img = img.resize((1024, 1024), Image.Resampling.LANCZOS)
 
     # 2. Process Image (Blur & Darken for premium text readability)
     img = img.filter(ImageFilter.GaussianBlur(radius=2))

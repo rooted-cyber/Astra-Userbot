@@ -2,7 +2,10 @@ import asyncio
 import os
 import time
 
-from moviepy.editor import VideoFileClip
+try:
+    from moviepy import VideoFileClip, AudioFileClip, ColorClip, VideoClip, vfx
+except ImportError:
+    from moviepy.editor import VideoFileClip, AudioFileClip, ColorClip, VideoClip, vfx
 from utils.bridge_downloader import bridge_downloader
 from utils.plugin_utils import extract_args
 from . import *
@@ -43,7 +46,10 @@ async def apply_video_edit(client: Client, message: Message, edit_type: str):
 
         def process_video():
             if edit_type == "audioviz":
-                from moviepy.editor import AudioFileClip, ColorClip
+                try:
+                    from moviepy import AudioFileClip, ColorClip
+                except ImportError:
+                    from moviepy.editor import AudioFileClip, ColorClip
                 import math
                 audio_clip = AudioFileClip(temp_in).subclip(0, min(15, AudioFileClip(temp_in).duration)) # Limit to 15s to save resources
                 video = ColorClip(size=(640, 360), color=(10, 10, 30), duration=audio_clip.duration)
@@ -58,7 +64,10 @@ async def apply_video_edit(client: Client, message: Message, edit_type: str):
                     cv2.circle(frame, (320, 180), radius, (0, 255, 150), -1)
                     return frame
                 
-                from moviepy.editor import VideoClip
+                try:
+                    from moviepy import AudioFileClip, ColorClip, VideoClip
+                except ImportError:
+                    from moviepy.editor import AudioFileClip, ColorClip, VideoClip
                 final_video = VideoClip(make_frame, duration=audio_clip.duration).set_audio(audio_clip)
                 final_video.write_videofile(temp_out, fps=24, codec="libx264", logger=None)
                 audio_clip.close()
@@ -68,15 +77,24 @@ async def apply_video_edit(client: Client, message: Message, edit_type: str):
             if edit_type == "togif":
                 # Convert first 10 seconds to GIF
                 clip = clip.subclip(0, min(10, clip.duration))
-                clip = clip.resize(width=320)
+                if hasattr(clip, 'resize'):
+                    clip = clip.resize(width=320)
+                else:
+                    clip = clip.resized(width=320)
                 clip.write_gif(temp_out, fps=10, logger=None)
             elif edit_type == "reverse":
-                from moviepy.video.fx.all import time_mirror
-                clip = time_mirror(clip)
+                try:
+                    clip = clip.with_effects([vfx.TimeMirror()])
+                except AttributeError:
+                    from moviepy.video.fx.all import time_mirror # pylint: disable=import-error,no-name-in-module
+                    clip = time_mirror(clip)
                 clip.write_videofile(temp_out, codec="libx264", logger=None)
             elif edit_type == "speed":
-                from moviepy.video.fx.all import speedx
-                clip = speedx(clip, factor)
+                try:
+                    clip = clip.with_effects([vfx.MultiplySpeed(factor)])
+                except AttributeError:
+                    from moviepy.video.fx.all import speedx # pylint: disable=import-error,no-name-in-module
+                    clip = speedx(clip, factor)
                 clip.write_videofile(temp_out, codec="libx264", logger=None)
             elif edit_type == "audio":
                 clip.audio.write_audiofile(temp_out, logger=None)

@@ -141,6 +141,18 @@ class Database:
                 return default
         return default
 
+    async def get_all_with_prefix(self, prefix: str) -> dict:
+        if not self.initialized:
+            await self.initialize()
+        cursor = await self.sqlite_conn.execute("SELECT key, value FROM state WHERE key LIKE ?", (f"{prefix}%",))
+        results = {}
+        for row in await cursor.fetchall():
+            try:
+                results[row[0]] = json.loads(row[1])
+            except Exception as e:
+                logger.error(f"Failed to parse JSON for key {row[0]}: {e}")
+        return results
+
     async def set(self, key: str, value: Any):
         if not self.initialized:
             await self.initialize()

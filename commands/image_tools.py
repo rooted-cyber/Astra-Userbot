@@ -82,8 +82,8 @@ async def apply_filter(client: Client, message: Message, filter_type: str):
         img = ImageOps.invert(img)
     elif filter_type == "pixelate":
         pixel_size = max(2, int((intensity / 100) * 50))
-        img = img.resize((img.size[0] // pixel_size, img.size[1] // pixel_size), resample=Image.NEAREST)
-        img = img.resize((img.size[0] * pixel_size, img.size[1] * pixel_size), resample=Image.NEAREST)
+        img = img.resize((img.size[0] // pixel_size, img.size[1] // pixel_size), resample=Image.Resampling.NEAREST)
+        img = img.resize((img.size[0] * pixel_size, img.size[1] * pixel_size), resample=Image.Resampling.NEAREST)
     elif filter_type == "palette":
         # Extract dominant colors and build a swatch image
         import colorgram
@@ -112,8 +112,8 @@ async def apply_filter(client: Client, message: Message, filter_type: str):
         img = img.convert("RGB")
         r, g, b = img.split()
         offset = int((intensity / 100) * 20)
-        r = r.transform(r.size, Image.AFFINE, (1, 0, offset, 0, 1, 0))
-        b = b.transform(b.size, Image.AFFINE, (1, 0, -offset, 0, 1, 0))
+        r = r.transform(r.size, Image.Transform.AFFINE, (1, 0, offset, 0, 1, 0))
+        b = b.transform(b.size, Image.Transform.AFFINE, (1, 0, -offset, 0, 1, 0))
         img = Image.merge("RGB", (r, g, b))
     elif filter_type == "deepfry":
         # Intense meme distortion
