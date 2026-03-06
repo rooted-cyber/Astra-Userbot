@@ -12,7 +12,8 @@ import aiohttp
 from PIL import Image, ImageDraw, ImageFont
 from utils.bridge_downloader import bridge_downloader
 from utils.database import db
-from utils.helpers import safe_edit, edit_or_reply, handle_command_error
+from utils.helpers import safe_edit, edit_or_reply
+from utils.error_reporter import handle_command_error
 from utils.ui_templates import UI
 
 from . import *
