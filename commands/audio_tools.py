@@ -9,23 +9,24 @@ from utils.helpers import edit_or_reply
 from utils.ui_templates import UI
 
 async def apply_audio_effect(client: Client, message: Message, effect: str):
-    is_audio = message.type == MessageType.AUDIO
-    has_quoted_audio = message.has_quoted_msg and message.quoted_type == MessageType.AUDIO
-    
-    if not is_audio and not has_quoted_audio:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target audio segment required.")
+    target = message.quoted if message.has_quoted_msg else message
+    if not target.is_media:
+        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target audio/media segment required.")
 
     status_txt = f"{UI.header('AUDIO PROCESSING')}\n{UI.mono('[ BUSY ]')} Applying {UI.mono(effect)} filter..."
     status_msg = await edit_or_reply(message, status_txt)
-
-    target = message.quoted if has_quoted_audio else message
     temp_in = f"/tmp/astra_audio_in_{int(time.time())}.mp3"
     temp_out = f"/tmp/astra_audio_out_{int(time.time())}.mp3"
     
     try:
-        media_path = await target.download(temp_in)
-        if not media_path:
+        media_data = await bridge_downloader.download_media(client, message)
+        if not media_data:
             return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Source download failed.")
+        
+        with open(temp_in, "wb") as f:
+            f.write(media_data)
+        
+        media_path = temp_in
 
         # Build FFmpeg command based on effect
         filter_str = ""
@@ -34,7 +35,8 @@ async def apply_audio_effect(client: Client, message: Message, effect: str):
         elif effect == "nightcore":
             filter_str = "asetrate=44100*1.25,aresample=44100,atempo=1.25"
         elif effect == "slowed":
-            filter_str = "asetrate=44100*0.8,aresample=44100,atempo=0.8"
+            # Slowed + Reverb
+            filter_str = "asetrate=44100*0.85,aresample=44100,atempo=0.85,aecho=0.8:0.88:60:0.4"
         elif effect == "reverse":
             filter_str = "areverse"
         elif effect == "echo":
@@ -57,17 +59,25 @@ async def apply_audio_effect(client: Client, message: Message, effect: str):
             stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
-
+        args = extract_args(message)
+        as_doc = "-d" in args
+        
         if process.returncode != 0:
             return await status_msg.edit(f"{UI.mono('[ ERROR ]')} FFmpeg pipeline failure.")
 
-        await client.send_media(
-            message.chat_id, 
-            temp_out, 
-            "audio/mp3", 
-            caption=f"{UI.mono('[ OK ]')} Filter applied: {UI.mono(effect)}",
-            options={"sendAudioAsVoice": True}
-        )
+        if as_doc:
+            await client.send_document(
+                message.chat_id, 
+                temp_out, 
+                caption=f"{UI.mono('[ OK ]')} Filter applied: {UI.mono(effect)}"
+            )
+        else:
+            await client.send_audio(
+                message.chat_id, 
+                temp_out, 
+                caption=f"{UI.mono('[ OK ]')} Filter applied: {UI.mono(effect)}",
+                as_voice=True
+            )
         await status_msg.delete()
 
     except Exception as e:

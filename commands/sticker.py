@@ -65,12 +65,14 @@ async def kang_handler(client: Client, message: Message):
     # Process with PIL for high quality (512x512 transparency)
     img = Image.open(io.BytesIO(media_data)).convert("RGBA")
 
-    # Resize to 512x512 max while keeping aspect ratio
-    img.thumbnail((512, 512))
+    # Upscale or downscale precisely to fit 512x512 bounds maximally
+    ratio = 512.0 / max(img.size)
+    new_sizes = (int(img.width * ratio), int(img.height * ratio))
+    img = img.resize(new_sizes, Image.Resampling.LANCZOS)
 
     # Create a 512x512 transparent canvas
     new_img = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
-    # Center the thumbnail
+    # Center the fitted image
     new_img.paste(img, ((512 - img.width) // 2, (512 - img.height) // 2))
 
     # Save to buffer
@@ -136,14 +138,19 @@ async def stoi_handler(client: Client, message: Message):
     if not media_data:
         return await status_msg.edit("❌ Failed to download sticker.")
 
-    # Convert WebP to JPEG/PNG
+    # Convert WebP to JPEG/PNG and Upscale
     img = Image.open(io.BytesIO(media_data)).convert("RGB")
+    
+    # Upscale by 2x for high-quality viewing
+    w, h = img.size
+    img = img.resize((w * 2, h * 2), Image.Resampling.LANCZOS)
+    
     out_buffer = io.BytesIO()
-    img.save(out_buffer, format="JPEG", quality=90)
+    img.save(out_buffer, format="JPEG", quality=100)
     b64_data = base64.b64encode(out_buffer.getvalue()).decode("utf-8")
 
     media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "sticker.jpg"}
-    await client.send_media(str(message.chat_id), media, caption=f"{UI.mono('[ OK ]')} Converted from sticker segment.")
+    await client.send_photo(str(message.chat_id), media, caption=f"{UI.mono('[ OK ]')} Converted from sticker segment.")
     await status_msg.delete()
 
 
@@ -171,7 +178,7 @@ async def getstkr_handler(client: Client, message: Message):
     b64_data = base64.b64encode(media_data).decode("utf-8")
     media = {"mimetype": "image/webp", "data": b64_data, "filename": "sticker.webp"}
 
-    await client.send_media(str(message.chat_id), media, document=True)
+    await client.send_document(str(message.chat_id), media)
     await status_msg.delete()
 
 

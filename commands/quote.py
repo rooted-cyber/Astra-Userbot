@@ -78,7 +78,7 @@ async def quote_handler(client: Client, message: Message):
                 if image_b64:
                     media = {"mimetype": "image/webp", "data": image_b64, "filename": "quote.webp"}
                     # Send as sticker
-                    await client.send_media(message.chat_id, media, is_sticker=True)
+                    await client.send_sticker(message.chat_id, media)
                     return await status_msg.delete()
 
     await status_msg.edit("❌ **Could not generate quote.** Ensure the message contains text.")

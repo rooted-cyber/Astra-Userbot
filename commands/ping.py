@@ -39,7 +39,7 @@ async def ping_handler(client: Client, message: Message):
     )
 
     # Determine reply target
-    reply_id = message.quoted_id if message.has_quoted_msg else message.id
+    reply_id = message.quoted_message_id if message.has_quoted_msg else message.id
 
     # Send report immediately
     await client.send_message(message.chat_id, ping_report, reply_to=reply_id)

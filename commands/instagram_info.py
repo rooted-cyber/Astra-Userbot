@@ -103,10 +103,30 @@ async def iginfo_handler(client: Client, message: Message):
             async with session.get(profile_pic) as img_resp:
                 if img_resp.status == 200:
                     img_data = await img_resp.read()
+                    
                     import base64
-                    b64_data = base64.b64encode(img_data).decode("utf-8")
+                    from PIL import Image
+                    import io
+                    
+                    # Upscale DP to 1080x1080 for HD viewing
+                    try:
+                        img = Image.open(io.BytesIO(img_data)).convert("RGB")
+                        # Calculate upscale ratio to fill at least 1080px
+                        ratio = 1080.0 / max(img.size)
+                        if ratio > 1.0:
+                            new_size = (int(img.width * ratio), int(img.height * ratio))
+                            img = img.resize(new_size, Image.Resampling.LANCZOS)
+                        
+                        out_buffer = io.BytesIO()
+                        img.save(out_buffer, format="JPEG", quality=100)
+                        b64_data = base64.b64encode(out_buffer.getvalue()).decode("utf-8")
+                    except Exception as e:
+                        # Fallback to direct raw bytes if PIL fails
+                        logger.error(f"IG DP Upscale failed: {e}")
+                        b64_data = base64.b64encode(img_data).decode("utf-8")
+                        
                     media = {"mimetype": "image/jpeg", "data": b64_data, "filename": f"ig_{username}.jpg"}
-                    await client.send_media(message.chat_id, media, caption=text)
+                    await client.send_photo(message.chat_id, media, caption=text)
                     return await status_msg.delete()
 
         return await status_msg.edit(text)

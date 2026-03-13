@@ -69,7 +69,7 @@ async def fake_handler(client: Client, message: Message):
                         b64_data = base64.b64encode(img_data).decode("utf-8")
 
                         media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "identity.jpg"}
-                        await client.send_media(message.chat_id, media, caption=identity_card)
+                        await client.send_photo(message.chat_id, media, caption=identity_card)
                         await status_msg.delete()
                         return
 

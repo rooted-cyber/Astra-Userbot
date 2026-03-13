@@ -240,33 +240,4 @@ async def forward_handler(client: Client, message: Message):
         await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Forwarding failure: {UI.mono(str(e))}")
 
 
-@astra_command(
-    name="profilepic",
-    description="Get a contact's profile picture URL.",
-    category="Tools & Utilities",
-    aliases=["pfp", "dp"],
-    usage="[@user or reply]",
-    is_public=True,
-)
-async def profilepic_handler(client: Client, message: Message):
-    """Gets profile picture URL of a user."""
-    contact_id = None
 
-    if message.has_quoted_msg and message.quoted:
-        contact_id = message.quoted.sender
-    else:
-        args = extract_args(message)
-        if args:
-            num = args[0].replace("@", "").replace("+", "")
-            contact_id = f"{num}@c.us"
-        else:
-            contact_id = message.chat_id
-
-    try:
-        url = await client.api.get_profile_pic_url(contact_id)
-        if url:
-            await edit_or_reply(message, f"{UI.header('PROFILE PICTURE')}\nURL: {url}")
-        else:
-            await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Asset inaccessible (Privacy Restrict).")
-    except Exception as e:
-        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Retrieval failure: {UI.mono(str(e))}")

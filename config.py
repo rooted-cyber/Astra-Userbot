@@ -17,8 +17,8 @@ class Config:
     """Bot config container"""
 
     # Versioning
-    VERSION = "0.0.4b1"
-    VERSION_NAME = "Beta 1 (v0.0.4)"
+    VERSION = "0.0.5b1"
+    VERSION_NAME = "Beta 1 (v0.0.5)"
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
     # Bot Identity

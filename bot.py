@@ -29,8 +29,8 @@ def apply_framework_patches():
     original_edit = Message.edit
 
     async def patched_edit(self, text: str, **kwargs) -> bool:
-        import time
-        time.sleep(0.5)
+        import asyncio
+        await asyncio.sleep(0.5)
         try:
             return await original_edit(self, text, **kwargs)
         except Exception:

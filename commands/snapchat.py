@@ -10,10 +10,20 @@ import tempfile
 
 try:
     import mediapipe as mp
-    mp_face_mesh = mp.solutions.face_mesh
+    # Newer mediapipe versions might not export solutions directly in some environments
+    if hasattr(mp, 'solutions'):
+        mp_face_mesh = mp.solutions.face_mesh
+    else:
+        # Fallback for some specialized/stripped installations
+        from mediapipe.python.solutions import face_mesh as mp_face_mesh
     HAS_MEDIAPIPE = True
-except ImportError:
-    HAS_MEDIAPIPE = False
+except (ImportError, AttributeError):
+    try:
+        from mediapipe.python.solutions import face_mesh as mp_face_mesh
+        import mediapipe as mp
+        HAS_MEDIAPIPE = True
+    except:
+        HAS_MEDIAPIPE = False
 
 @astra_command(
     name="snapchat",
@@ -50,7 +60,7 @@ async def snapchat_handler(client, message: Message):
         if isinstance(result, str) and result.startswith("Error"):
             return await status.edit(f"❌ {result}")
 
-        await client.send_image(message.chat_id, output_path, caption=f"✨ Applied `{filter_type}` filter", reply_to=message.id)
+        await client.send_file(message.chat_id, output_path, caption=f"✨ Applied `{filter_type}` filter", reply_to=message.id)
         await status.delete()
     except Exception as e:
         await status.edit(f"❌ Processing Error: {str(e)}")

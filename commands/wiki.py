@@ -65,7 +65,7 @@ async def wiki_handler(client: Client, message: Message):
                     img_data = await img_resp.read()
                     b64_data = base64.b64encode(img_data).decode("utf-8")
                     media = {"mimetype": "image/jpeg", "data": b64_data, "filename": f"wiki_{best_match}.jpg"}
-                    await client.send_media(message.chat_id, media, caption=response)
+                    await client.send_photo(message.chat_id, media, caption=response)
                     return await status_msg.delete()
 
         time.sleep(0.5)

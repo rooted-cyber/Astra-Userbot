@@ -40,9 +40,12 @@ async def apply_video_edit(client: Client, message: Message, edit_type: str):
     temp_out = f"/tmp/astra_media_out_{int(time.time())}.{'gif' if edit_type == 'togif' else 'mp3' if edit_type == 'audio' else 'mp4'}"
     
     try:
-        media_path = await target.download(temp_in)
-        if not media_path:
+        media_data = await bridge_downloader.download_media(client, message)
+        if not media_data:
             return await status_msg.edit("❌ Failed to download video.")
+        with open(temp_in, "wb") as f:
+            f.write(media_data)
+        media_path = temp_in
 
         def process_video():
             if edit_type == "audioviz":
@@ -105,12 +108,20 @@ async def apply_video_edit(client: Client, message: Message, edit_type: str):
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, process_video)
 
+        as_doc = "-d" in args
+        
         if edit_type == "togif":
             await client.send_file(message.chat_id, temp_out, caption="🎬 **Media Effect:** `togif`")
         elif edit_type == "audio":
-            await client.send_audio(message.chat_id, temp_out, caption="🎬 **Media Effect:** `audio` (Extracted)")
+            if as_doc:
+                await client.send_document(message.chat_id, temp_out, caption="🎬 **Media Effect:** `audio` (Extracted)")
+            else:
+                await client.send_audio(message.chat_id, temp_out, caption="🎬 **Media Effect:** `audio` (Extracted)")
         else:
-            await client.send_video(message.chat_id, temp_out, caption=f"🎬 **Media Effect:** `{edit_type}`")
+            if as_doc:
+                await client.send_document(message.chat_id, temp_out, caption=f"🎬 **Media Effect:** `{edit_type}`")
+            else:
+                await client.send_video(message.chat_id, temp_out, caption=f"🎬 **Media Effect:** `{edit_type}`")
         await status_msg.delete()
 
     except Exception as e:

@@ -6,85 +6,97 @@ from utils.ui_templates import UI
 
 logger = logging.getLogger("Astra.Help")
 
-# ─────── Category Normalization Map ───────
+# ─────── Category Intelligence Map ───────
+CATEGORY_DATA = {
+    "AI & Search": {
+        "desc": "Smart explorers and AI models.",
+        "keywords": ["ai", "google", "wiki", "define"],
+        "icon": "✧"
+    },
+    "User & Account": {
+        "desc": "Manage your profile and presence.",
+        "keywords": ["status", "privacy", "bio", "name"],
+        "icon": "👤"
+    },
+    "Media & Downloads": {
+        "desc": "Grab media from social platforms.",
+        "keywords": ["instagram", "youtube", "reddit", "song"],
+        "icon": "⬇"
+    },
+    "Image & Design": {
+        "desc": "Create logos and edit photos.",
+        "keywords": ["logo", "txtimg", "rmbg", "blur"],
+        "icon": "🎨"
+    },
+    "Group Management": {
+        "desc": "Tools for group synchronization.",
+        "keywords": ["tagall", "purge", "admin", "mute"],
+        "icon": "👥"
+    },
+    "Tools & Utilities": {
+        "desc": "Essential bots and micro-tools.",
+        "keywords": ["calc", "weather", "tr", "id"],
+        "icon": "🛠"
+    },
+    "Fun & Memes": {
+        "desc": "Boredom killers and meme makers.",
+        "keywords": ["meme", "joke", "hack", "fake"],
+        "icon": "🎭"
+    },
+    "Owner & Sudo": {
+        "desc": "Restricted administrative controls.",
+        "keywords": ["sudo", "install", "pmpermit", "run"],
+        "icon": "🔑"
+    },
+    "System & Bot": {
+        "desc": "Core heart and engine metrics.",
+        "keywords": ["ping", "restart", "stats", "update"],
+        "icon": "⚙"
+    }
+}
+
+# Category Normalization Map
 CATEGORY_MAP = {
-    # AI & Search
     "ai intelligence": "AI & Search",
     "duckduckgo": "AI & Search",
     "google": "AI & Search",
-    # Tools & Utilities
     "astra essentials": "User & Account",
     "core tools": "Tools & Utilities",
     "utility": "Tools & Utilities",
     "general": "Tools & Utilities",
     "tools": "Tools & Utilities",
     "utility_cmds": "Tools & Utilities",
-    # User / Account (New category for status/privacy/etc)
     "account": "Account & Privacy",
     "privacy": "Account & Privacy",
     "status": "User & Account",
-    # Fun
     "fun": "Fun & Memes",
     "fun & games": "Fun & Memes",
-    # Media
     "downloader": "Media & Downloads",
     "media engine": "Media & Downloads",
     "media": "Media & Downloads",
     "youtube": "Media & Downloads",
     "instagram": "Media & Downloads",
-    # Image / Design (Merging Creative Suite)
     "creative suite": "Image & Design",
     "logo maker": "Image & Design",
     "image editor": "Image & Design",
     "image tools": "Image & Design",
     "video tools": "Image & Design",
     "audio tools": "Media & Downloads",
-    # Group
     "group admin": "Group Management",
     "group management": "Group Management",
-    # Owner
     "owner tools": "Owner & Sudo",
     "owner utility": "Owner & Sudo",
     "sudo": "Owner & Sudo",
-    # System
     "system": "System & Bot",
     "system & bot": "System & Bot",
     "system hub": "System & Bot",
     "config": "System & Bot",
 }
 
-# Professional Technical Icons
-CATEGORY_ICONS = {
-    "AI & Search": "[ AI  ]",
-    "User & Account": "[ USER ]",
-    "Account & Privacy": "[ PVR  ]",
-    "Tools & Utilities": "[ UTL  ]",
-    "Fun & Memes": "[ FUN  ]",
-    "Media & Downloads": "[ MED  ]",
-    "Image & Design": "[ IMG  ]",
-    "Group Management": "[ GRP  ]",
-    "Owner & Sudo": "[ OWN  ]",
-    "System & Bot": "[ SYS  ]",
-}
-
-CATEGORY_ORDER = [
-    "AI & Search",
-    "User & Account",
-    "Account & Privacy",
-    "Media & Downloads",
-    "Image & Design",
-    "Group Management",
-    "Tools & Utilities",
-    "Fun & Memes",
-    "Owner & Sudo",
-    "System & Bot",
-]
+CATEGORY_ORDER = list(CATEGORY_DATA.keys())
 
 def normalize_category(raw_cat: str) -> str:
     return CATEGORY_MAP.get(raw_cat.lower().strip(), raw_cat)
-
-def get_label(cat: str) -> str:
-    return CATEGORY_ICONS.get(cat, "[ GEN ]")
 
 HELP_CACHE = {
     "merged": {},
@@ -105,109 +117,106 @@ def _build_cache():
 @astra_command(
     name="help",
     aliases=["h", "menu"],
-    description="Access Astra command registry.",
+    description="Explore the Astra command ecosystem.",
     category="Tools & Utilities",
-    usage="[cmd / cat / mod]",
+    usage="[term / category]",
     is_public=True,
 )
 async def help_handler(client: Client, message: Message):
-    """Technical command registry with minimalist output."""
+    """Modernized dashboard for Astra discovery."""
     try:
         from utils.state import state
         pfx = state.get_prefix()
         args = extract_args(message)
         _build_cache()
         merged = HELP_CACHE["merged"]
-        by_mod = HELP_CACHE["by_module"]
 
+        # ─── CASE 1: SPECIFIC SEARCH ───
         if args:
-            q = args[0].lower().strip().lstrip(".!/")
+            q = " ".join(args).lower().strip().lstrip(".!/")
             
-            # Module search
-            mod_match = by_mod.get(q)
-            if mod_match:
-                cmds = sorted(mod_match, key=lambda c: c["name"])
-                txt = f"{UI.bold('PLUGIN REGISTRY:')} {UI.mono(q.upper())}\n{UI.DIVIDER}\n"
-                for c in cmds:
-                    txt += f" {UI.BULLET} {UI.mono(c['name'])}\n"
-                txt += f"{UI.DIVIDER}\nTotal: {UI.mono(len(cmds))} commands\nUse {UI.mono(pfx + 'help <cmd>')} for usage."
-                return await edit_or_reply(message, txt)
-
-            # Category search
-            full_query = " ".join(args).lower().strip()
-            cat_match = next((c for c in merged if c.lower() == full_query or c.lower().replace(" ", "_") == q), None)
-            if cat_match:
-                cmds = sorted(merged[cat_match], key=lambda c: c["name"])
-                txt = f"{UI.bold('CATEGORY:')} {UI.mono(cat_match.upper())}\n{UI.DIVIDER}\n"
-                for c in cmds:
-                    txt += f" {UI.BULLET} {UI.mono(c['name'])}\n"
-                txt += f"{UI.DIVIDER}\nTotal: {UI.mono(len(cmds))} commands"
-                return await edit_or_reply(message, txt)
-
-            # Command search
+            # 1. Match Command
             cmd = next((c for c in COMMANDS_METADATA if c["name"].lower() == q or q in [a.lower() for a in c.get("aliases", [])]), None)
             if cmd:
                 txt = (
-                    f"{UI.bold('COMMAND INFO')}\n{UI.DIVIDER}\n"
-                    f"Command : {UI.mono(cmd['name'])}\n"
-                    f"Info    : {UI.italic(cmd['description'])}\n"
-                    f"Category: {UI.mono(normalize_category(cmd.get('category', '')))}\n"
-                    f"Usage   : {UI.mono(f'{pfx}{cmd['name']} {cmd.get('usage', '')}')}\n"
+                    f"{UI.bold('✺ DISCOVERY')} : {UI.mono(cmd['name'].upper())}\n"
+                    f"{UI.DIVIDER}\n"
+                    f" ➜ {UI.bold('Description')}: {UI.italic(cmd['description'])}\n"
+                    f" ➜ {UI.bold('Category')}   : {UI.mono(normalize_category(cmd.get('category', '')))}\n"
+                    f" ➜ {UI.bold('Syntax')}     : {UI.mono(f'{pfx}{cmd['name']} {cmd.get('usage', '')}')}\n"
                 )
                 if cmd.get("aliases"):
-                    txt += f"Aliases : {UI.mono(', '.join(cmd['aliases']))}\n"
-                txt += f"{UI.DIVIDER}\n{UI.italic(f'Astra Engine v{config.VERSION}')}"
+                    txt += f" ➜ {UI.bold('Shortcuts')}  : {UI.mono(', '.join(cmd['aliases']))}\n"
+                txt += f"\n{UI.italic(f'Astra Engine v{config.VERSION}')}"
                 return await edit_or_reply(message, txt)
 
-            return await edit_or_reply(message, f"{UI.mono(f'Error: Command {q} not found.')}")
+            # 2. Match Category
+            cat_match = next((c for c in merged if c.lower() == q or c.lower().replace(" ", "_") == q or q in c.lower()), None)
+            if cat_match:
+                cmds = sorted(merged[cat_match], key=lambda c: c["name"])
+                txt = f"{UI.bold('📂 EXPLORING')} : {UI.mono(cat_match.upper())}\n{UI.DIVIDER}\n"
+                txt += f"{UI.italic(CATEGORY_DATA.get(cat_match, {}).get('desc', 'Collection of modules.'))}\n\n"
+                
+                # Formatted grid
+                for i in range(0, len(cmds), 3):
+                    row = cmds[i:i+3]
+                    txt += "  " + "  ".join([UI.mono(c['name']) for c in row]) + "\n"
+                
+                txt += f"\n{UI.DIVIDER}\nTotal : {UI.mono(len(cmds))} commands available."
+                return await edit_or_reply(message, txt)
 
-        # Main Menu
+            return await edit_or_reply(message, f"{UI.FAILURE} {UI.mono(f'Unknown query: {q}')}")
+
+        # ─── CASE 2: DASHBOARD MAIN MENU ───
         total_cmds = len(COMMANDS_METADATA)
         
-        # Fetch Stats (Optional)
+        # Stats Aggregation
         total_usage = "N/A"
         try:
             from utils.database import db
-            stats = await db.get_stats()
-            total_usage = stats.get("sqlite", {}).get("state_records", "N/A") # Placeholder for actual usage count if tracked
-            # Let's try to get a better total usage if available
-            usage_data = await db.get("total_commands_v2", 0)
-            total_usage = str(usage_data)
-        except:
-            pass
+            total_usage = str(await db.get("total_commands_v2", 0))
+        except: pass
 
+        # Header Box
         txt = (
-            f"{UI.bold('ASTRA COMMAND REGISTRY')}\n"
-            f"{UI.DIVIDER}\n"
-            f"Prefix  : {UI.mono(pfx)} | Total : {UI.mono(total_cmds)}\n"
-            f"Usage   : {UI.mono(total_usage)} calls | State : {UI.mono('[ ACTIVE ]')}\n"
-            f"{UI.DIVIDER}\n\n"
+            f"{UI.BOX_TOP}\n"
+            f"  {UI.bold('ASTRA EXPLORER DASHBOARD')}\n"
+            f"  {UI.DIVIDER_THIN}\n"
+            f"  {UI.LABEL_PFX} : {UI.mono(pfx)}\n"
+            f"  {UI.LABEL_CMD} : {UI.mono(total_cmds)}\n"
+            f"  {UI.LABEL_USE} : {UI.mono(total_usage)}\n"
+            f"  {UI.STATUS_ACTIVE}\n"
+            f"{UI.BOX_BOTTOM}\n\n"
         )
         
-        # Display ordered categories
+        txt += f"{UI.bold('CHOOSE A SECTOR TO EXPLORE')}\n\n"
+        
         for cat in CATEGORY_ORDER:
             if cat not in merged: continue
-            cmds = sorted(merged[cat], key=lambda c: c["name"])
-            names = ", ".join([f"`{c['name']}`" for c in cmds])
-            txt += f"{UI.bold(get_label(cat))} {UI.bold(cat.upper())} ({len(cmds)})\n{names}\n\n"
+            data = CATEGORY_DATA.get(cat, {})
+            icon = data.get("icon", "•")
+            desc = data.get("desc", "Various tools.")
+            sample = ", ".join(data.get("keywords", []))
+            
+            txt += (
+                f"{UI.bold(icon)} {UI.bold(cat.upper())}\n"
+                f" {UI.italic(desc)}\n"
+                f" {UI.mono(sample + '...')}\n\n"
+            )
 
-        # Any uncategorized leftovers
+        # Catch-all
         for cat in sorted(merged.keys()):
             if cat not in CATEGORY_ORDER:
                 cmds = sorted(merged[cat], key=lambda c: c["name"])
-                names = ", ".join([f"`{c['name']}`" for c in cmds])
-                txt += f"{UI.bold('[ OTH ]')} {UI.bold(cat.upper())} ({len(cmds)})\n{names}\n\n"
+                txt += f"{UI.bold('•')} {UI.bold(cat.upper())} ({len(cmds)})\n\n"
 
         txt += (
             f"{UI.DIVIDER}\n"
-            f"💡 {UI.mono(pfx + 'help <cmd>')}  ➜  Details\n"
-            f"📦 {UI.mono(pfx + 'help <mod>')}  ➜  Plugin\n"
-            f"📂 {UI.mono(pfx + 'help <cat>')}  ➜  Category\n"
-            f"{UI.DIVIDER}\n"
-            f"{UI.italic('Manual: github.com/paman7647/Astra')}"
+            f"💡 {UI.bold('PRO TIP')}: Use {UI.mono(pfx + 'help <category>')} to see all commands in a sector. (e.g. {UI.mono(pfx + 'help Media')})\n\n"
+            f"⎆ {UI.bold('GITHUB')}: github.com/paman7647/Astra-Userbot"
         )
         await edit_or_reply(message, txt)
 
     except Exception as e:
-        logger.error(f"Help Error: {e}", exc_info=True)
-        await edit_or_reply(message, f"{UI.mono(f'System Failure: {e}')}")
+        logger.error(f"Help Dashboard Error: {e}", exc_info=True)
+        await edit_or_reply(message, f"{UI.FAILURE} {UI.mono(f'Engine Error: {e}')}")

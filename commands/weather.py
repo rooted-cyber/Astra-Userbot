@@ -50,7 +50,7 @@ async def weather_handler(client: Client, message: Message):
 
                 media = {"mimetype": "image/png", "data": b64_data, "filename": f"weather_{city}.png"}
                 try:
-                    await client.send_media(message.chat_id, media, caption=weather_report)
+                    await client.send_photo(message.chat_id, media, caption=weather_report)
                     return await status_msg.delete()
                 except Exception as upload_err:
                     return await status_msg.edit(f"❌ **Astra Weather:** Failed to send image. ({str(upload_err)})")

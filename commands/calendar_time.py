@@ -92,7 +92,7 @@ async def time_handler(client: Client, message: Message):
                 b64_data = base64.b64encode(f.read()).decode("utf-8")
                 
             media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "time.jpg"}
-            await client.send_media(message.chat_id, media, caption=f"🕒 **Current Time:** `{now.strftime('%H:%M:%S')}`", reply_to=message.id)
+            await client.send_photo(message.chat_id, media, caption=f"🕒 **Current Time:** `{now.strftime('%H:%M:%S')}`", reply_to=message.id)
             await status_msg.delete()
             return
         except Exception as e:
@@ -181,7 +181,7 @@ async def calendar_handler(client: Client, message: Message):
                 b64_data = base64.b64encode(f.read()).decode("utf-8")
             
             media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "calendar.jpg"}
-            await client.send_media(message.chat_id, media, caption=f"🗓️ **Monthly Calendar:** `{calendar.month_name[now.month]} {now.year}`", reply_to=message.id)
+            await client.send_photo(message.chat_id, media, caption=f"🗓️ **Monthly Calendar:** `{calendar.month_name[now.month]} {now.year}`", reply_to=message.id)
             await status_msg.delete()
             return
         except Exception as e:

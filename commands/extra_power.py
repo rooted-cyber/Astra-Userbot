@@ -65,7 +65,7 @@ async def ss_handler(client: Client, message: Message):
 
         sent = False
         try:
-            await client.send_media(message.chat_id, media, caption=f"📸 **Screenshot:** {url}")
+            await client.send_photo(message.chat_id, media, caption=f"📸 **Screenshot:** {url}")
             sent = True
         except Exception as media_err:
             logger.debug(f"Image upload failed: {media_err}. Retrying as document...")

@@ -70,7 +70,7 @@ async def anime_handler(client: Client, message: Message):
                                 "data": b64_data,
                                 "filename": f"anime_{anime.get('mal_id')}.jpg",
                             }
-                            await client.send_media(message.chat_id, media, caption=text)
+                            await client.send_photo(message.chat_id, media, caption=text)
                             return await status_msg.delete()
 
                 return await status_msg.edit(text)

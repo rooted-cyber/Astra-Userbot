@@ -21,9 +21,12 @@ async def todoc_handler(client: Client, message: Message):
         ext = "mp4" if message.quoted_type == MessageType.VIDEO else "jpg"
         temp_file = f"/tmp/astra_doc_conv_{int(time.time())}.{ext}"
         
-        media_path = await message.quoted.download(temp_file)
-        if not media_path:
+        media_data = await bridge_downloader.download_media(client, message)
+        if not media_data:
             return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Source download failed.")
+        with open(temp_file, "wb") as f:
+            f.write(media_data)
+        media_path = temp_file
 
         mimetype = "video/mp4" if ext == "mp4" else "image/jpeg"
         
@@ -55,12 +58,15 @@ async def toimg_handler(client: Client, message: Message):
         # Standard file path handling
         temp_file = f"/tmp/astra_img_conv_{int(time.time())}.jpg"
         
-        media_path = await message.quoted.download(temp_file)
-        if not media_path:
+        media_data = await bridge_downloader.download_media(client, message)
+        if not media_data:
             return await status_msg.edit("❌ Failed to download document.")
+        with open(temp_file, "wb") as f:
+            f.write(media_data)
+        media_path = temp_file
 
         # Ensure we send it explicitly without the document flag
-        await client.send_image(
+        await client.send_file(
             message.chat_id, 
             temp_file, 
             caption=f"{UI.mono('[ OK ]')} Data converted to image"
@@ -85,9 +91,12 @@ async def pdf2img_handler(client: Client, message: Message):
     temp_pdf = f"/tmp/astra_pdf_in_{int(time.time())}.pdf"
     
     try:
-        media_path = await message.quoted.download(temp_pdf)
-        if not media_path:
+        media_data = await bridge_downloader.download_media(client, message)
+        if not media_data:
             return await status_msg.edit("❌ Failed to download PDF document.")
+        with open(temp_pdf, "wb") as f:
+            f.write(media_data)
+        media_path = temp_pdf
 
         import fitz  # PyMuPDF
         
@@ -110,7 +119,7 @@ async def pdf2img_handler(client: Client, message: Message):
             temp_img = f"/tmp/astra_pdf_out_{int(time.time())}_page_{page_num+1}.jpg"
             pix.save(temp_img)
             
-            await client.send_image(
+            await client.send_file(
                 message.chat_id, 
                 temp_img, 
                 caption=f"{UI.mono('[ OK ]')} Page {page_num + 1}/{num_pages} rendered"

@@ -2,6 +2,7 @@ import time
 
 from . import *
 from utils.helpers import edit_or_reply
+from utils.ui_templates import UI
 
 
 @astra_command(

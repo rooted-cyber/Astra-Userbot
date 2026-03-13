@@ -126,10 +126,9 @@ def astra_command(
             crit |= Filters.command(alias, prefixes="!./")
 
         # 2. NO_HNDLR Support (without prefixes)
+        # Prefix-less matching is now handled better by EventDispatcher + CommandCriterion(prefixes="")
         if config.NO_HNDLR:
-            for n in names:
-                # Add a filter that matches the word exactly without any prefix
-                crit |= Filters.regex(f"^{n}(\s|$)")
+            crit |= Filters.command(names, prefixes="")
 
         # Apply Global Startup Filter (Ignore old messages)
         crit = crit & startup_filter

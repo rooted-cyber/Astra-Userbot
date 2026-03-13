@@ -54,7 +54,7 @@ async def qrgen_handler(client: Client, message: Message):
         with open(temp_path, "wb") as f:
             f.write(bio.read())
 
-        await client.send_image(message.chat_id, temp_path, caption=f"QR Code for: `{text}`")
+        await client.send_file(message.chat_id, temp_path, caption=f"QR Code for: `{text}`")
         await status.delete()
         
         if os.path.exists(temp_path):
@@ -129,7 +129,7 @@ async def rmbg_handler(client: Client, message: Message):
         with open(temp_out, "wb") as o:
             o.write(output_data)
 
-        await client.send_image(message.chat_id, temp_out)
+        await client.send_file(message.chat_id, temp_out)
         await status.delete()
         
         # Cleanup

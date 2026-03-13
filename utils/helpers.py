@@ -126,7 +126,7 @@ async def edit_or_reply(message: Message, content: str, **kwargs):
         if message.from_me:
             try:
                 # We add a small delay to avoid race conditions with bridge processing
-                time.sleep(0.5)
+                await asyncio.sleep(0.5)
                 await message.edit(content)
                 return message
             except Exception as e:
@@ -163,7 +163,7 @@ async def safe_edit(message: Message, content: str, **kwargs):
     try:
         # If edit is possible (it's from me), attempt it
         if message.from_me:
-            time.sleep(0.5)
+            await asyncio.sleep(0.5)
             return await message.edit(content, **kwargs)
         else:
             # If not from me, we must reply

@@ -604,7 +604,7 @@ async def send_meme_media(client, chat_id, meme_data, reply_to) -> bool:
     ext_map = {"image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp"}
     ext = ext_map.get(content_type.split(";")[0].strip(), "jpg")
     media = {"mimetype": content_type, "data": b64_data, "filename": f"meme_{subreddit}.{ext}"}
-    await client.send_media(chat_id, media, caption=caption, reply_to=reply_to)
+    await client.send_photo(chat_id, media, caption=caption, reply_to=reply_to)
     return True
 
 
@@ -735,7 +735,7 @@ async def meme_maker_handler(client: Client, message: Message):
 
     out = io.BytesIO()
     img.save(out, format="JPEG", quality=90)
-    await client.send_media(
+    await client.send_photo(
         str(message.chat_id),
         {"mimetype": "image/jpeg", "data": base64.b64encode(out.getvalue()).decode(), "filename": "meme.jpg"},
         caption=f"{UI.mono('[ OK ]')} Meme generated via Astra Engine"

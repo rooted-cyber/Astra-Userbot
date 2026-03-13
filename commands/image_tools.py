@@ -166,7 +166,7 @@ async def apply_filter(client: Client, message: Message, filter_type: str):
     b64_data = base64.b64encode(out_buffer.getvalue()).decode("utf-8")
 
     media = {"mimetype": "image/jpeg", "data": b64_data, "filename": f"{filter_type}.jpg"}
-    await client.send_media(message.chat_id, media, caption=f"{UI.mono('[ OK ]')} Filter applied: {UI.mono(filter_type)}")
+    await client.send_photo(message.chat_id, media, caption=f"{UI.mono('[ OK ]')} Filter applied: {UI.mono(filter_type)}")
     await status_msg.delete()
 
 

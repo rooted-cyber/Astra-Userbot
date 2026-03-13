@@ -88,10 +88,10 @@ async def alive_handler(client: Client, message: Message):
         await fetch_image(os.path.join(config.BASE_DIR, "utils", "ub.png"))
 
     # Determine reply target
-    reply_id = message.quoted_id if message.has_quoted_msg else message.id
+    reply_id = message.quoted_message_id if message.has_quoted_msg else message.id
 
     if b64:
-        await client.send_media(
+        await client.send_photo(
             message.chat_id,
             {"mimetype": mimetype, "data": b64},
             caption=alive_report,
@@ -106,3 +106,38 @@ async def alive_handler(client: Client, message: Message):
             await message.delete()
     except:
         pass
+
+
+@astra_command(
+    name="setalive",
+    description="Set a custom alive image via reply or URL.",
+    category="Tools & Utilities",
+    usage="<reply to image | url>",
+    owner_only=True,
+)
+async def setalive_handler(client: Client, message: Message):
+    from utils.state import state
+    from utils.plugin_utils import extract_args
+    args = extract_args(message)
+    
+    if message.has_quoted_msg and getattr(message.quoted, 'is_media', False):
+        status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Downloading image...")
+        temp_path = f"/tmp/alive_{int(time.time())}.jpg"
+        downloaded = await message.quoted.download() # the framework saves it automatically or requires explicit path? We used download(temp_in) in audio_tools
+        if not downloaded:
+             downloaded = await message.quoted.download(temp_path)
+             if downloaded:
+                # Rename to a permanent path in data folder to avoid clearing /tmp
+                perm_path = os.path.join(config.BASE_DIR, "utils", f"custom_alive_{int(time.time())}.jpg")
+                os.rename(downloaded, perm_path)
+                state.set_config("ALIVE_IMG", perm_path)
+                return await status_msg.edit(f"{UI.mono('[ OK ]')} Alive image updated to attached media.")
+        return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Failed to download media.")
+        
+    if args:
+        url = args[0]
+        if url.startswith(("http://", "https://")):
+            state.set_config("ALIVE_IMG", url)
+            return await edit_or_reply(message, f"{UI.mono('[ OK ]')} Alive image updated to URL.")
+            
+    await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Please reply to an image or provide a valid URL.")

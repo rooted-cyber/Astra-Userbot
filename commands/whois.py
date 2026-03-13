@@ -53,7 +53,7 @@ async def whois_handler(client: Client, message: Message):
     # Profile Pic
     pic_url = "https://telegra.ph/file/18a28f73177695376046e.jpg"
     try:
-        target_pic = await client.bridge.call("getProfilePicUrl", jid_str)
+        target_pic = await client.api.get_profile_pic_url(jid_str)
         if target_pic:
             pic_url = target_pic
     except:

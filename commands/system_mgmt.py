@@ -470,7 +470,7 @@ async def logs_cmd(client: Client, message: Message):
         with open(log_file, "rb") as f:
             b64_data = base64.b64encode(f.read()).decode("utf-8")
         media = {"mimetype": "text/plain", "data": b64_data, "filename": "astra_full_logs.txt"}
-        await client.send_media(message.chat_id, media, caption=f"{UI.mono('[ OK ]')} Full System Manifest", reply_to=message.id)
+        await client.send_photo(message.chat_id, media, caption=f"{UI.mono('[ OK ]')} Full System Manifest", reply_to=message.id)
         await status2.delete()
 
 
