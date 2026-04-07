@@ -74,13 +74,13 @@ Stores: - AFK states - Sudo users - Permissions - Notes / custom tags
 Run as Administrator:
 
 ``` powershell
-iwr -useb https://raw.githubusercontent.com/paman7647/Astra-Userbot/main/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/paman7647/Astra-Userbot/master/install.ps1 | iex
 ```
 
 ### macOS / Linux / VPS
 
 ``` bash
-bash <(curl -fsSL https://raw.githubusercontent.com/paman7647/Astra-Userbot/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/paman7647/Astra-Userbot/master/install.sh)
 ```
 
 For Docker & cloud installations, consult **DEPLOYMENT.md**.
