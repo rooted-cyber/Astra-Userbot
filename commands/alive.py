@@ -1,7 +1,5 @@
-import base64
 import os
 import platform
-import sys
 import time
 from datetime import datetime
 
@@ -9,6 +7,7 @@ from config import config
 from . import *
 from utils.helpers import edit_or_reply
 from utils.ui_templates import UI
+
 
 @astra_command(
     name="alive",
@@ -20,7 +19,7 @@ from utils.ui_templates import UI
 )
 async def alive_handler(client: Client, message: Message):
     """Renders a minimalist technical status report."""
-    
+
     from utils.state import BOOT_TIME
     uptime_sec = int(time.time() - BOOT_TIME)
 
@@ -43,7 +42,7 @@ async def alive_handler(client: Client, message: Message):
     except:
         pass
 
-    # Build Pro Report
+    # Build Report
     alive_report = (
         f"{UI.header('SYSTEM INTEGRITY')}\n"
         f"Owner    : {UI.mono(owner_name)}\n"
@@ -57,50 +56,58 @@ async def alive_handler(client: Client, message: Message):
         f"Service  : {UI.mono('Astra Secure Bridge')}"
     )
 
-    # Image Handling
-    img_source = config.alive_img
-    b64 = None
-    mimetype = "image/png"
+    # -------- Image Handling (FIXED) -------- #
 
-    async def fetch_image(source: str):
-        nonlocal b64, mimetype
-        if not source: return False
-        is_url = source.startswith(("http://", "https://"))
-        try:
-            if is_url:
-                import aiohttp
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(source, timeout=10) as resp:
-                        if resp.status == 200:
-                            b64 = base64.b64encode(await resp.read()).decode()
-                            mimetype = resp.headers.get("Content-Type", "image/png")
-                            return True
-            elif os.path.exists(source):
-                with open(source, "rb") as f:
-                    b64 = base64.b64encode(f.read()).decode()
-                    mimetype = "image/jpeg" if source.lower().endswith((".jpg", ".jpeg")) else "image/png"
-                    return True
-        except: pass
-        return False
+    async def resolve_media(source: str):
+        """Return a valid file path or URL, else None."""
+        if not source:
+            return None
 
-    success = await fetch_image(img_source)
-    if not success and img_source != os.path.join(config.BASE_DIR, "utils", "ub.png"):
-        await fetch_image(os.path.join(config.BASE_DIR, "utils", "ub.png"))
+        # URL
+        if source.startswith(("http://", "https://")):
+            return source
 
-    # Determine reply target
+        # Local file
+        if os.path.exists(source):
+            return source
+
+        return None
+
+    # Try main image
+    media = await resolve_media(config.alive_img)
+
+    # Fallback image
+    if not media:
+        fallback = os.path.join(config.BASE_DIR, "utils", "ub.png")
+        media = await resolve_media(fallback)
+
+    # Reply target
     reply_id = message.quoted_message_id if message.has_quoted_msg else message.id
 
-    if b64:
-        await client.send_photo(
+    # Send response
+    try:
+        if media:
+            await client.send_photo(
+                message.chat_id,
+                media,
+                caption=alive_report,
+                reply_to=reply_id,
+            )
+        else:
+            await client.send_message(
+                message.chat_id,
+                alive_report,
+                reply_to=reply_id,
+            )
+    except Exception as e:
+        # Fallback safety
+        await client.send_message(
             message.chat_id,
-            {"mimetype": mimetype, "data": b64},
-            caption=alive_report,
+            f"{alive_report}\n\n[Media Error: {e}]",
             reply_to=reply_id,
         )
-    else:
-        await client.send_message(message.chat_id, alive_report, reply_to=reply_id)
 
-    # Clean up trigger if possible
+    # Cleanup trigger
     try:
         if message.from_me:
             await message.delete()
@@ -118,26 +125,53 @@ async def alive_handler(client: Client, message: Message):
 async def setalive_handler(client: Client, message: Message):
     from utils.state import state
     from utils.plugin_utils import extract_args
+
     args = extract_args(message)
-    
-    if message.has_quoted_msg and getattr(message.quoted, 'is_media', False):
-        status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Downloading image...")
-        temp_path = f"/tmp/alive_{int(time.time())}.jpg"
-        downloaded = await message.quoted.download() # the framework saves it automatically or requires explicit path? We used download(temp_in) in audio_tools
-        if not downloaded:
-             downloaded = await message.quoted.download(temp_path)
-             if downloaded:
-                # Rename to a permanent path in data folder to avoid clearing /tmp
-                perm_path = os.path.join(config.BASE_DIR, "utils", f"custom_alive_{int(time.time())}.jpg")
-                os.rename(downloaded, perm_path)
-                state.set_config("ALIVE_IMG", perm_path)
-                return await status_msg.edit(f"{UI.mono('[ OK ]')} Alive image updated to attached media.")
-        return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Failed to download media.")
-        
+
+    # 📸 If replying to an image
+    if message.has_quoted_msg and getattr(message.quoted, "is_media", False):
+        status_msg = await edit_or_reply(
+            message, f"{UI.mono('[ BUSY ]')} Downloading image..."
+        )
+
+        try:
+            temp_path = await message.quoted.download()
+
+            if not temp_path:
+                return await status_msg.edit(
+                    f"{UI.mono('[ ERROR ]')} Failed to download media."
+                )
+
+            # Save permanently
+            perm_path = os.path.join(
+                config.BASE_DIR,
+                "utils",
+                f"custom_alive_{int(time.time())}.jpg",
+            )
+
+            os.rename(temp_path, perm_path)
+            state.set_config("ALIVE_IMG", perm_path)
+
+            return await status_msg.edit(
+                f"{UI.mono('[ OK ]')} Alive image updated."
+            )
+
+        except Exception as e:
+            return await status_msg.edit(
+                f"{UI.mono('[ ERROR ]')} {str(e)}"
+            )
+
+    # 🌐 If URL provided
     if args:
         url = args[0]
         if url.startswith(("http://", "https://")):
             state.set_config("ALIVE_IMG", url)
-            return await edit_or_reply(message, f"{UI.mono('[ OK ]')} Alive image updated to URL.")
-            
-    await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Please reply to an image or provide a valid URL.")
+            return await edit_or_reply(
+                message, f"{UI.mono('[ OK ]')} Alive image updated to URL."
+            )
+
+    # ❌ Invalid usage
+    await edit_or_reply(
+        message,
+        f"{UI.mono('[ ERROR ]')} Reply to an image or provide a valid URL.",
+    )
