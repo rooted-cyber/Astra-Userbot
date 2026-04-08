@@ -12,15 +12,33 @@ logger = logging.getLogger("Astra.BridgeDownloader")
 # Self-contained JS that resolves a message by short/full ID and downloads its media.
 # This bypasses the engine's retrieveMedia entirely for maximum reliability.
 INLINE_DOWNLOAD_JS = """
-(async (msgId) => {
+(async (msgRef) => {
     const Store = window.Astra.initializeEngine();
-    const repo = Store.MessageRepo || Store.MsgRepo;
+    const repo = Store.Msg || Store.MessageRepo || Store.MsgRepo;
     let msg = null;
+
+    const toSerializedId = (ref) => {
+        if (!ref) return null;
+        if (typeof ref === 'string') return ref;
+        if (typeof ref === 'object') {
+            if (typeof ref._serialized === 'string') return ref._serialized;
+            if (typeof ref.serialized === 'string') return ref.serialized;
+            if (typeof ref.id === 'string') return ref.id;
+            if (ref.id && typeof ref.id._serialized === 'string') return ref.id._serialized;
+            if (ref.id && typeof ref.id.id === 'string' && ref.id.remote) {
+                return `${ref.id.fromMe ? 'true' : 'false'}_${ref.id.remote}_${ref.id.id}`;
+            }
+        }
+        return String(ref);
+    };
+
+    const msgId = toSerializedId(msgRef);
+    if (!msgId) return { error: 'invalid_msg_id' };
 
     // --- Resolve msg from ID (supports both full serialized and short stanza IDs) ---
 
     // 1. Direct repo lookup
-    msg = repo.get(msgId);
+    try { msg = repo.get(msgId); } catch(e) {}
 
     // 2. MessageIdentity lookup
     if (!msg && Store.MessageIdentity && Store.MessageIdentity.fromString) {
@@ -30,7 +48,8 @@ INLINE_DOWNLOAD_JS = """
     // 3. getMessagesById API
     if (!msg) {
         try {
-            const r = await repo.getMessagesById([msgId]);
+            const getById = repo.getMessagesById || Store.Msg?.getMessagesById;
+            const r = getById ? await getById.call(repo, [msgId]) : null;
             msg = r && r.messages && r.messages[0];
         } catch(e) {}
     }
@@ -55,6 +74,34 @@ INLINE_DOWNLOAD_JS = """
     }
 
     if (!msg) return { error: 'msg_not_found' };
+
+    // If resolved message is an album/summary/non-media node, try to pick a sibling media node.
+    if (!(msg.directPath && msg.mediaKey)) {
+        const models = repo.getModelsArray ? repo.getModelsArray() : (repo.models || []);
+        const grouped = msg.groupedId || msg.grouped_id || msg.albumId || null;
+
+        if (grouped) {
+            const sibling = models.find(m => {
+                const mg = m.groupedId || m.grouped_id || m.albumId || null;
+                return mg === grouped && m.directPath && m.mediaKey;
+            });
+            if (sibling) msg = sibling;
+        }
+
+        if (!(msg.directPath && msg.mediaKey)) {
+            const baseTs = msg.t || 0;
+            const baseRemote = msg.id && msg.id.remote;
+            const baseAuthor = msg.author || (msg.id && msg.id.participant) || null;
+            const candidates = models
+                .filter(m => m.directPath && m.mediaKey)
+                .filter(m => !baseRemote || (m.id && m.id.remote === baseRemote))
+                .filter(m => !baseAuthor || m.author === baseAuthor || (m.id && m.id.participant === baseAuthor))
+                .filter(m => !baseTs || Math.abs((m.t || 0) - baseTs) <= 180)
+                .sort((a, b) => Math.abs((a.t || 0) - baseTs) - Math.abs((b.t || 0) - baseTs));
+
+            if (candidates.length) msg = candidates[0];
+        }
+    }
 
     // --- Download the media ---
     let buffer = null;
@@ -125,7 +172,12 @@ INLINE_DOWNLOAD_JS = """
         reader.readAsDataURL(b);
     });
 
-    return { data: b64, mimetype: msg.mimetype || 'application/octet-stream', size: buffer.byteLength };
+    return {
+        data: b64,
+        mimetype: msg.mimetype || 'application/octet-stream',
+        size: buffer.byteLength,
+        resolvedId: msg.id && (msg.id._serialized || msg.id.id) ? (msg.id._serialized || msg.id.id) : msgId
+    };
 })
 """
 
@@ -141,11 +193,50 @@ class AstraBridge:
         """
         try:
             target = message.quoted if message.has_quoted_msg else message
-            if not target or not target.is_media:
-                logger.debug("Download skipped: not a media message.")
+
+            def _id_to_serialized(obj) -> Optional[str]:
+                if obj is None:
+                    return None
+                if isinstance(obj, str):
+                    return obj
+                serialized = getattr(obj, "serialized", None)
+                if isinstance(serialized, str):
+                    return serialized
+                serialized = getattr(obj, "_serialized", None)
+                if isinstance(serialized, str):
+                    return serialized
+                rid = getattr(obj, "id", None)
+                if isinstance(rid, str):
+                    return rid
+                if rid is not None:
+                    nested = getattr(rid, "serialized", None) or getattr(rid, "_serialized", None)
+                    if isinstance(nested, str):
+                        return nested
+                    if isinstance(rid, dict):
+                        if isinstance(rid.get("_serialized"), str):
+                            return rid["_serialized"]
+                        if isinstance(rid.get("id"), str):
+                            remote = rid.get("remote")
+                            from_me = "true" if rid.get("fromMe") else "false"
+                            return f"{from_me}_{remote}_{rid['id']}" if remote else rid["id"]
+                return str(obj)
+
+            mid = None
+            if target is not None:
+                mid = _id_to_serialized(getattr(target, "id", target))
+
+            if not mid:
+                mid = _id_to_serialized(
+                    getattr(message, "quoted_message_id", None) or getattr(message, "quotedMessageId", None)
+                )
+
+            if not mid:
+                mid = _id_to_serialized(getattr(message, "id", None))
+
+            if not mid:
+                logger.debug("Download skipped: no resolvable message id.")
                 return None
 
-            mid = target.id
             logger.info(f"📥 Bridge Attempting Download: {mid}")
 
             # Execute our self-contained JS directly on the browser page
@@ -154,13 +245,14 @@ class AstraBridge:
                 logger.error("No browser page available.")
                 return None
 
-            result = await page.evaluate(f'{INLINE_DOWNLOAD_JS}("{mid}")')
+            result = await page.evaluate(INLINE_DOWNLOAD_JS, mid)
 
             if result and isinstance(result, dict):
                 if "error" in result:
                     logger.warning(f"⚠️ Inline JS download result: {result['error']} for {mid}")
                 elif "data" in result:
-                    logger.info(f"✅ Download OK (Inline JS): {mid} ({result.get('size', '?')} bytes)")
+                    resolved = result.get("resolvedId", mid)
+                    logger.info(f"✅ Download OK (Inline JS): {resolved} ({result.get('size', '?')} bytes)")
                     return base64.b64decode(result["data"])
 
             # Fallback: try the engine's download_media as a last resort

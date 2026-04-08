@@ -365,7 +365,13 @@ def reload_all_plugins(client: Client) -> int:
         try:
             from commands.help import HELP_CACHE
 
-            HELP_CACHE["categories"].clear()
+            # Support evolving help cache schemas without hardcoding legacy keys.
+            if isinstance(HELP_CACHE, dict):
+                for key, value in list(HELP_CACHE.items()):
+                    if isinstance(value, dict):
+                        value.clear()
+                if "built" in HELP_CACHE:
+                    HELP_CACHE["built"] = False
             logger.info("Cleared Help System cache for re-indexing.")
         except ImportError:
             pass
