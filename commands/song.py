@@ -27,7 +27,7 @@ async def song_handler(client: Client, message: Message):
             query += " audio song"
 
     status_msg = await edit_or_reply(
-        message, f"{UI.header('MEDIA TRACKING')}\n{UI.mono('[ BUSY ]')} Resolving: {UI.mono(query[:30])}..."
+        message, f"{UI.header('MEDIA TRACKING')}\n{UI.mono('processing')} Resolving: {UI.mono(query[:30])}..."
     )
 
     import yt_dlp
@@ -47,7 +47,7 @@ async def song_handler(client: Client, message: Message):
             result = ydl.extract_info(f"ytsearch1:{query}", download=False)
             results = result.get("entries", [])
             if not results:
-                return await status_msg.edit(f"{UI.mono('[ ERROR ]')} No matches found for {UI.mono(query)}.")
+                return await status_msg.edit(f"{UI.mono('error')} No matches found for {UI.mono(query)}.")
             res = results[0]
 
     target_url = res.get("webpage_url") or f"https://www.youtube.com/watch?v={res.get('id')}"
@@ -60,7 +60,7 @@ async def song_handler(client: Client, message: Message):
         f"{UI.header('MEDIA TRACKING')}\n"
         f"Title    : {UI.mono(title[:40])}\n"
         f"Duration : {UI.mono(duration)}\n\n"
-        f"{UI.mono('[ BUSY ]')} Routing to local gateway..."
+        f"{UI.mono('processing')} Routing to local gateway..."
     )
 
     # Use MediaChannel for download/upload
@@ -95,7 +95,7 @@ async def vsong_handler(client: Client, message: Message):
             query += " full video"
 
     status_msg = await edit_or_reply(
-        message, f"{UI.header('MEDIA TRACKING')}\n{UI.mono('[ BUSY ]')} Resolving: {UI.mono(query[:30])}..."
+        message, f"{UI.header('MEDIA TRACKING')}\n{UI.mono('processing')} Resolving: {UI.mono(query[:30])}..."
     )
 
     import yt_dlp
@@ -115,7 +115,7 @@ async def vsong_handler(client: Client, message: Message):
             result = ydl.extract_info(f"ytsearch1:{query}", download=False)
             results = result.get("entries", [])
             if not results:
-                return await status_msg.edit(f"{UI.mono('[ ERROR ]')} No matches found for {UI.mono(query)}.")
+                return await status_msg.edit(f"{UI.mono('error')} No matches found for {UI.mono(query)}.")
             res = results[0]
 
     target_url = res.get("webpage_url") or f"https://www.youtube.com/watch?v={res.get('id')}"
@@ -128,7 +128,7 @@ async def vsong_handler(client: Client, message: Message):
         f"{UI.header('MEDIA TRACKING')}\n"
         f"Title    : {UI.mono(title[:40])}\n"
         f"Duration : {UI.mono(duration)}\n\n"
-        f"{UI.mono('[ BUSY ]')} Routing to local gateway..."
+        f"{UI.mono('processing')} Routing to local gateway..."
     )
 
     # Use MediaChannel for download/upload

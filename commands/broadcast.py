@@ -16,7 +16,7 @@ async def broadcast_handler(client: Client, message: Message):
 
     text = " ".join(args)
     status_msg = await edit_or_reply(
-        message, f"{UI.header('BROADCAST ENGINE')}\n{UI.mono('[ BUSY ]')} Initializing distribution..."
+        message, f"{UI.header('BROADCAST ENGINE')}\n{UI.mono('processing')} Starting distribution..."
     )
 
     all_chats = await client.chat.get_all_chats()
@@ -25,7 +25,7 @@ async def broadcast_handler(client: Client, message: Message):
     failed = 0
 
     await status_msg.edit(
-        f"{UI.header('BROADCAST ENGINE')}\n{UI.mono('[ BUSY ]')} Synchronizing {UI.mono(total)} chats...\n{UI.italic('Processing distribution window...')}"
+        f"{UI.header('BROADCAST ENGINE')}\n{UI.mono('processing')} syncing {UI.mono(total)} chats...\n{UI.italic('Processing distribution window...')}"
     )
 
     for i, chat in enumerate(all_chats):
@@ -68,7 +68,7 @@ async def broadcast_gc_handler(client: Client, message: Message):
 
     text = " ".join(args)
     status_msg = await edit_or_reply(
-        message, f"{UI.header('GROUP BROADCAST')}\n{UI.mono('[ BUSY ]')} Filtering group segments..."
+        message, f"{UI.header('GROUP BROADCAST')}\n{UI.mono('processing')} Filtering group segments..."
     )
 
     all_chats = await client.chat.get_all_chats()
@@ -81,7 +81,7 @@ async def broadcast_gc_handler(client: Client, message: Message):
         return await status_msg.edit("❌ No groups found.")
 
     await status_msg.edit(
-        f"{UI.header('GROUP BROADCAST')}\n{UI.mono('[ BUSY ]')} Synchronizing {UI.mono(total)} groups..."
+        f"{UI.header('GROUP BROADCAST')}\n{UI.mono('processing')} syncing {UI.mono(total)} groups..."
     )
 
     for i, gc in enumerate(groups):

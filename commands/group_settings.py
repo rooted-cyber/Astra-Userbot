@@ -26,7 +26,7 @@ async def lock_handler(client: Client, message: Message):
     target = args[0].lower()
     api = client.api
     gid = message.chat_id
-    status = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Restricting segment permissions...")
+    status = await edit_or_reply(message, f"{UI.mono('processing')} Restricting segment permissions...")
 
     try:
         if target in ("send", "all"):
@@ -37,9 +37,9 @@ async def lock_handler(client: Client, message: Message):
             await api.set_admins_only_info(gid, True)
 
         label = target if target != "all" else "full segment"
-        await status.edit(f"{UI.mono('[ OK ]')} Persistent lock applied: {UI.mono(label)}")
+        await status.edit(f"{UI.mono('done')} Persistent lock applied: {UI.mono(label)}")
     except Exception as e:
-        await status.edit(f"{UI.mono('[ ERROR ]')} Permission failure: {UI.mono(str(e))}")
+        await status.edit(f"{UI.mono('error')} Permission failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -61,7 +61,7 @@ async def unlock_handler(client: Client, message: Message):
     target = args[0].lower()
     api = client.api
     gid = message.chat_id
-    status = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Synchronizing segment permissions...")
+    status = await edit_or_reply(message, f"{UI.mono('processing')} syncing segment permissions...")
 
     try:
         if target in ("send", "all"):
@@ -72,9 +72,9 @@ async def unlock_handler(client: Client, message: Message):
             await api.set_admins_only_info(gid, False)
 
         label = target if target != "all" else "full segment"
-        await status.edit(f"{UI.mono('[ OK ]')} Permission shield removed: {UI.mono(label)}")
+        await status.edit(f"{UI.mono('done')} Permission shield removed: {UI.mono(label)}")
     except Exception as e:
-        await status.edit(f"{UI.mono('[ ERROR ]')} Synchronize failure: {UI.mono(str(e))}")
+        await status.edit(f"{UI.mono('error')} Synchronize failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -97,9 +97,9 @@ async def setsubject_handler(client: Client, message: Message):
     name = " ".join(args)
     try:
         await client.api.set_group_subject(message.chat_id, name)
-        await edit_or_reply(message, f"{UI.mono('[ OK ]')} Subject re-indexed: {UI.bold(name)}")
+        await edit_or_reply(message, f"{UI.mono('done')} Subject re-indexed: {UI.bold(name)}")
     except Exception as e:
-        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Index failure: {UI.mono(str(e))}")
+        await edit_or_reply(message, f"{UI.mono('error')} Index failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -122,9 +122,9 @@ async def setdesc_handler(client: Client, message: Message):
     desc = " ".join(args)
     try:
         await client.api.set_group_description(message.chat_id, desc)
-        await edit_or_reply(message, f"{UI.mono('[ OK ]')} Manifest updated.")
+        await edit_or_reply(message, f"{UI.mono('done')} config updated.")
     except Exception as e:
-        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Manifest failure: {UI.mono(str(e))}")
+        await edit_or_reply(message, f"{UI.mono('error')} config failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -147,7 +147,7 @@ async def joinreqs_handler(client: Client, message: Message):
     try:
         reqs = await api.get_membership_requests(gid)
         if not reqs:
-            return await edit_or_reply(message, f"{UI.mono('[ EMPTY ]')} No pending nodes identified.")
+            return await edit_or_reply(message, f"{UI.mono('empty')} No pending nodes identified.")
 
         if not args:
             # Just list them
@@ -161,18 +161,18 @@ async def joinreqs_handler(client: Client, message: Message):
             return await edit_or_reply(message, text)
 
         action = args[0].lower()
-        status = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Processing {len(reqs)} nodes...")
+        status = await edit_or_reply(message, f"{UI.mono('processing')} Processing {len(reqs)} nodes...")
 
         if action == "approve":
             await api.approve_membership(gid)
-            await status.edit(f"{UI.mono('[ OK ]')} Approved {len(reqs)} access request(s).")
+            await status.edit(f"{UI.mono('done')} Approved {len(reqs)} access request(s).")
         elif action == "reject":
             await api.reject_membership(gid)
-            await status.edit(f"{UI.mono('[ OK ]')} Terminated {len(reqs)} access request(s).")
+            await status.edit(f"{UI.mono('done')} Terminated {len(reqs)} access request(s).")
         else:
-            await status.edit(f"{UI.mono('[ ERROR ]')} Invalid operation parameter.")
+            await status.edit(f"{UI.mono('error')} Invalid operation parameter.")
     except Exception as e:
-        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Protocol failure: {UI.mono(str(e))}")
+        await edit_or_reply(message, f"{UI.mono('error')} request failed: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -189,6 +189,6 @@ async def revoke_handler(client: Client, message: Message):
 
     try:
         new_link = await client.api.revoke_invite(message.chat_id)
-        await edit_or_reply(message, f"{UI.mono('[ OK ]')} Node link revoked.\nIdentifier: {new_link}")
+        await edit_or_reply(message, f"{UI.mono('done')} Node link revoked.\nIdentifier: {new_link}")
     except Exception as e:
-        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Protocol failure: {UI.mono(str(e))}")
+        await edit_or_reply(message, f"{UI.mono('error')} request failed: {UI.mono(str(e))}")

@@ -56,13 +56,13 @@ class Database:
             self.initialized = True
 
     async def _sync_on_startup(self):
-        """Syncs data between SQLite and MongoDB."""
+        """merges sqlite and mongo on boot"""
         if self.mongo_db is None:
-            # If no mongo, maybe migrate from JSON to SQLite?
+            # no mongo, check for old json file
             await self._migrate_from_json()
             return
 
-        logger.info("Starting database synchronization...")
+        logger.info("syncing db...")
 
         # 1. Get everything from SQLite
         cursor = await self.sqlite_conn.execute("SELECT key, value, updated_at FROM state")
@@ -71,7 +71,7 @@ class Database:
             try:
                 sqlite_data[row[0]] = {"value": json.loads(row[1]), "updated_at": row[2]}
             except Exception as e:
-                logger.warning(f"Failed to parse SQLite value for key {row[0]}: {e}")
+                logger.warning(f"bad data for {row[0]}: {e}")
                 continue
 
         # 2. Get everything from MongoDB
@@ -80,7 +80,7 @@ class Database:
             async for doc in self.mongo_db.state.find({}):
                 mongo_data[doc["_id"]] = {"value": doc.get("value"), "updated_at": doc.get("updated_at", 0)}
         except Exception as e:
-            logger.error(f"Failed to fetch data from MongoDB for sync: {e}")
+            logger.error(f"mongo sync failed: {e}")
             return
 
         # 3. Synchronize
@@ -90,13 +90,13 @@ class Database:
             s_val = sqlite_data.get(key)
             m_val = mongo_data.get(key)
 
-            # Case: Only in SQLite
+            # Only in SQLite
             if s_val is not None and m_val is None:
                 await self._mongo_update_task(
                     "state", {"_id": key}, {"$set": {"value": s_val["value"], "updated_at": s_val["updated_at"]}}
                 )
             
-            # Case: Only in MongoDB
+            # Only in MongoDB
             elif m_val is not None and s_val is None:
                 await self.sqlite_conn.execute(
                     "INSERT INTO state (key, value, updated_at) VALUES (?, ?, ?)",

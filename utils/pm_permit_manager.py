@@ -1,12 +1,9 @@
-import asyncio
 import logging
 from typing import Any
 
 from config import config
-from utils.database import db
-from utils.helpers import get_contact_name, edit_or_reply, safe_task
+from utils.helpers import get_contact_name, edit_or_reply
 from utils.state import state
-from utils.ui_templates import UI
 
 from astra import Client
 from astra.models import Message
@@ -24,8 +21,17 @@ async def enforce_pm_protection(client: Client, message: Message):
     if not state.initialized:
         await state.initialize()
 
-    if not config.ENABLE_PM_PROTECTION:
+    protection_enabled = bool(
+        state.get_config("ENABLE_PM_PROTECTION", getattr(config, "ENABLE_PM_PROTECTION", True))
+    )
+    if not protection_enabled:
         return True
+
+    warn_limit_raw = state.get_config("PM_WARN_LIMIT", getattr(config, "PM_WARN_LIMIT", 3))
+    try:
+        warn_limit = max(1, int(warn_limit_raw))
+    except Exception:
+        warn_limit = 3
 
     # 1. Resolve IDs safely (handles both JID objects and strings)
     # We always use the primary JID (stripping device stickers like :4) for logic checks
@@ -40,8 +46,9 @@ async def enforce_pm_protection(client: Client, message: Message):
         user = parts[0].split(":")[0]
         return f"{user}@{parts[1]}"
 
-    chat_id = get_primary(message.chat_id)
-    sender_id = get_primary(message.sender) if message.sender else chat_id
+    chat_id = state._normalize_contact_id(get_primary(message.chat_id))
+    sender_raw = message.sender if getattr(message, "sender", None) else getattr(message, "author", None)
+    sender_id = state._normalize_contact_id(get_primary(sender_raw) if sender_raw else chat_id)
 
     # 2. Skip if not a private message (@c.us or @lid)
     is_private = chat_id.endswith("@c.us") or chat_id.endswith("@lid")
@@ -70,20 +77,18 @@ async def enforce_pm_protection(client: Client, message: Message):
     logger.info(f"PM Protection triggered for {sender_id}")
 
     # Increment Warning Count
-    warnings = state.state["pm_warnings"].get(sender_id, 0) + 1
-    state.state["pm_warnings"][sender_id] = warnings
-    # Note: StateManager could be improved to handle this increment and save automatically,
-    # but for now we manually call save or just use the transient memory.
-    # Actually, state.save() background tasks everything.
-    safe_task(db.set("pm_warnings", state.state["pm_warnings"]), log_context="PM_Permit:Sync")
+    warnings = state.increment_pm_warning(sender_id)
 
-    if warnings > config.PM_WARN_LIMIT:
+    if warnings > warn_limit:
         await edit_or_reply(
-            message, f"{UI.mono('[ BLOCK ]')} Access limit exceeded ({config.PM_WARN_LIMIT}). Profile restricted."
+            message,
+            f"PM warning limit exceeded ({warn_limit}). You have been blocked.",
         )
         try:
-            # We use the bridge call directly if client doesn't have a high-level block
-            await client.bridge.call("blockContact", {"contactId": sender_id})
+            if hasattr(client, "bridge") and client.bridge:
+                await client.bridge.call("blockContact", {"contactId": sender_id})
+            elif hasattr(client, "contact") and hasattr(client.contact, "block"):
+                await client.contact.block(sender_id)
             logger.warning(f"Blocked user {sender_id} due to PM protection violation.")
         except Exception as e:
             logger.error(f"Failed to block user {sender_id}: {e}")
@@ -92,11 +97,10 @@ async def enforce_pm_protection(client: Client, message: Message):
     # Issue Warning
     pm_name = await get_contact_name(client, sender_id)
     warning_text = (
-        f"{UI.header('PM SECURITY ALERT')}\n"
-        f"Identify: {UI.bold(pm_name)}\n"
-        f"Notice  : Unauthorized private session detected.\n"
-        f"Level   : {UI.mono(f'{warnings}/{config.PM_WARN_LIMIT}')} Warnings\n\n"
-        f"{UI.italic('Awaiting owner authorization. Persistent messaging results in automated restriction.')}"
+        "PM protection is enabled.\n"
+        f"User: {pm_name}\n"
+        f"Warning: {warnings}/{warn_limit}\n\n"
+        "Wait for owner approval. Repeated messages will trigger auto-block."
     )
     await edit_or_reply(message, warning_text)
     return False

@@ -21,9 +21,9 @@ from utils.ui_templates import UI
 async def sticker_handler(client: Client, message: Message):
     """Sticker creation plugin."""
     if not message.has_quoted_msg and not message.is_media:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target media required (image/video).")
+        return await edit_or_reply(message, f"{UI.mono('error')} Target media required (image/video).")
 
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Converting to sticker...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Converting to sticker...")
 
     # Download media via high-reliability Bridge
     media_data = await bridge_downloader.download_media(client, message)
@@ -53,9 +53,9 @@ async def sticker_handler(client: Client, message: Message):
 async def kang_handler(client: Client, message: Message):
     """Advanced sticker cloning/creation."""
     if not message.has_quoted_msg and not message.is_media:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target media required (sticker/image/video).")
+        return await edit_or_reply(message, f"{UI.mono('error')} Target media required (sticker/image/video).")
 
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Kanging media segment...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Kanging media segment...")
 
     # Download media
     media_data = await bridge_downloader.download_media(client, message)
@@ -104,7 +104,7 @@ async def stkrinfo_handler(client: Client, message: Message):
     has_quoted_sticker = message.has_quoted_msg and message.quoted_type == MessageType.STICKER
 
     if not is_sticker and not has_quoted_sticker:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Reply to a sticker to fetch metadata.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Reply to a sticker to fetch metadata.")
 
     info = f"{UI.header('STICKER METADATA')}\n"
     info += f"ID     : {UI.mono(message.id)}\n"
@@ -130,9 +130,9 @@ async def stoi_handler(client: Client, message: Message):
     has_quoted_sticker = message.has_quoted_msg and message.quoted_type == MessageType.STICKER
 
     if not is_sticker and not has_quoted_sticker:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Reply to a sticker for image conversion.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Reply to a sticker for image conversion.")
 
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Stripping sticker layer...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Stripping sticker layer...")
 
     media_data = await bridge_downloader.download_media(client, message)
     if not media_data:
@@ -150,7 +150,7 @@ async def stoi_handler(client: Client, message: Message):
     b64_data = base64.b64encode(out_buffer.getvalue()).decode("utf-8")
 
     media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "sticker.jpg"}
-    await client.send_photo(str(message.chat_id), media, caption=f"{UI.mono('[ OK ]')} Converted from sticker segment.")
+    await client.send_photo(str(message.chat_id), media, caption=f"{UI.mono('done')} Converted from sticker segment.")
     await status_msg.delete()
 
 
@@ -167,9 +167,9 @@ async def getstkr_handler(client: Client, message: Message):
     has_quoted_sticker = message.has_quoted_msg and message.quoted_type == MessageType.STICKER
 
     if not is_sticker and not has_quoted_sticker:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Reply to a sticker to export file.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Reply to a sticker to export file.")
 
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Fetching sticker binary...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Fetching sticker binary...")
 
     media_data = await bridge_downloader.download_media(client, message)
     if not media_data:

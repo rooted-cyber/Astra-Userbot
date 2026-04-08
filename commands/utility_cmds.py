@@ -38,10 +38,10 @@ async def carbon_handler(client: Client, message: Message):
 
     if not code:
         return await edit_or_reply(
-            message, f"{UI.mono('[ ERROR ]')} Source buffer required.\n{UI.bold('USAGE:')} {UI.mono('.carbon <text>')}"
+            message, f"{UI.mono('error')} Source buffer required.\n{UI.bold('USAGE:')} {UI.mono('.carbon <text>')}"
         )
 
-    status_txt = f"{UI.header('CARBON ENGINE')}\n{UI.mono('[ BUSY ]')} Rendering code snippet..."
+    status_txt = f"{UI.header('CARBON ENGINE')}\n{UI.mono('processing')} Rendering code snippet..."
     status_msg = await edit_or_reply(message, status_txt)
 
     # Carbonara API
@@ -55,10 +55,10 @@ async def carbon_handler(client: Client, message: Message):
                 b64_data = base64.b64encode(image_data).decode("utf-8")
 
                 media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "carbon.jpg"}
-                await client.send_photo(message.chat_id, media, caption=f"{UI.mono('[ OK ]')} Astra Pro Snippet")
+                await client.send_photo(message.chat_id, media, caption=f"{UI.mono('done')} Astra Pro Snippet")
                 await status_msg.delete()
             else:
-                await safe_edit(status_msg, f"{UI.mono('[ ERROR ]')} Carbon rendering failed.")
+                await safe_edit(status_msg, f"{UI.mono('error')} Carbon rendering failed.")
 
 
 # --- QUOTLY STICKER ---
@@ -77,7 +77,7 @@ async def quotly_handler(client: Client, message: Message):
     """
     if not message.has_quoted_msg:
         return await edit_or_reply(
-            message, f"{UI.mono('[ ERROR ]')} Target message required for rendering."
+            message, f"{UI.mono('error')} Target message required for rendering."
         )
 
     args = extract_args(message)
@@ -85,7 +85,7 @@ async def quotly_handler(client: Client, message: Message):
     if args and args[0].isdigit():
         count = min(int(args[0]), 10)  # Cap at 10 for performance
 
-    status_txt = f"{UI.header('QUOTLY RENDER')}\n{UI.mono('[ BUSY ]')} Processing sequence {UI.mono(f'x{count}') if count > 1 else ''}..."
+    status_txt = f"{UI.header('QUOTLY RENDER')}\n{UI.mono('processing')} Processing sequence {UI.mono(f'x{count}') if count > 1 else ''}..."
     status_msg = await edit_or_reply(message, status_txt)
 
     start_quoted = message.quoted
@@ -176,4 +176,4 @@ async def quotly_handler(client: Client, message: Message):
                     )
                     await status_msg.delete()
                     return
-    await safe_edit(status_msg, f"{UI.mono('[ ERROR ]')} Quotly rendering failure.")
+    await safe_edit(status_msg, f"{UI.mono('error')} Quotly rendering failure.")

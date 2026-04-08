@@ -611,7 +611,7 @@ async def send_meme_media(client, chat_id, meme_data, reply_to) -> bool:
 # ── Generic Handler (DRY) ──────────────────
 
 async def _meme_handler(client, message, subs, label, fallback_subs=None, **kwargs):
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} {label}...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} {label}...")
     try:
         meme = await fetch_meme(subs, **kwargs)
         if not meme and fallback_subs:
@@ -627,7 +627,7 @@ async def _meme_handler(client, message, subs, label, fallback_subs=None, **kwar
             subs_tried = ", ".join(subs[:3])
             await safe_edit(
                 status_msg,
-                f"{UI.mono('[ ERROR ]')} No fresh memes found.\nSubs: {UI.mono(', '.join(subs[:3]))}",
+                f"{UI.mono('error')} No fresh memes found.\nSubs: {UI.mono(', '.join(subs[:3]))}",
             )
     except Exception as e:
         await handle_command_error(client, message, e, context="Meme command failure")
@@ -639,27 +639,27 @@ async def _meme_handler(client, message, subs, label, fallback_subs=None, **kwar
 
 @astra_command(name="imeme", description="Get a spicy Indian meme", category="Fun & Memes", usage=".imeme")
 async def imeme_handler(client: Client, message: Message):
-    await _meme_handler(client, message, INDIAN_MEMES, "Synchronizing Indian segments")
+    await _meme_handler(client, message, INDIAN_MEMES, "syncing Indian segments")
 
 
 @astra_command(name="idmdmes", description="Get a NSFW/Edgy Indian meme", category="Fun & Memes", usage=".idmdmes")
 async def idmdmes_handler(client: Client, message: Message):
-    await _meme_handler(client, message, INDIAN_NSFW_MEMES, "Synchronizing edgy segments", fallback_subs=INDIAN_MEMES, nsfw=True)
+    await _meme_handler(client, message, INDIAN_NSFW_MEMES, "syncing edgy segments", fallback_subs=INDIAN_MEMES, nsfw=True)
 
 
 @astra_command(name="meme", description="Get a random global meme", category="Fun & Memes", aliases=["m"], usage=".meme", is_public=True)
 async def meme_handler(client: Client, message: Message):
-    await _meme_handler(client, message, ALL_MEMES, "Synchronizing global segments")
+    await _meme_handler(client, message, ALL_MEMES, "syncing global segments")
 
 
 @astra_command(name="dmeme", description="Get a NSFW/Dark global meme", category="Fun & Memes", usage=".dmeme")
 async def dmeme_handler(client: Client, message: Message):
-    await _meme_handler(client, message, ALL_NSFW_MEMES, "Synchronizing dark segments", fallback_subs=ALL_MEMES, nsfw=True)
+    await _meme_handler(client, message, ALL_NSFW_MEMES, "syncing dark segments", fallback_subs=ALL_MEMES, nsfw=True)
 
 
 @astra_command(name="idm", description="Get a meme from r/IndianDankMemes", category="Fun & Memes", usage=".idm")
 async def idm_handler(client: Client, message: Message):
-    await _meme_handler(client, message, ["IndianDankMemes"], "Synchronizing IDM segment", fallback_subs=INDIAN_MEMES)
+    await _meme_handler(client, message, ["IndianDankMemes"], "syncing IDM segment", fallback_subs=INDIAN_MEMES)
 
 
 # ── Meme Maker (PIL) ─────────────────────────
@@ -676,7 +676,7 @@ async def meme_maker_handler(client: Client, message: Message):
     is_image = message.type == MessageType.IMAGE
     has_quoted_image = message.has_quoted_msg and message.quoted_type == MessageType.IMAGE
     if not is_image and not has_quoted_image:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target image required.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Target image required.")
 
     text = " ".join(extract_args(message))
     if not text:
@@ -690,7 +690,7 @@ async def meme_maker_handler(client: Client, message: Message):
     else:
         top_text = text.strip().upper()
 
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Rendering meme canvas...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Rendering meme canvas...")
 
     media_data = await bridge_downloader.download_media(client, message)
     if not media_data:
@@ -738,7 +738,7 @@ async def meme_maker_handler(client: Client, message: Message):
     await client.send_photo(
         str(message.chat_id),
         {"mimetype": "image/jpeg", "data": base64.b64encode(out.getvalue()).decode(), "filename": "meme.jpg"},
-        caption=f"{UI.mono('[ OK ]')} Meme generated via Astra Engine"
+        caption=f"{UI.mono('done')} Meme generated via Astra Service"
     )
     await status_msg.delete()
 
@@ -747,20 +747,20 @@ async def meme_maker_handler(client: Client, message: Message):
 
 @astra_command(name="memedebug", description="Diagnose meme fetching issues", category="System", usage=".memedebug", owner_only=True)
 async def memedebug_handler(client: Client, message: Message):
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Running Meme Diagnostics...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Running Meme Diagnostics...")
     report = f"{UI.header('MEME DIAGNOSTICS')}\n"
 
     async with aiohttp.ClientSession(headers=get_reddit_headers(), timeout=REQUEST_TIMEOUT) as session:
         try:
             async with session.get("https://meme-api.com/gimme/1") as resp:
-                icon = "[ OK ]" if resp.status == 200 else "[ WARN ]"
+                icon = "done" if resp.status == 200 else "warning"
                 report += f"{UI.mono(icon)} MemeAPI: {UI.mono(resp.status)}\n"
         except Exception as e:
             report += f"❌ *MemeAPI:* `{str(e)[:40]}`\n"
 
         try:
             async with session.get("https://www.reddit.com/r/memes/hot.json?limit=1") as resp:
-                icon = "[ OK ]" if resp.status == 200 else ("[ BLOCKED ]" if resp.status == 403 else "[ WARN ]")
+                icon = "done" if resp.status == 200 else ("blocked" if resp.status == 403 else "warning")
                 report += f"{UI.mono(icon)} Reddit Direct: {UI.mono(resp.status)}"
                 if resp.status == 403:
                     report += " _(IP blocked — use OAuth)_"
@@ -773,16 +773,16 @@ async def memedebug_handler(client: Client, message: Message):
             try:
                 oauth_headers = {"Authorization": f"bearer {token}", "User-Agent": REDDIT_UA}
                 async with session.get("https://oauth.reddit.com/r/memes/hot.json?limit=1", headers=oauth_headers) as resp:
-                    icon = "[ OK ]" if resp.status == 200 else "[ WARN ]"
+                    icon = "done" if resp.status == 200 else "warning"
                     report += f"{UI.mono(icon)} Reddit OAuth2: {UI.mono(resp.status)}\n"
             except Exception as e:
                 report += f"❌ *Reddit OAuth2:* `{str(e)[:40]}`\n"
         else:
-            report += f"{UI.mono('[ EMPTY ]')} Reddit OAuth2: Not configured\n"
+            report += f"{UI.mono('empty')} Reddit OAuth2: Not configured\n"
 
         try:
             async with session.get("https://www.reddit.com/r/memes/hot.rss?limit=1", headers={"Accept": "application/xml"}) as resp:
-                icon = "[ OK ]" if resp.status == 200 else "[ WARN ]"
+                icon = "done" if resp.status == 200 else "warning"
                 report += f"{UI.mono(icon)} Reddit RSS: {UI.mono(resp.status)}\n"
         except Exception as e:
             report += f"❌ *Reddit RSS:* `{str(e)[:40]}`\n"
@@ -790,21 +790,21 @@ async def memedebug_handler(client: Client, message: Message):
         inst = random.choice(REDLIB_INSTANCES)
         try:
             async with session.get(f"{inst}/r/memes/hot.json?limit=1") as resp:
-                icon = "[ OK ]" if resp.status == 200 else "[ WARN ]"
+                icon = "done" if resp.status == 200 else "warning"
                 report += f"{UI.mono(icon)} Redlib: {UI.mono(resp.status)}\n"
         except Exception as e:
             report += f"❌ *Redlib:* `{str(e)[:40]}`\n"
 
         try:
             async with session.get("https://api.imgflip.com/get_memes") as resp:
-                icon = "[ OK ]" if resp.status == 200 else "[ WARN ]"
+                icon = "done" if resp.status == 200 else "warning"
                 report += f"{UI.mono(icon)} ImgFlip: {UI.mono(resp.status)}\n"
         except Exception as e:
             report += f"❌ *ImgFlip:* `{str(e)[:40]}`\n"
 
         try:
             async with session.get("https://9gag.com/hot.rss", headers={"User-Agent": "Mozilla/5.0 (compatible; RSS reader)"}) as resp:
-                icon = "[ OK ]" if resp.status == 200 else "[ WARN ]"
+                icon = "done" if resp.status == 200 else "warning"
                 report += f"{UI.mono(icon)} 9gag RSS: {UI.mono(resp.status)}\n"
         except Exception as e:
             report += f"❌ *9gag RSS:* `{str(e)[:40]}`\n"
@@ -813,12 +813,12 @@ async def memedebug_handler(client: Client, message: Message):
         if giphy_key:
             try:
                 async with session.get(f"https://api.giphy.com/v1/gifs/trending?api_key={giphy_key}&limit=1") as resp:
-                    icon = "[ OK ]" if resp.status == 200 else "[ WARN ]"
+                    icon = "done" if resp.status == 200 else "warning"
                     report += f"{UI.mono(icon)} Giphy: {UI.mono(resp.status)}\n"
             except Exception as e:
                 report += f"❌ *Giphy:* `{str(e)[:40]}`\n"
         else:
-            report += f"{UI.mono('[ EMPTY ]')} Giphy: Not configured\n"
+            report += f"{UI.mono('empty')} Giphy: Not configured\n"
 
     report += f"{UI.DIVIDER}\n"
     report += f"{UI.italic('Priority Chain: API > RSS > Redlib > OAuth2 > Direct')}\n"
@@ -830,13 +830,13 @@ async def setreddit_handler(client: Client, message: Message):
     args = extract_args(message)
     if len(args) < 2:
         cid, _ = await _get_reddit_creds()
-        status = f"{UI.mono('[ OK ]')} Configured" if cid else f"{UI.mono('[ EMPTY ]')} Not set"
+        status = f"{UI.mono('done')} Configured" if cid else f"{UI.mono('empty')} Not set"
         return await edit_or_reply(
             message,
             f"{UI.header('REDDIT OAUTH2 CONFIG')}\nStatus : {status}\n\n{UI.bold('USAGE:')} {UI.mono('.setreddit <id> <secret>')}"
         )
     cid, csec = args[0], args[1]
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Validating OAuth2 credentials...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Validating OAuth2 credentials...")
     try:
         auth = aiohttp.BasicAuth(cid, csec)
         async with aiohttp.ClientSession(headers={"User-Agent": REDDIT_UA}, timeout=REQUEST_TIMEOUT) as session:
@@ -852,7 +852,7 @@ async def setreddit_handler(client: Client, message: Message):
     await db.set("reddit_client_secret", csec)
     global _oauth_token_cache
     _oauth_token_cache = {"token": None, "expires_at": 0}
-    await safe_edit(status_msg, f"{UI.mono('[ OK ]')} Reddit OAuth2 credentials synchronized.")
+    await safe_edit(status_msg, f"{UI.mono('done')} Reddit OAuth2 credentials synced.")
 
 
 @astra_command(name="setgiphy", description="Set Giphy API key", category="Config", usage=".setgiphy <api_key>", owner_only=True)
@@ -860,13 +860,13 @@ async def setgiphy_handler(client: Client, message: Message):
     args = extract_args(message)
     if not args:
         key = await db.get("giphy_api_key") or os.getenv("GIPHY_API_KEY", "")
-        status = f"{UI.mono('[ OK ]')} Configured" if key else f"{UI.mono('[ EMPTY ]')} Not set"
+        status = f"{UI.mono('done')} Configured" if key else f"{UI.mono('empty')} Not set"
         return await edit_or_reply(
             message,
             f"{UI.header('GIPHY API CONFIG')}\nStatus : {status}\n\n{UI.bold('USAGE:')} {UI.mono('.setgiphy <api_key>')}"
         )
     api_key = args[0]
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Validating Giphy token...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Validating Giphy token...")
     try:
         async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
             async with session.get(f"https://api.giphy.com/v1/gifs/trending?api_key={api_key}&limit=1") as resp:
@@ -875,4 +875,4 @@ async def setgiphy_handler(client: Client, message: Message):
     except Exception as e:
         return await safe_edit(status_msg, f"❌ *Validation failed:* `{str(e)[:80]}`")
     await db.set("giphy_api_key", api_key)
-    await safe_edit(status_msg, f"{UI.mono('[ OK ]')} Giphy API key synchronized.")
+    await safe_edit(status_msg, f"{UI.mono('done')} Giphy API key synced.")

@@ -32,7 +32,7 @@ async def ddg_handler(client: Client, message: Message):
             f"🦆 **DUCKDUCKGO SEARCH**\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"🔎 **Query:** `{query}`\n"
-            f"📡 **Source:** `{data.get('instance', 'Astra Engine')}`\n\n"
+            f"📡 **Source:** `{data.get('instance', 'Astra Service')}`\n\n"
         )
 
         # Show quick info if available

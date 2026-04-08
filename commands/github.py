@@ -20,7 +20,7 @@ async def github_handler(client: Client, message: Message):
         return await edit_or_reply(message, f"{UI.bold('USAGE:')} {UI.mono('.github <user/repo>')} or {UI.mono('.github <user>')}")
 
     query = args[0]
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Querying GitHub API: {UI.mono(query)}...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Querying GitHub API: {UI.mono(query)}...")
 
     try:
         async with aiohttp.ClientSession() as session:

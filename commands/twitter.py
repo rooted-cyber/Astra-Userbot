@@ -17,7 +17,7 @@ async def twitter_handler(client: Client, message: Message):
         return await edit_or_reply(message, " ❌ Please provide a Twitter/X URL.")
 
     url = args_list[0]
-    status_msg = await edit_or_reply(message, " 🔍 *Initializing Twitter Engine...*")
+    status_msg = await edit_or_reply(message, " 🔍 *Starting Twitter Service...*")
 
     # Use MediaChannel for a "real-time" experience
     from utils.media_channel import MediaChannel

@@ -30,7 +30,7 @@ async def joke_handler(client: Client, message: Message):
     async with aiohttp.ClientSession() as session:
         async with session.get(JOKE_API_URL, timeout=aiohttp.ClientTimeout(total=10)) as resp:
             if resp.status != 200:
-                return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Joke service offline.")
+                return await edit_or_reply(message, f"{UI.mono('error')} Joke service offline.")
 
             joke_data = await resp.json()
 

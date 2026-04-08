@@ -131,7 +131,7 @@ async def setalive_handler(client: Client, message: Message):
     # 📸 If replying to an image
     if message.has_quoted_msg and getattr(message.quoted, "is_media", False):
         status_msg = await edit_or_reply(
-            message, f"{UI.mono('[ BUSY ]')} Downloading image..."
+            message, f"{UI.mono('processing')} Downloading image..."
         )
 
         try:
@@ -139,7 +139,7 @@ async def setalive_handler(client: Client, message: Message):
 
             if not temp_path:
                 return await status_msg.edit(
-                    f"{UI.mono('[ ERROR ]')} Failed to download media."
+                    f"{UI.mono('error')} Failed to download media."
                 )
 
             # Save permanently
@@ -153,12 +153,12 @@ async def setalive_handler(client: Client, message: Message):
             state.set_config("ALIVE_IMG", perm_path)
 
             return await status_msg.edit(
-                f"{UI.mono('[ OK ]')} Alive image updated."
+                f"{UI.mono('done')} Alive image updated."
             )
 
         except Exception as e:
             return await status_msg.edit(
-                f"{UI.mono('[ ERROR ]')} {str(e)}"
+                f"{UI.mono('error')} {str(e)}"
             )
 
     # 🌐 If URL provided
@@ -167,11 +167,11 @@ async def setalive_handler(client: Client, message: Message):
         if url.startswith(("http://", "https://")):
             state.set_config("ALIVE_IMG", url)
             return await edit_or_reply(
-                message, f"{UI.mono('[ OK ]')} Alive image updated to URL."
+                message, f"{UI.mono('done')} Alive image updated to URL."
             )
 
     # ❌ Invalid usage
     await edit_or_reply(
         message,
-        f"{UI.mono('[ ERROR ]')} Reply to an image or provide a valid URL.",
+        f"{UI.mono('error')} Reply to an image or provide a valid URL.",
     )

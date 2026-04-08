@@ -24,15 +24,15 @@ async def pinchat_handler(client: Client, message: Message):
     try:
         if unpin:
             await api.pin_chat(message.chat_id, pin=False)
-            await edit_or_reply(message, f"{UI.mono('[ OK ]')} Workspace unpinned.")
+            await edit_or_reply(message, f"{UI.mono('done')} Workspace unpinned.")
         else:
             result = await api.pin_chat(message.chat_id, pin=True)
             if result:
-                await edit_or_reply(message, f"{UI.mono('[ OK ]')} Workspace pinned.")
+                await edit_or_reply(message, f"{UI.mono('done')} Workspace pinned.")
             else:
-                await edit_or_reply(message, f"{UI.mono('[ WARN ]')} Pinned slots exhausted (3).")
+                await edit_or_reply(message, f"{UI.mono('warning')} Pinned slots exhausted (3).")
     except Exception as e:
-        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Protocol failure: {UI.mono(str(e))}")
+        await edit_or_reply(message, f"{UI.mono('error')} request failed: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -44,12 +44,12 @@ async def pinchat_handler(client: Client, message: Message):
 )
 async def clearchat_handler(client: Client, message: Message):
     """Clears all messages in the current chat."""
-    status = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Purging local chat buffer...")
+    status = await edit_or_reply(message, f"{UI.mono('processing')} Purging local chat buffer...")
     try:
         await client.api.clear_chat(message.chat_id)
-        await status.edit(f"{UI.mono('[ OK ]')} Chat buffer cleared.")
+        await status.edit(f"{UI.mono('done')} Chat buffer cleared.")
     except Exception as e:
-        await status.edit(f"{UI.mono('[ ERROR ]')} Purge failure: {UI.mono(str(e))}")
+        await status.edit(f"{UI.mono('error')} Purge failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -64,7 +64,7 @@ async def delchat_handler(client: Client, message: Message):
     try:
         await client.api.delete_chat(message.chat_id)
     except Exception as e:
-        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Deletion failure: {UI.mono(str(e))}")
+        await edit_or_reply(message, f"{UI.mono('error')} Deletion failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -82,17 +82,17 @@ async def numcheck_handler(client: Client, message: Message):
         return await edit_or_reply(message, f"{UI.bold('USAGE:')} {UI.mono('.numcheck <number>')}")
 
     number = args[0].replace("+", "").replace(" ", "")
-    status = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Scoping {UI.mono(number)} presence...")
+    status = await edit_or_reply(message, f"{UI.mono('processing')} Scoping {UI.mono(number)} presence...")
 
     try:
         result = await client.api.get_number_id(number)
         if result:
             wid = result.get("_serialized", result.get("user", number))
-            await status.edit(f"{UI.mono('[ OK ]')} {UI.mono(number)} registered.\nWID: {UI.mono(wid)}")
+            await status.edit(f"{UI.mono('done')} {UI.mono(number)} registered.\nWID: {UI.mono(wid)}")
         else:
-            await status.edit(f"{UI.mono('[ ERROR ]')} {UI.mono(number)} not registered on protocol.")
+            await status.edit(f"{UI.mono('error')} {UI.mono(number)} not registered on protocol.")
     except Exception as e:
-        await status.edit(f"{UI.mono('[ ERROR ]')} Identification failure: {UI.mono(str(e))}")
+        await status.edit(f"{UI.mono('error')} Identification failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -115,14 +115,14 @@ async def commongroups_handler(client: Client, message: Message):
         contact_id = f"{num}@c.us"
 
     if not contact_id:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target identification required.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Target identification required.")
 
-    status = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Indexing common group nodes...")
+    status = await edit_or_reply(message, f"{UI.mono('processing')} Indexing common group nodes...")
 
     try:
         groups = await client.api.get_common_groups(contact_id)
         if not groups:
-            return await status.edit(f"{UI.mono('[ EMPTY ]')} No common nodes identified.")
+            return await status.edit(f"{UI.mono('empty')} No common nodes identified.")
 
         text = f"{UI.header('COMMON GROUPS')}\n"
         for g in groups[:15]:
@@ -132,7 +132,7 @@ async def commongroups_handler(client: Client, message: Message):
             text += f"\n{UI.italic(f'...and {len(groups) - 15} more')}"
         await status.edit(text)
     except Exception as e:
-        await status.edit(f"{UI.mono('[ ERROR ]')} Indexing failure: {UI.mono(str(e))}")
+        await status.edit(f"{UI.mono('error')} Indexing failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -150,12 +150,12 @@ async def search_handler(client: Client, message: Message):
         return await edit_or_reply(message, f"{UI.bold('USAGE:')} {UI.mono('.search <query>')}")
 
     query = " ".join(args)
-    status = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Querying chat database: {UI.mono(query)}...")
+    status = await edit_or_reply(message, f"{UI.mono('processing')} Querying chat database: {UI.mono(query)}...")
 
     try:
         results = await client.api.search_messages(query, chat_id=message.chat_id, limit=10)
         if not results:
-            return await status.edit(f"{UI.mono('[ EMPTY ]')} No matches identified for: {UI.mono(query)}")
+            return await status.edit(f"{UI.mono('empty')} No matches identified for: {UI.mono(query)}")
 
         text = f"{UI.header('SEARCH RESULTS')}\n"
         for msg in results[:10]:
@@ -165,7 +165,7 @@ async def search_handler(client: Client, message: Message):
 
         await status.edit(text)
     except Exception as e:
-        await status.edit(f"{UI.mono('[ ERROR ]')} Database failure: {UI.mono(str(e))}")
+        await status.edit(f"{UI.mono('error')} Database failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -191,9 +191,9 @@ async def presence_handler(client: Client, message: Message):
     try:
         await client.api.send_presence(available)
         state = "ONLINE" if available else "OFFLINE"
-        await edit_or_reply(message, f"{UI.mono('[ OK ]')} Presence synchronized: {UI.bold(state)}")
+        await edit_or_reply(message, f"{UI.mono('done')} Presence synced: {UI.bold(state)}")
     except Exception as e:
-        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Protocol failure: {UI.mono(str(e))}")
+        await edit_or_reply(message, f"{UI.mono('error')} request failed: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -207,9 +207,9 @@ async def archive_handler(client: Client, message: Message):
     """Archives the current chat."""
     try:
         await client.api.archive_chat(message.chat_id)
-        await edit_or_reply(message, f"{UI.mono('[ OK ]')} Chat archived.")
+        await edit_or_reply(message, f"{UI.mono('done')} Chat archived.")
     except Exception as e:
-        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Archive failure: {UI.mono(str(e))}")
+        await edit_or_reply(message, f"{UI.mono('error')} Archive failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -235,9 +235,9 @@ async def forward_handler(client: Client, message: Message):
 
     try:
         await client.api.forward_message(target, message.quoted.id)
-        await edit_or_reply(message, f"{UI.mono('[ OK ]')} Fragment forwarded to {UI.mono(target.split('@')[0])}")
+        await edit_or_reply(message, f"{UI.mono('done')} Fragment forwarded to {UI.mono(target.split('@')[0])}")
     except Exception as e:
-        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Forwarding failure: {UI.mono(str(e))}")
+        await edit_or_reply(message, f"{UI.mono('error')} Forwarding failure: {UI.mono(str(e))}")
 
 
 

@@ -18,7 +18,7 @@ async def antidelete_toggle_handler(client: Client, message: Message):
         current = await db.get("antidelete_status") or "off"
         return await edit_or_reply(
             message,
-            f"🛡️ **Anti-Delete Engine**\n━━━━━━━━━━━━━━━━━━━━\nStatus: `{'Enabled' if current == 'on' else 'Disabled'}`\n\nUsage: `.antidelete on` to enable.",
+            f"🛡️ **Anti-Delete Service**\n━━━━━━━━━━━━━━━━━━━━\nStatus: `{'Enabled' if current == 'on' else 'Disabled'}`\n\nUsage: `.antidelete on` to enable.",
         )
 
     status = args[0].lower()
@@ -26,7 +26,7 @@ async def antidelete_toggle_handler(client: Client, message: Message):
         return await edit_or_reply(message, "❌ Use `on` or `off`.")
 
     await db.set("antidelete_status", status)
-    await edit_or_reply(message, f"✅ **Anti-Delete Engine** turned `{status.upper()}`.")
+    await edit_or_reply(message, f"✅ **Anti-Delete Service** turned `{status.upper()}`.")
 
 
 # --- ENGINE LOGIC ---

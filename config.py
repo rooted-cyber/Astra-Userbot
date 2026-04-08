@@ -17,8 +17,8 @@ class Config:
     """Bot config container"""
 
     # Versioning
-    VERSION = "0.0.5b1"
-    VERSION_NAME = "Beta 1 (v0.0.5)"
+    VERSION = "0.0.4b1"
+    VERSION_NAME = "Beta 1 (v0.0.4)"
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
     # Bot Identity
@@ -38,7 +38,7 @@ class Config:
     def OWNER_NAME(self) -> str:
         from utils.state import state
 
-        return state.get_config("OWNER_NAME") or os.getenv("OWNER_NAME", "Aman Kumar Pandey")
+        return state.get_config("OWNER_NAME") or os.getenv("OWNER_NAME", "Aman")
 
     _DEFAULT_PREFIX = os.getenv("COMMAND_PREFIX", ".")
 

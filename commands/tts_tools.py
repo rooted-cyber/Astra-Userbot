@@ -15,7 +15,7 @@ from utils.helpers import edit_or_reply
 async def tts_handler(client: Client, message: Message):
     args = extract_args(message)
     if not args and not message.has_quoted_msg:
-        return await edit_or_reply(message, "🗣️ **TTS Engine**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Provide text** or reply to a text message. Usage: `.tts [lang] [text]`")
+        return await edit_or_reply(message, "🗣️ **TTS Service**\n━━━━━━━━━━━━━━━━━━━━\n❌ **Provide text** or reply to a text message. Usage: `.tts [lang] [text]`")
 
     # Determine language and text
     lang = "en"
@@ -42,7 +42,7 @@ async def tts_handler(client: Client, message: Message):
     if not text:
         return await edit_or_reply(message, "❌ No text provided.")
 
-    status_msg = await edit_or_reply(message, f"🗣️ **Astra TTS Engine**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Generating voice note in '{lang}'...*")
+    status_msg = await edit_or_reply(message, f"🗣️ **Astra TTS Service**\n━━━━━━━━━━━━━━━━━━━━\n✨ *Generating voice note in '{lang}'...*")
 
     temp_audio = f"/tmp/astra_tts_{int(time.time())}.mp3"
     

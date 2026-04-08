@@ -122,9 +122,9 @@ async def logo_handler(client: Client, message: Message):
 )
 async def addbg_handler(client: Client, message: Message):
     if not message.has_quoted_msg or getattr(message.quoted, 'type', None) != MessageType.IMAGE:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Reply to an image to save as background.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Reply to an image to save as background.")
     
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Downloading background...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Downloading background...")
     temp_path = f"/tmp/bg_{int(time.time())}.jpg"
     downloaded = await message.quoted.download()
     if not downloaded:
@@ -133,8 +133,8 @@ async def addbg_handler(client: Client, message: Message):
     if downloaded:
         perm_path = os.path.join(LOGOS_DIR, f"bg_{int(time.time())}.jpg")
         os.rename(downloaded, perm_path)
-        return await status_msg.edit(f"{UI.mono('[ OK ]')} Custom background added successfully!")
-    return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Failed to download media.")
+        return await status_msg.edit(f"{UI.mono('done')} Custom background added successfully!")
+    return await status_msg.edit(f"{UI.mono('error')} Failed to download media.")
 
 
 @astra_command(
@@ -146,9 +146,9 @@ async def addbg_handler(client: Client, message: Message):
 )
 async def addfont_handler(client: Client, message: Message):
     if not message.has_quoted_msg or getattr(message.quoted, 'type', None) != MessageType.DOCUMENT:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Reply to a font file (.ttf) to save.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Reply to a font file (.ttf) to save.")
     
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Downloading font...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Downloading font...")
     temp_path = f"/tmp/font_{int(time.time())}.ttf"
     downloaded = await message.quoted.download()
     if not downloaded:
@@ -157,8 +157,8 @@ async def addfont_handler(client: Client, message: Message):
     if downloaded:
         perm_path = os.path.join(LOGOS_DIR, f"font_{int(time.time())}.ttf")
         os.rename(downloaded, perm_path)
-        return await status_msg.edit(f"{UI.mono('[ OK ]')} Custom font added successfully!")
-    return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Failed to download font.")
+        return await status_msg.edit(f"{UI.mono('done')} Custom font added successfully!")
+    return await status_msg.edit(f"{UI.mono('error')} Failed to download font.")
 
 
 @astra_command(
@@ -194,13 +194,13 @@ async def listlogos_handler(client: Client, message: Message):
 async def clogo_handler(client: Client, message: Message):
     args = extract_args(message)
     if len(args) < 3:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Usage: `.clogo <bg_name> <font_name> <text>`")
+        return await edit_or_reply(message, f"{UI.mono('error')} Usage: `.clogo <bg_name> <font_name> <text>`")
 
     bg_name = args[0]
     font_name = args[1]
     text = " ".join(args[2:])
     
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Rendering custom logo...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Rendering custom logo...")
     
     # Resolve background
     bg_path = None
@@ -211,19 +211,19 @@ async def clogo_handler(client: Client, message: Message):
             break
             
     if not bg_path:
-        return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Background `{bg_name}` not found. Check `.listlogos`.")
+        return await status_msg.edit(f"{UI.mono('error')} Background `{bg_name}` not found. Check `.listlogos`.")
         
     # Resolve font
     font_path = os.path.join(LOGOS_DIR, f"{font_name}.ttf")
     if not os.path.exists(font_path):
-        return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Font `{font_name}` not found. Check `.listlogos`.")
+        return await status_msg.edit(f"{UI.mono('error')} Font `{font_name}` not found. Check `.listlogos`.")
         
     # Render Logo
     try:
         img = Image.open(bg_path).convert("RGB")
         img = img.resize((1024, 1024), Image.Resampling.LANCZOS)
     except:
-        return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Image `{bg_name}` is corrupted. Run `.addbg` to replace it or use a different one.")
+        return await status_msg.edit(f"{UI.mono('error')} Image `{bg_name}` is corrupted. Run `.addbg` to replace it or use a different one.")
         
     img = img.filter(ImageFilter.GaussianBlur(radius=2))
     overlay = Image.new("RGBA", img.size, (0, 0, 0, 130))

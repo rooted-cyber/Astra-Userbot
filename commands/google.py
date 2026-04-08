@@ -21,18 +21,18 @@ async def google_handler(client: Client, message: Message):
         return await edit_or_reply(message, f"{UI.bold('USAGE:')} {UI.mono('.google <query>')}")
 
     query = " ".join(args)
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Reaching Search Gateway: {UI.mono(query[:30])}...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Reaching Search Gateway: {UI.mono(query[:30])}...")
 
     data = await perform_search(query, engines=["google"])
 
     if not data or not data.get("results"):
-        return await status_msg.edit(f"{UI.mono('[ ERROR ]')} No matches found for {UI.mono(query)}.")
+        return await status_msg.edit(f"{UI.mono('error')} No matches found for {UI.mono(query)}.")
 
     results = data.get("results", [])[:5]
     text = (
         f"{UI.header('GOOGLE SEARCH')}\n"
         f"Query   : {UI.mono(query)}\n"
-        f"Source  : {UI.mono(data.get('instance', 'Astra Engine'))}\n\n"
+        f"Source  : {UI.mono(data.get('instance', 'Astra Service'))}\n\n"
     )
 
     # Show answer/infobox if available

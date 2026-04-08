@@ -25,7 +25,7 @@ async def wiki_handler(client: Client, message: Message):
         return await edit_or_reply(message, f"{UI.bold('USAGE:')} {UI.mono('.wiki <query>')}")
 
     query = " ".join(args_list)
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Accessing Wikipedia: {UI.mono(query[:30])}...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Accessing Wikipedia: {UI.mono(query[:30])}...")
 
     headers = {
         "User-Agent": "AstraUserbot/1.0 (https://github.com/paman7647/Astra-Userbot; contact@example.com) aiohttp/3.8"
@@ -38,7 +38,7 @@ async def wiki_handler(client: Client, message: Message):
 
         if not search_data["query"]["search"]:
             time.sleep(0.5)
-            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} No article found for {UI.mono(query)}.")
+            return await status_msg.edit(f"{UI.mono('error')} No article found for {UI.mono(query)}.")
 
         best_match = search_data["query"]["search"][0]["title"]
 
@@ -47,7 +47,7 @@ async def wiki_handler(client: Client, message: Message):
         async with session.get(summary_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
             if resp.status != 200:
                 time.sleep(0.5)
-                return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Failed to synchronize article summary.")
+                return await status_msg.edit(f"{UI.mono('error')} Failed to synchronize article summary.")
             data = await resp.json()
 
         # Compose text report

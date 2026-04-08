@@ -75,6 +75,11 @@ async def is_new_message(event) -> bool:
 startup_filter = Filters.create(is_new_message)
 
 
+def _install_plain_text_hooks():
+    """Sanitization hooks disabled by user request."""
+    return
+
+
 def astra_command(
     name: str,
     description: str = "",
@@ -109,11 +114,9 @@ def astra_command(
         "owner_only": owner_only,
         "is_public": is_public,
     }
-    # Mutate in-place to ensure all modules see the updates
-    for i, cmd in enumerate(COMMANDS_METADATA):
-        if cmd["name"] == name:
-            COMMANDS_METADATA.pop(i)
-            break
+    # Mutate in-place to ensure all modules see the updates.
+    # Remove every stale entry for this command name to prevent count inflation.
+    COMMANDS_METADATA[:] = [cmd for cmd in COMMANDS_METADATA if cmd.get("name") != name]
     COMMANDS_METADATA.append(new_entry)
 
     def decorator(func):
@@ -202,10 +205,19 @@ def extract_args(message) -> List[str]:
 # --- Dynamic Plugin Loading System ---
 import importlib
 import logging
+import re
 import sys
 
 logger = logging.getLogger("Astra.Plugins")
 PLUGIN_HANDLES: Dict[str, List[int]] = {}
+
+
+def _is_safe_plugin_module(plugin_name: str) -> bool:
+    """Allow only commands.<module> with a safe python identifier module part."""
+    if not plugin_name or not plugin_name.startswith("commands."):
+        return False
+    module = plugin_name.split(".", 1)[1]
+    return bool(re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", module))
 
 
 def load_plugin(client: Client, plugin_name: str) -> bool:
@@ -213,10 +225,23 @@ def load_plugin(client: Client, plugin_name: str) -> bool:
     Loads or reloads a plugin module and registers its handlers.
     """
     try:
+        was_active = plugin_name in PLUGIN_HANDLES
+
+        if not _is_safe_plugin_module(plugin_name):
+            logger.error(f"Rejected unsafe plugin scope: {plugin_name}")
+            return False
+
+        # Ensure idempotency: if this plugin is already active, unload first.
+        if was_active:
+            unload_plugin(client, plugin_name)
+
         # 1. Import or Reload Module
         if plugin_name in sys.modules:
             module = importlib.reload(sys.modules[plugin_name])
-            logger.info(f"Reloaded plugin: {plugin_name}")
+            if was_active:
+                logger.info(f"Reloaded plugin: {plugin_name}")
+            else:
+                logger.info(f"Loaded plugin: {plugin_name}")
         else:
             module = importlib.import_module(plugin_name)
             logger.info(f"Loaded plugin: {plugin_name}")
@@ -224,7 +249,19 @@ def load_plugin(client: Client, plugin_name: str) -> bool:
         # 2. Register Handlers
         handles = []
         if hasattr(Client, "_class_handlers"):
-            for event, func, criteria in Client._class_handlers:
+            pending = list(Client._class_handlers)
+            module_handlers = []
+            remaining_handlers = []
+
+            # Only register handlers that belong to the plugin currently being loaded.
+            for event, func, criteria in pending:
+                func_module = getattr(func, "__module__", "")
+                if func_module == plugin_name:
+                    module_handlers.append((event, func, criteria))
+                else:
+                    remaining_handlers.append((event, func, criteria))
+
+            for event, func, criteria in module_handlers:
                 # Better Filtering: Automatically inject Startup Isolation for all message events
                 # This ensures any plugin (even without astra_command) ignores old messages.
                 if event == "message":
@@ -238,7 +275,8 @@ def load_plugin(client: Client, plugin_name: str) -> bool:
                 handle = client.on(event, criteria=criteria)(load_wrapper)
                 handles.append(handle)
 
-            Client._class_handlers.clear()
+            # Keep non-target handlers for their own plugin load calls.
+            Client._class_handlers = remaining_handlers
 
         PLUGIN_HANDLES[plugin_name] = handles
         return True
@@ -257,11 +295,10 @@ def unload_plugin(client: Client, plugin_name: str):
             client.events.off(handle)
 
         # Remove from metadata registry
-        COMMANDS_METADATA = [
-            cmd for cmd in COMMANDS_METADATA if not str(cmd.get("name", "")).startswith(f"{plugin_name}.")
+        module_name = plugin_name.split(".")[-1]
+        COMMANDS_METADATA[:] = [
+            cmd for cmd in COMMANDS_METADATA if str(cmd.get("module", "")) != module_name
         ]
-        # Note: If duplicate names exist across modules, this might be tricky,
-        # but astra_command handles deduplication by name anyway.
 
         del PLUGIN_HANDLES[plugin_name]
         logger.info(f"Unloaded plugin: {plugin_name}")

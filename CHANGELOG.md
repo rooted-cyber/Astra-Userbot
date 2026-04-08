@@ -4,15 +4,69 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.0.4b1] - 2026-04-08
 
-## [0.0.3b2] - Astra Beta 2 (v0.0.3) - 2026-02-27 [LATEST]
-### Changed
-- **Master Executor v3.4**: Expanded command usage to include all supported language abbreviations and pro examples.
-- **Advanced Stdin**: Finalized hierarchical input parsing (,,) for complex dataset automation.
-- **UI Refresh**: Applied professional separators and icons across all status messages.
+### What's New
 
-### Fixed
-- **Minor Fixes and improvements**: Miscellaneous stability enhancements and documentation refinements.
+- **Removed AI-style UI completely**  
+  Dropped the old templated layout. Switched to a simpler format with bold headers and `───` dividers. Cleaner, easier to scan.
+
+- **Tone overhaul across commands**  
+  Refactored ~80 command handlers to use direct, human-readable responses. Replaced verbose/system-style messages with short replies like `thinking...`, `done`, `error`.
+
+- **Global text sanitizer**  
+  Added a regex-based output hook to normalize responses. Removes leftover AI-style phrases and trims unnecessary emojis.
+
+- **Rebuilt `.calc`**  
+  Implemented a proper math namespace. Now supports `sqrt`, `sin`, `log`, etc., and handles edge cases safely.
+
+- **Core send/edit patching**  
+  Patched client send/edit methods via `plugin_utils.py` so all outgoing messages pass through the sanitizer.
+
+- **Unified Media Gateway**  
+  Introduced `send_bytes_media` utility to handle in-memory processing. This avoids writing temporary Base64 strings to logs and reduces disk I/O for converters.
+
+- **Deep Syntax/Audit Fixes**  
+  Conducted a full-repo audit to fix f-string nesting errors and indentation regressions in `system_mgmt.py`, `converter_tools.py`, and `broadcast.py`.
+
+- **Enhanced System Diagnostics**  
+  Completely rewritten `.logs` command with a "Noise Reduction Engine" to filter repetitive startup logs, and added a binary manifest transmitter for `.logs full`.
+
+- **Stability Patch for Plugins**  
+  Resolved cross-dependency issues between `help.py` and `plugins.py`, ensuring category labels load correctly without circular imports.
+
+- **Memory handling improvements**  
+  Switched to in-memory buffers using `send_bytes_media`. Removed base64 payloads to reduce memory usage and log noise.
+
+- **System monitoring tools**  
+  Added `.health` for real-time CPU/memory/disk stats.  
+  Improved `.logs` with noise filtering to reduce startup spam.
+
+- **Sudo / pmpermit rewrite**  
+  Reworked permission handling and added proper JID normalization for consistency across formats.
+
+- **Branding cleanup**  
+  Removed remaining “Astra Engine” references. Project now consistently uses “Astra Userbot”.
+
+---
+
+### Fixes
+
+- **Media upload crash**  
+  Fixed `TypeError: stat` in `media_channel.py` affecting uploads on high latency.
+
+- **Help command edge case**  
+  Resolved crash in `.help` when rendering categories with special characters.
+
+- **Font asset consistency**  
+  Synchronized `Raleway`, `Pacifico`, and `Montserrat` fonts for consistent logo rendering.
+
+- **Config fallback cleanup**  
+  Simplified owner config and improved environment variable handling for `OWNER_ID`.
+
+- **General cleanup**  
+  Fixed indentation issues and removed shadowed variables across modules.
+## [0.0.3b2] - Astra Beta 2 (v0.0.3) - 2026-02-27
 
 ## [0.0.3b1] - Astra Beta 1 (v0.0.3) - 2026-02-23
 

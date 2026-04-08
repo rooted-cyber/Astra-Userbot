@@ -17,7 +17,7 @@ async def youtube_handler(client: Client, message: Message):
     """
     args_list = extract_args(message)
     if not args_list:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target URL or query required.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Target URL or query required.")
 
     url_input = args_list[0]
     args_lower = [arg.lower() for arg in args_list]
@@ -27,7 +27,7 @@ async def youtube_handler(client: Client, message: Message):
     mode = "video" if any(kw in args_lower for kw in video_keywords) else "audio"
 
     status_msg = await edit_or_reply(
-        message, f"{UI.header('MEDIA ENGINE')}\n{UI.mono('[ BUSY ]')} Initializing request..."
+        message, f"{UI.header('MEDIA ENGINE')}\n{UI.mono('processing')} Starting request..."
     )
 
     # Auto-Search Logic
@@ -38,7 +38,7 @@ async def youtube_handler(client: Client, message: Message):
             search_query = search_query.rsplit(" ", 1)[0]
 
         await status_msg.edit(
-            f"{UI.header('MEDIA TRACKING')}\n{UI.mono('[ BUSY ]')} Resolving: {UI.mono(search_query[:30])}..."
+            f"{UI.header('MEDIA TRACKING')}\n{UI.mono('processing')} Resolving: {UI.mono(search_query[:30])}..."
         )
 
         try:
@@ -59,12 +59,12 @@ async def youtube_handler(client: Client, message: Message):
                         f"{UI.header('MEDIA TRACKING')}\n"
                         f"Title    : {UI.mono(entry['title'][:40])}\n"
                         f"Duration : {UI.mono(duration)}\n\n"
-                        f"{UI.mono('[ BUSY ]')} Routing to local gateway..."
+                        f"{UI.mono('processing')} Routing to local gateway..."
                     )
                 else:
-                    return await status_msg.edit(f"{UI.mono('[ ERROR ]')} No matches found for {UI.mono(search_query)}.")
+                    return await status_msg.edit(f"{UI.mono('error')} No matches found for {UI.mono(search_query)}.")
         except Exception as e:
-            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Network failure: {UI.mono(str(e))}")
+            return await status_msg.edit(f"{UI.mono('error')} Network failure: {UI.mono(str(e))}")
 
     # Use MediaChannel for a "real-time" experience
     from utils.media_channel import MediaChannel

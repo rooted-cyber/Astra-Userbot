@@ -19,7 +19,7 @@ async def soundcloud_handler(client: Client, message: Message):
         return await edit_or_reply(message, " ❌ Please provide a SoundCloud URL.")
 
     url = args_list[0]
-    status_msg = await edit_or_reply(message, " 🔍 *Initializing SoundCloud Engine...*")
+    status_msg = await edit_or_reply(message, " 🔍 *Starting SoundCloud Service...*")
 
     channel = MediaChannel(client, message, status_msg)
     # SoundCloud is audio

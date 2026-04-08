@@ -13,6 +13,8 @@ from . import *
 from utils.helpers import edit_or_reply
 from utils.ui_templates import UI
 
+LINE = "---"
+
 # Utility for uptime calculation
 from utils.state import BOOT_TIME
 from utils.database import db
@@ -55,13 +57,14 @@ async def restart_cmd(client: Client, message: Message):
     uptime = get_uptime_str()
     await edit_or_reply(
         message, 
-        f"{UI.header('SYSTEM REBOOT')}\n"
-        f"Status : {UI.mono('[ BUSY ]')} Initializing restart sequence...\n"
-        f"Uptime : {UI.mono(uptime)}\n\n"
-        f"{UI.italic('Astra process will be re-spawned momentarily.')}"
+        f"restart\n"
+        f"{LINE}\n"
+        f"status: restarting\n"
+        f"uptime: {uptime}\n"
+        "bot process will restart now"
     )
-    
-    time.sleep(1.5)
+
+    await asyncio.sleep(1.0)
     os.execv(sys.executable, [sys.executable] + sys.argv)
 
 @astra_command(
@@ -75,13 +78,14 @@ async def shutdown_cmd(client: Client, message: Message):
     uptime = get_uptime_str()
     await edit_or_reply(
         message, 
-        f"{UI.header('SYSTEM SHUTDOWN')}\n"
-        f"Status : {UI.mono('[ BUSY ]')} Terminating core engines...\n"
-        f"Uptime : {UI.mono(uptime)}\n\n"
-        f"{UI.mono('[ WARN ]')} Manual restart required via console/host."
+        f"shutdown\n"
+        f"{LINE}\n"
+        "status: stopping\n"
+        f"uptime: {uptime}\n"
+        "manual start required from host"
     )
-    
-    time.sleep(1.5)
+
+    await asyncio.sleep(1.0)
     sys.exit(0)
 
 @astra_command(
@@ -93,7 +97,7 @@ async def shutdown_cmd(client: Client, message: Message):
 )
 async def health_cmd(client: Client, message: Message):
     """System Health Diagnostics"""
-    status_msg = await edit_or_reply(message, f"{UI.header('DIAGNOSTICS')}\n{UI.mono('[ BUSY ]')} Scanning system vitals...")
+    status_msg = await edit_or_reply(message, "health\nstatus: checking")
     
     try:
         # 1. System Metrics
@@ -110,18 +114,20 @@ async def health_cmd(client: Client, message: Message):
         
         uptime = get_uptime_str()
         
+        mongo_state = "connected" if db_stats["mongodb"].get("connected") else "offline"
         health_report = (
-            f"{UI.header('SYSTEM HEALTH')}\n"
-            f"Uptime   : {UI.mono(uptime)}\n"
-            f"Memory   : {UI.mono(get_size_format(proc_mem))} (Process)\n"
-            f"CPU Load : {UI.mono(f'{cpu_usage}%')}\n"
-            f"System V : {UI.mono(f'{memory.percent}%')} RAM\n"
-            f"Disk Avl : {UI.mono(get_size_format(disk.free))}\n\n"
-            f"{UI.bold('DATABASE REGISTRY')}\n"
-            f"• Records: {UI.mono(db_stats['sqlite']['state_records'])} state | {UI.mono(db_stats['sqlite']['meme_records'])} cache\n"
-            f"• Storage: {UI.mono(f'{db_stats['sqlite']['size_mb']} MB')} (SQLite)\n"
-            f"• MongoDB: {UI.mono('[ CONNECTED ]') if db_stats['mongodb']['connected'] else UI.mono('[ FAIL ]')}\n\n"
-            f"{UI.italic('All systems operating within nominal parameters.')}"
+            "system health\n"
+            f"{LINE}\n"
+            f"uptime: {uptime}\n"
+            f"cpu: {cpu_usage}%\n"
+            f"process_ram: {get_size_format(proc_mem)}\n"
+            f"system_ram: {memory.percent}%\n"
+            f"disk_free: {get_size_format(disk.free)}\n"
+            f"{LINE}\n"
+            f"db_state_rows: {db_stats['sqlite']['state_records']}\n"
+            f"db_meme_rows: {db_stats['sqlite']['meme_records']}\n"
+            f"db_sqlite_size: {db_stats['sqlite']['size_mb']} MB\n"
+            f"db_mongo: {mongo_state}"
         )
         
         await status_msg.edit(health_report)
@@ -144,12 +150,13 @@ async def sysinfo_cmd(client: Client, message: Message):
         python_ver = platform.python_version()
         
         report = (
-            f"{UI.header('PLATFORM MANIFEST')}\n"
-            f"OS Type  : {UI.mono(os_info)}\n"
-            f"Arch     : {UI.mono(arch_info)}\n"
-            f"Python   : {UI.mono(python_ver)}\n"
-            f"Platform : {UI.mono(platform.platform())}\n"
-            f"Boot UTC : {UI.mono(datetime.fromtimestamp(BOOT_TIME).strftime('%Y-%m-%d %H:%M:%S'))}\n"
+            "system info\n"
+            f"{LINE}\n"
+            f"os: {os_info}\n"
+            f"arch: {arch_info}\n"
+            f"python: {python_ver}\n"
+            f"platform: {platform.platform()}\n"
+            f"boot_utc: {datetime.fromtimestamp(BOOT_TIME).strftime('%Y-%m-%d %H:%M:%S')}"
         )
         await edit_or_reply(message, report)
     except Exception as e:
@@ -176,14 +183,14 @@ async def update_cmd(client: Client, message: Message):
         if len(args) > idx + 1:
             branch = args[idx + 1]
     
-    status_msg = await edit_or_reply(message, f"{UI.header('UPDATE ENGINE')}\n{UI.mono('[ BUSY ]')} Synchronizing with {UI.mono(branch)}...")
+    status_msg = await edit_or_reply(message, f"update\nstatus: checking branch {branch}")
     
     try:
         if not os.path.exists(".git"):
-            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Repository manifest not found (.git missing).")
+            return await status_msg.edit("error: .git directory not found")
 
         # Fetch latest from remote
-        await status_msg.edit(f"{UI.header('UPDATE ENGINE')}\n{UI.mono('[ BUSY ]')} Fetching remote assets: {UI.mono(branch)}...")
+        await status_msg.edit(f"update\nstatus: fetching origin/{branch}")
         proc = await asyncio.create_subprocess_exec(
             'git', 'fetch', 'origin', branch,
             stdout=asyncio.subprocess.PIPE,
@@ -192,7 +199,7 @@ async def update_cmd(client: Client, message: Message):
         _, stderr = await proc.communicate()
         
         if proc.returncode != 0:
-            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Fetch failure:\n{UI.mono(stderr.decode().strip())}")
+            return await status_msg.edit(f"error: fetch failed\n{stderr.decode().strip()}")
 
         # Compare local vs remote
         proc_local = await asyncio.create_subprocess_exec('git', 'rev-parse', 'HEAD', stdout=asyncio.subprocess.PIPE)
@@ -228,11 +235,12 @@ async def update_cmd(client: Client, message: Message):
         # Already up to date
         if local_hash == remote_hash and not force:
             return await status_msg.edit(
-                f"{UI.header('SYSTEM UPDATE')}\n"
-                f"Branch  : {UI.mono(branch)}\n"
-                f"Build   : {UI.mono(local_hash[:7])}\n"
-                f"Version : {UI.mono(config.VERSION)}\n\n"
-                f"{UI.mono('[ OK ]')} System is currently synchronized."
+                "update\n"
+                f"{LINE}\n"
+                f"branch: {branch}\n"
+                f"build: {local_hash[:7]}\n"
+                f"version: {config.VERSION}\n"
+                "status: already up to date"
             )
 
         # Show changelog and prompt for force update
@@ -254,18 +262,20 @@ async def update_cmd(client: Client, message: Message):
             author_name = author_text.decode().strip() or "Astra Dev"
             
             update_prompt = (
-                f"{UI.header('UPDATE AVAILABLE')}\n"
-                f"Scope   : {UI.mono(f'{commit_count} commit(s)')}\n"
-                f"Branch  : {UI.mono(branch)}\n"
-                f"Author  : {UI.mono(author_name)}\n"
-                f"Diff    : {UI.mono(local_hash[:7])} -> {UI.mono(remote_hash[:7])}\n\n"
-                f"{UI.bold('CHANGELOG:')}\n```\n{changelog}```\n"
+                "update available\n"
+                f"{LINE}\n"
+                f"commits: {commit_count}\n"
+                f"branch: {branch}\n"
+                f"author: {author_name}\n"
+                f"diff: {local_hash[:7]} -> {remote_hash[:7]}\n"
+                f"{LINE}\n"
+                f"{changelog}\n"
             )
             if has_local_changes:
-                update_prompt += f"\n{UI.mono('[ WARN ]')} Local modifications detected (will be overwritten).\n"
+                update_prompt += "\nwarning: local changes detected and will be overwritten\n"
             update_prompt += (
-                f"\n{UI.italic('Protected scope: .env, config.env, session.data, astra.db')}\n"
-                f"Action  : {UI.mono('.update -f')} to apply and reboot."
+                "\nprotected: .env, config.env, session.data, astra.db\n"
+                "run: .update -f"
             )
             return await status_msg.edit(update_prompt)
 
@@ -284,9 +294,9 @@ async def update_cmd(client: Client, message: Message):
 
         req_hash_before = get_file_hash("requirements.txt")
         await status_msg.edit(
-            f"{UI.header('UPDATE ENGINE')}\n"
-            f"{UI.mono('[ BUSY ]')} Applying {commit_count} synchronization nodes ({UI.mono(branch)})...\n"
-            f"{UI.mono('[ OK ]')} Protected assets secured."
+            f"update\n"
+            f"status: applying {commit_count} commits on {branch}\n"
+            "status: protected files backed up"
         )
         
         # 2. Hard reset to remote
@@ -298,7 +308,7 @@ async def update_cmd(client: Client, message: Message):
         _, stderr = await proc_reset.communicate()
         
         if proc_reset.returncode != 0:
-            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Synchronization failed:\n{UI.mono(stderr.decode().strip())}")
+            return await status_msg.edit(f"error: update failed\n{stderr.decode().strip()}")
 
         # 3. Restore protected files
         for pf, data in backups.items():
@@ -311,7 +321,7 @@ async def update_cmd(client: Client, message: Message):
         # 4. Install new deps if requirements.txt changed
         req_hash_after = get_file_hash("requirements.txt")
         if req_hash_after != req_hash_before:
-            await status_msg.edit(f"{UI.header('DEP MANAGER')}\n{UI.mono('[ BUSY ]')} Installing revised dependency nodes...")
+            await status_msg.edit("update\nstatus: installing dependencies")
             pip_proc = await asyncio.create_subprocess_exec(
                 sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt',
                 stdout=asyncio.subprocess.PIPE,
@@ -321,21 +331,21 @@ async def update_cmd(client: Client, message: Message):
 
         # 5. Show final report and restart
         final_report = (
-            f"{UI.header('UPDATE COMPLETE')}\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"📂 **Branch:** `{branch}`\n"
-            f"🏷️ **Build:** `{remote_hash[:7]}`\n"
-            f"� **Changes:** {commit_count} commit{'s' if commit_count != 1 else ''}\n"
+            "update complete\n"
+            f"{LINE}\n"
+            f"branch: {branch}\n"
+            f"build: {remote_hash[:7]}\n"
+            f"changes: {commit_count} commit{'s' if commit_count != 1 else ''}\n"
         )
         if changelog:
             short_log = '\n'.join(changelog.split('\n')[:5])
-            final_report += f"\n```\n{short_log}```\n"
+            final_report += f"{LINE}\n{short_log}\n"
         if backups:
-            final_report += f"\n🔐 **Restored:** `{', '.join(backups.keys())}`\n"
-        final_report += "\n�🚀 _Astra is restarting to apply changes..._"
+            final_report += f"restored: {', '.join(backups.keys())}\n"
+        final_report += "status: restarting to apply update"
         
         await status_msg.edit(final_report)
-        time.sleep(1.5)
+        await asyncio.sleep(1.0)
         os.execv(sys.executable, [sys.executable] + sys.argv)
 
     except Exception as e:
@@ -350,17 +360,17 @@ async def update_cmd(client: Client, message: Message):
 )
 async def reload_cmd(client: Client, message: Message):
     """Hot-reloads all plugins and project modules."""
-    status_msg = await edit_or_reply(message, f"{UI.header('CORE RELOAD')}\n{UI.mono('[ BUSY ]')} Resyncing all plugin nodes...")
+    status_msg = await edit_or_reply(message, "reload\nstatus: reloading plugins")
     
     try:
         from utils.plugin_utils import reload_all_plugins
         count = reload_all_plugins(client)
         
         await status_msg.edit(
-            f"{UI.header('RELOAD SUCCESS')}\n"
-            f"Nodes   : {UI.mono(f'{count} synchronized')}\n"
-            f"Stamp   : {UI.mono(time.strftime('%H:%M:%S'))}\n\n"
-            f"{UI.italic('System core is now fresh.')}"
+            "reload complete\n"
+            f"{LINE}\n"
+            f"plugins: {count}\n"
+            f"time: {time.strftime('%H:%M:%S')}"
         )
     except Exception as e:
         from utils.error_reporter import ErrorReporter
@@ -380,11 +390,11 @@ async def logs_cmd(client: Client, message: Message):
 
     log_file = "astra_full_debug.txt"
     if not os.path.exists(log_file):
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Diagnostic log manifest not found.")
+        return await edit_or_reply(message, "error: log file not found")
 
-    status_msg = await edit_or_reply(message, f"{UI.header('TERMINAL CONSOLE')}\n{UI.mono('[ BUSY ]')} Fetching system logs...")
+    status_msg = await edit_or_reply(message, "logs\nstatus: reading recent entries")
 
-    # ── Noise Reduction Engine ──
+    # ── Noise Reduction Service ──
     # Patterns that indicate startup noise (collapsed into single markers)
     NOISE_PATTERNS = [
         "ASTRA BOT STARTUP",
@@ -434,7 +444,7 @@ async def logs_cmd(client: Client, message: Message):
             if in_noise_block:
                 in_noise_block = False
                 if last_startup_ts:
-                    filtered.append(f"── {UI.mono(f'[ REBOOT @ {last_startup_ts} ]')} ──\n")
+                    filtered.append(f"--- reboot @ {last_startup_ts} ---\n")
                 last_startup_ts = None
 
             filtered.append(line)
@@ -445,7 +455,7 @@ async def logs_cmd(client: Client, message: Message):
     log_content = "".join(lines).strip()
 
     if not log_content:
-        return await status_msg.edit(f"{UI.mono('[ EMPTY ]')} System console buffer is null.")
+        return await status_msg.edit("logs\nstatus: no recent entries")
 
     # Truncation for WhatsApp message limits
     if len(log_content) > 3500:
@@ -456,21 +466,23 @@ async def logs_cmd(client: Client, message: Message):
     now_india = datetime.now(ZoneInfo(config.TIMEZONE)).strftime("%H:%M:%S")
 
     output = (
-        f"{UI.header('SYSTEM CONSOLE')}\n"
-        f"```\n{log_content}\n```\n"
-        f"Fetched at : {UI.mono(now_india)}\n"
-        f"Scope : {UI.mono(f'{len(lines)} lines (noise filtered)')}"
+        "logs\n"
+        f"{LINE}\n"
+        f"{log_content}\n"
+        f"{LINE}\n"
+        f"fetched_at: {now_india}\n"
+        f"lines: {len(lines)} (noise filtered)"
     )
 
     await status_msg.edit(output)
 
     if is_full:
-        status2 = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Uploading comprehensive log manifest...")
+        status2 = await edit_or_reply(message, "logs\nstatus: uploading full log file")
         import base64
         with open(log_file, "rb") as f:
             b64_data = base64.b64encode(f.read()).decode("utf-8")
         media = {"mimetype": "text/plain", "data": b64_data, "filename": "astra_full_logs.txt"}
-        await client.send_photo(message.chat_id, media, caption=f"{UI.mono('[ OK ]')} Full System Manifest", reply_to=message.id)
+        await client.send_photo(message.chat_id, media, caption="full logs uploaded", reply_to=message.id)
         await status2.delete()
 
 
@@ -483,19 +495,19 @@ async def logs_cmd(client: Client, message: Message):
 )
 async def clearcache_cmd(client: Client, message: Message):
     """Purges the media cache directory."""
-    status_msg = await edit_or_reply(message, f"{UI.header('MAINTENANCE')}\n{UI.mono('[ BUSY ]')} Purging media cache...")
+    status_msg = await edit_or_reply(message, "cache\nstatus: clearing media cache")
     try:
         from utils.cache_manager import cache
         result = cache.clear_cache()
         if result["success"]:
             await status_msg.edit(
-                f"{UI.header('CACHE PURGED')}\n"
-                f"Deleted   : {UI.mono(f'{result['files_deleted']} files')}\n"
-                f"Recovered : {UI.mono(f'{result['freed_mb']} MB')}\n\n"
-                f"{UI.italic('Disk space optimized.')}"
+                "cache cleared\n"
+                f"{LINE}\n"
+                f"files_deleted: {result['files_deleted']}\n"
+                f"freed: {result['freed_mb']} MB"
             )
         else:
-            await status_msg.edit(f"{UI.mono('[ ERROR ]')} Purge failed: {UI.mono(result.get('error'))}")
+            await status_msg.edit(f"error: cache clear failed\n{result.get('error')}")
     except Exception as e:
         from utils.error_reporter import ErrorReporter
         await ErrorReporter.report(client, message, e, context="Cache Purge Failure")
@@ -510,9 +522,9 @@ async def clearcache_cmd(client: Client, message: Message):
 async def start_cmd(client: Client, message: Message):
     """Test command to verify bot responsiveness."""
     try:
-        msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Scanning Astra core...")
-        time.sleep(0.5)
-        await msg.edit(f"{UI.header('ASTRA PRO ONLINE')}\n{UI.italic('System core is responsive and ready for your commands.')}")
+        msg = await edit_or_reply(message, "start\nstatus: checking")
+        await asyncio.sleep(0.5)
+        await msg.edit("online\nstatus: ready")
     except Exception as e:
         from utils.error_reporter import ErrorReporter
         await ErrorReporter.report(client, message, e, context="Start Check Failure")

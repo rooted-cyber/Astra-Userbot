@@ -29,18 +29,18 @@ async def pfp_premium_handler(client: Client, message: Message):
         else:
             contact_id = message.chat_id
 
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Accessing profile assets...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Accessing profile assets...")
 
     try:
         url = await client.api.get_profile_pic_url(contact_id)
         if not url:
-            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Asset inaccessible (Privacy Restrict).")
+            return await status_msg.edit(f"{UI.mono('error')} Asset inaccessible (Privacy Restrict).")
 
         # Download
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=15) as resp:
                 if resp.status != 200:
-                    return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Image fetch failed (HTTP {resp.status}).")
+                    return await status_msg.edit(f"{UI.mono('error')} Image fetch failed (HTTP {resp.status}).")
                 
                 img_data = await resp.read()
 
@@ -75,4 +75,4 @@ async def pfp_premium_handler(client: Client, message: Message):
         await status_msg.delete()
 
     except Exception as e:
-        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Retrieval failure: {UI.mono(str(e))}")
+        await status_msg.edit(f"{UI.mono('error')} Retrieval failure: {UI.mono(str(e))}")

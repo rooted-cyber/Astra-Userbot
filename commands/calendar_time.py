@@ -101,7 +101,7 @@ async def time_handler(client: Client, message: Message):
     
     # Standard Text Response
     report = (
-        f"🕒 **Astra Clock Engine**\n"
+        f"🕒 **Astra Clock Service**\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"📅 **Date:** `{now.strftime('%d %B %Y')}`\n"
         f"⏰ **Time:** `{now.strftime('%H:%M:%S')}`\n"

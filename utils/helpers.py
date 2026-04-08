@@ -1,25 +1,35 @@
 """
-Collection of utility functions and classes to assist with common bot operations.
-Includes media handling, rate limiting, and reporting mechanisms.
+some utility tools for the bot
+mostly media stuff and some cleanup helpers
 """
 
 import asyncio
+import os
+import re
+import tempfile
 import shutil
 import time
-import traceback
 from typing import Optional
 
 from astra.types import Message
 
-# Core Utility Functions
-# ----------------------
+EMOJI_PATTERN = re.compile(
+    "["
+    "\U0001F300-\U0001FAFF"
+    "\U0001F1E6-\U0001F1FF"
+    "\u2600-\u27BF"
+    "]+",
+    flags=re.UNICODE,
+)
 
-def safe_task(coro_or_future, log_context: str = "Unhandled Task"):
-    """
-    Executes a coroutine or future as a background task.
-    Safely catches and logs all exceptions to prevent 'Task exception was never retrieved'.
-    Uses ensure_future to handle both coroutines and futures.
-    """
+
+def sanitize_outgoing_text(text: str) -> str:
+    """No-op sanitizer: return text unchanged."""
+    return text
+
+
+def safe_task(coro_or_future, log_context: str = "task"):
+    """runs stuff in background without crashing things"""
     import logging
     logger = logging.getLogger("Astra.SafeTask")
 
@@ -30,24 +40,18 @@ def safe_task(coro_or_future, log_context: str = "Unhandled Task"):
             else:
                 await asyncio.wrap_future(coro_or_future)
         except Exception as e:
-            logger.error(f"[{log_context}] Background task failed: {e}", exc_info=True)
+            logger.error(f"[{log_context}] task failed: {e}")
 
     return asyncio.ensure_future(wrapper())
 
 
 async def check_binary(name: str) -> bool:
-    """
-    Checks if a specific binary is available in the system's execution PATH.
-    Useful for validating system-level dependencies like FFmpeg or Node.
-    """
+    """checks if some tool exists in system"""
     return shutil.which(name) is not None
 
 
 async def get_media_message(message: Message) -> Optional[Message]:
-    """
-    Identifies if the given message or its quoted counterpart contains media.
-    Returns the message object containing media, or None.
-    """
+    """gets media from message or reply"""
     if message.is_media:
         return message
     if message.has_quoted_msg:
@@ -214,3 +218,51 @@ async def get_contact_name(client, jid: str) -> str:
 # Exported Singletons
 # ------------------
 rate_limiter = RateLimiter()
+
+
+async def send_bytes_media(
+    client,
+    chat_id,
+    data: bytes,
+    *,
+    filename: str,
+    mode: str = "file",
+    caption: Optional[str] = None,
+    reply_to=None,
+    document: bool = False,
+):
+    """
+    Sends in-memory bytes by first writing to a temp file.
+    Astra's media methods expect a path/URL, not dict/bytes payloads.
+    """
+    suffix = os.path.splitext(filename)[1] or ".bin"
+    temp_file = tempfile.NamedTemporaryFile(prefix="astra_", suffix=suffix, delete=False)
+    temp_path = temp_file.name
+
+    try:
+        temp_file.write(data)
+        temp_file.flush()
+        temp_file.close()
+
+        kwargs = {}
+        if caption is not None:
+            kwargs["caption"] = caption
+        if reply_to is not None:
+            kwargs["reply_to"] = reply_to
+
+        if mode == "photo":
+            return await client.send_photo(chat_id, temp_path, **kwargs)
+        if mode == "document":
+            return await client.send_document(chat_id, temp_path, **kwargs)
+        return await client.send_file(chat_id, temp_path, document=document, **kwargs)
+    finally:
+        try:
+            if not temp_file.closed:
+                temp_file.close()
+        except Exception:
+            pass
+        try:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+        except Exception:
+            pass

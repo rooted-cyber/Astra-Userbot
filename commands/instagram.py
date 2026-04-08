@@ -15,7 +15,7 @@ async def instagram_handler(client: Client, message: Message):
     """Download Instagram media with optimized MediaChannel"""
     args_list = extract_args(message)
     if not args_list:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Instagram URL required.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Instagram URL required.")
 
     url = args_list[0]
     # Handle username-only input for stories? No, that's for .igstory.
@@ -24,7 +24,7 @@ async def instagram_handler(client: Client, message: Message):
     args_lower = [arg.lower() for arg in args_list]
     mode = "audio" if "audio" in args_lower or "mp3" in args_lower else "video"
 
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Initializing Instagram engine...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Starting Instagram engine...")
 
     # Use MediaChannel for a "real-time" experience
     from utils.media_channel import MediaChannel
@@ -53,7 +53,7 @@ async def igstory_handler(client: Client, message: Message):
 
     username = args[0].replace("@", "")
     status_msg = await edit_or_reply(
-        message, f"{UI.header('STORY FETCHER')}\n{UI.mono('[ BUSY ]')} Resolving active stories: {UI.mono(username)}..."
+        message, f"{UI.header('STORY FETCHER')}\n{UI.mono('processing')} Resolving active stories: {UI.mono(username)}..."
     )
 
     # We construct the story URL and pass it to the standard instagram handler logic

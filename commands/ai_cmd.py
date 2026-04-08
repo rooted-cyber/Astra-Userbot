@@ -42,7 +42,7 @@ async def ai_handler(client: Client, message: Message):
 
     gen_client = genai.Client(api_key=api_key)
 
-    status_msg = await edit_or_reply(message, f"{UI.header('AI ENGINE')}\n{UI.mono('[ BUSY ]')} Thinking...")
+    status_msg = await edit_or_reply(message, f"{UI.header('AI ENGINE')}\n{UI.mono('processing')} Thinking...")
 
     import asyncio
 
@@ -55,4 +55,4 @@ async def ai_handler(client: Client, message: Message):
         text = f"{UI.header('AI RESPONSE')}\n{response.text}"
         await status_msg.edit(text)
     else:
-        await status_msg.edit(f"{UI.mono('[ ERROR ]')} No response from AI engine.")
+        await status_msg.edit(f"{UI.mono('error')} No response from AI engine.")

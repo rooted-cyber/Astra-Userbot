@@ -11,9 +11,9 @@ from utils.ui_templates import UI
 async def apply_audio_effect(client: Client, message: Message, effect: str):
     target = message.quoted if message.has_quoted_msg else message
     if not target.is_media:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target audio/media segment required.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Target audio/media segment required.")
 
-    status_txt = f"{UI.header('AUDIO PROCESSING')}\n{UI.mono('[ BUSY ]')} Applying {UI.mono(effect)} filter..."
+    status_txt = f"{UI.header('AUDIO PROCESSING')}\n{UI.mono('processing')} Applying {UI.mono(effect)} filter..."
     status_msg = await edit_or_reply(message, status_txt)
     temp_in = f"/tmp/astra_audio_in_{int(time.time())}.mp3"
     temp_out = f"/tmp/astra_audio_out_{int(time.time())}.mp3"
@@ -21,7 +21,7 @@ async def apply_audio_effect(client: Client, message: Message, effect: str):
     try:
         media_data = await bridge_downloader.download_media(client, message)
         if not media_data:
-            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Source download failed.")
+            return await status_msg.edit(f"{UI.mono('error')} Source download failed.")
         
         with open(temp_in, "wb") as f:
             f.write(media_data)
@@ -44,7 +44,7 @@ async def apply_audio_effect(client: Client, message: Message, effect: str):
         elif effect == "8daudio":
             filter_str = "apulsator=hz=0.125"
         else:
-            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Invalid filter parameter.")
+            return await status_msg.edit(f"{UI.mono('error')} Invalid filter parameter.")
 
         cmd = [
             "ffmpeg", "-y", "-i", temp_in, 
@@ -63,25 +63,25 @@ async def apply_audio_effect(client: Client, message: Message, effect: str):
         as_doc = "-d" in args
         
         if process.returncode != 0:
-            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} FFmpeg pipeline failure.")
+            return await status_msg.edit(f"{UI.mono('error')} FFmpeg pipeline failure.")
 
         if as_doc:
             await client.send_document(
                 message.chat_id, 
                 temp_out, 
-                caption=f"{UI.mono('[ OK ]')} Filter applied: {UI.mono(effect)}"
+                caption=f"{UI.mono('done')} Filter applied: {UI.mono(effect)}"
             )
         else:
             await client.send_audio(
                 message.chat_id, 
                 temp_out, 
-                caption=f"{UI.mono('[ OK ]')} Filter applied: {UI.mono(effect)}",
+                caption=f"{UI.mono('done')} Filter applied: {UI.mono(effect)}",
                 as_voice=True
             )
         await status_msg.delete()
 
     except Exception as e:
-        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Fatal exception: {UI.mono(str(e))}")
+        await status_msg.edit(f"{UI.mono('error')} Fatal exception: {UI.mono(str(e))}")
     finally:
         if os.path.exists(temp_in):
             os.remove(temp_in)

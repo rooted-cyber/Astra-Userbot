@@ -29,7 +29,7 @@ async def fact_handler(client: Client, message: Message):
     async with aiohttp.ClientSession() as session:
         async with session.get(FACT_API_URL, timeout=aiohttp.ClientTimeout(total=10)) as resp:
             if resp.status != 200:
-                return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Trivia service offline.")
+                return await edit_or_reply(message, f"{UI.mono('error')} Trivia service offline.")
 
             data = await resp.json()
             await edit_or_reply(message, f"{UI.header('TRIVIA SEGMENT')}\n{data['text']}")

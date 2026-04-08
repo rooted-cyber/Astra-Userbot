@@ -52,13 +52,12 @@ def print_banner():
     except:
         pass
 
-    print(f"\n {Colors.BOLD}{Colors.CYAN}ASTRA{Colors.END} {Colors.GRAY}MANAGED INSTANCE{Colors.END}")
-    print(f" {Colors.GRAY}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Colors.END}")
-    print(f" {Colors.CYAN}IDENT{Colors.END}  {Colors.BOLD}userbot{Colors.END} {Colors.GRAY}@{Colors.END} {config.VERSION}")
-    print(f" {Colors.CYAN}NETID{Colors.END}  {Colors.BOLD}{ip}{Colors.END} {Colors.GRAY}»{Colors.END} {Colors.GREEN}SECURE{Colors.END}")
-    print(f" {Colors.CYAN}STATE{Colors.END}  {Colors.BOLD}ACTIVE{Colors.END}   {Colors.GRAY}»{Colors.END} {Colors.BLUE}HEADLESS{Colors.END}")
-    print(f" {Colors.CYAN}PROC {Colors.END}  {Colors.BOLD}{os.getpid()}{Colors.END}   {Colors.GRAY}»{Colors.END} {Colors.BOLD}STABLE{Colors.END}")
-    print(f" {Colors.GRAY}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Colors.END}\n")
+    print(f"\n {Colors.BOLD}{Colors.CYAN}ASTRA USERBOT{Colors.END}")
+    print(f" {Colors.GRAY}──────────────{Colors.END}")
+    print(f" {Colors.CYAN}ver{Colors.END} {config.VERSION}")
+    print(f" {Colors.CYAN}ip{Colors.END} {ip}")
+    print(f" {Colors.CYAN}pid{Colors.END} {os.getpid()}")
+    print(f" {Colors.GRAY}──────────────{Colors.END}\n")
 
 
 def patch_authenticator(client_instance):
@@ -94,14 +93,15 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return {"status": "Astra Userbot Running", "version": config.VERSION}
+    return {"status": "Astra live", "version": config.VERSION}
 
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
 def keep_alive():
-    url = os.environ.get("PING_URL", "https://your-render-url.onrender.com").strip()
+    url = os.environ.get("PING_URL", "").strip()
+    if not url: return 
     while True:
         try:
             requests.get(url, timeout=10)
@@ -117,31 +117,28 @@ async def on_ready(_):
     try:
         user = await client.get_me()
         print_banner()
-        logger.info(f"Logged in as {user.name}")
+        print(f"Logged in: {user.name}")
 
-        # State
         from utils.state import state
         await state.initialize()
 
-        # Plugins
         commands_dir = os.path.join(SCRIPT_DIR, "commands")
-        loaded_plugins = []
+        found_cmds = 0
         if os.path.exists(commands_dir):
             from utils.plugin_utils import load_plugin
             for f in os.listdir(commands_dir):
                 if f.endswith(".py") and not f.startswith("_"):
                     if load_plugin(client, f"commands.{f[:-3]}"):
-                        loaded_plugins.append(f[:-3])
+                        found_cmds += 1
 
-        logger.info(f"{len(loaded_plugins)} plugins loaded")
+        print(f"Loaded {found_cmds} plugins")
 
-        # Error Log Group
         from utils.error_reporter import ErrorReporter
         await ErrorReporter.initialize(client)
-        await ErrorReporter.boot_message(client, len(loaded_plugins))
+        await ErrorReporter.boot_message(client, found_cmds)
 
     except Exception as e:
-        logger.error(f"Startup failed: {e}", exc_info=True)
+        print(f"boot failed: {e}")
 
 
 # PM Protection

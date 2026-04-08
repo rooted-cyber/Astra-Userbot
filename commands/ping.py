@@ -8,7 +8,7 @@ from utils.ui_templates import UI
 
 @astra_command(
     name="ping",
-    description="Measure Astra Engine bridge latency.",
+    description="Measure Astra Service bridge latency.",
     category="Tools & Utilities",
     aliases=["p"],
     usage=".ping",

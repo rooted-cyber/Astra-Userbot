@@ -24,7 +24,7 @@ async def txtimg_handler(client: Client, message: Message):
         background = "soft minimalist background"
         text = args_str.strip()
 
-    status_txt = f"{UI.header('CREATIVE STUDIO')}\n{UI.mono('[ BUSY ]')} Rendering typography canvas..."
+    status_txt = f"{UI.header('CREATIVE STUDIO')}\n{UI.mono('processing')} Rendering typography canvas..."
     status_msg = await edit_or_reply(message, status_txt)
 
     # Using a reliable free API for text-to-image
@@ -54,10 +54,10 @@ async def txtimg_handler(client: Client, message: Message):
                 b64_data = base64.b64encode(image_data).decode("utf-8")
 
                 media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "text_card.jpg"}
-                await client.send_photo(message.chat_id, media, caption=f"{UI.mono('[ OK ]')} Astra Typography Card")
+                await client.send_photo(message.chat_id, media, caption=f"{UI.mono('done')} Astra Typography Card")
                 await status_msg.delete()
             else:
-                await status_msg.edit(f"{UI.mono('[ ERROR ]')} Typography rendering failed.")
+                await status_msg.edit(f"{UI.mono('error')} Typography rendering failed.")
 
 
 @astra_command(
@@ -74,11 +74,11 @@ async def kcode_handler(client: Client, message: Message):
     args = extract_args(message)
     if not args and not message.has_quoted_msg:
         return await edit_or_reply(
-            message, f"{UI.mono('[ ERROR ]')} Code buffer required.\n{UI.bold('USAGE:')} {UI.mono('.kcode <code>')}"
+            message, f"{UI.mono('error')} Code buffer required.\n{UI.bold('USAGE:')} {UI.mono('.kcode <code>')}"
         )
 
     text = " ".join(args) if args else message.quoted.body
-    status_txt = f"{UI.header('CARBON ENGINE')}\n{UI.mono('[ BUSY ]')} Styling premium buffer..."
+    status_txt = f"{UI.header('CARBON ENGINE')}\n{UI.mono('processing')} Styling premium buffer..."
     status_msg = await edit_or_reply(message, status_txt)
 
     url = "https://carbonara.solopov.dev/api/cook"
@@ -96,7 +96,7 @@ async def kcode_handler(client: Client, message: Message):
                 b64_data = base64.b64encode(image_data).decode("utf-8")
 
                 media = {"mimetype": "image/jpeg", "data": b64_data, "filename": "kcode.jpg"}
-                await client.send_photo(message.chat_id, media, caption=f"{UI.mono('[ OK ]')} Astra Premium Render")
+                await client.send_photo(message.chat_id, media, caption=f"{UI.mono('done')} Astra Premium Render")
                 await status_msg.delete()
             else:
-                await status_msg.edit(f"{UI.mono('[ ERROR ]')} Carbon rendering failed.")
+                await status_msg.edit(f"{UI.mono('error')} Carbon rendering failed.")

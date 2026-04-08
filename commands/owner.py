@@ -5,12 +5,39 @@ Commands to update profile info, bio, pfp, and status stories.
 """
 
 import base64
+import os
+import re
+import time
 
 from utils.bridge_downloader import bridge_downloader
 
 from . import *
 from utils.helpers import edit_or_reply
 from utils.ui_templates import UI
+
+
+def _normalize_plugin_module_name(filename: str) -> str:
+    """Return a safe python module name for plugins."""
+    base = os.path.basename(filename or "")
+    stem = os.path.splitext(base)[0].strip().lower()
+    stem = re.sub(r"[^a-z0-9_]+", "_", stem).strip("_")
+
+    # Avoid low-signal and collision-prone generic names.
+    blocked = {
+        "",
+        "plugin",
+        "plugins",
+        "help",
+        "owner",
+        "__init__",
+    }
+    if not stem or stem in blocked:
+        stem = f"ext_{int(time.time())}"
+
+    if stem[0].isdigit():
+        stem = f"ext_{stem}"
+
+    return stem
 
 
 @astra_command(
@@ -23,16 +50,16 @@ from utils.ui_templates import UI
 async def setname_handler(client: Client, message: Message):
     args = extract_args(message)
     if not args:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} New display identifier required.")
+        return await edit_or_reply(message, f"{UI.mono('error')} New display identifier required.")
 
     new_name = " ".join(args)
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Re-indexing profile name...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Re-indexing profile name...")
 
     try:
         await client.account.set_name(new_name)
-        await status_msg.edit(f"{UI.mono('[ OK ]')} Profile identifier synchronized: {UI.bold(new_name)}")
+        await status_msg.edit(f"{UI.mono('done')} Profile identifier synced: {UI.bold(new_name)}")
     except Exception as e:
-        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Synchronization failed: {UI.mono(str(e))}")
+        await status_msg.edit(f"{UI.mono('error')} sync failed: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -46,16 +73,16 @@ async def setname_handler(client: Client, message: Message):
 async def setbio_handler(client: Client, message: Message):
     args = extract_args(message)
     if not args:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} New manifest entry required.")
+        return await edit_or_reply(message, f"{UI.mono('error')} New config entry required.")
 
     new_bio = " ".join(args)
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Updating profile manifest...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Updating profile config...")
 
     try:
         await client.account.set_about_text(new_bio)
-        await status_msg.edit(f"{UI.mono('[ OK ]')} Profile manifest updated.")
+        await status_msg.edit(f"{UI.mono('done')} Profile config updated.")
     except Exception as e:
-        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Update failure: {UI.mono(str(e))}")
+        await status_msg.edit(f"{UI.mono('error')} Update failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -67,15 +94,15 @@ async def setbio_handler(client: Client, message: Message):
 )
 async def setpfp_handler(client: Client, message: Message):
     if not message.has_quoted_msg or not (message.quoted_type and message.quoted_type == MessageType.IMAGE):
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target image buffer required.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Target image buffer required.")
 
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Rendering profile asset...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Rendering profile asset...")
 
     try:
         # Use high-reliability bridge downloader
         media_data = await bridge_downloader.download_media(client, message)
         if not media_data:
-            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Asset extraction failed.")
+            return await status_msg.edit(f"{UI.mono('error')} Asset extraction failed.")
 
         media_b64 = base64.b64encode(media_data).decode("utf-8")
 
@@ -83,11 +110,11 @@ async def setpfp_handler(client: Client, message: Message):
         success = await client.account.update_profile_pic(media_b64)
 
         if success:
-            await status_msg.edit(f"{UI.mono('[ OK ]')} Profile asset synchronized.")
+            await status_msg.edit(f"{UI.mono('done')} Profile asset synced.")
         else:
-            await status_msg.edit(f"{UI.mono('[ ERROR ]')} Profile update rejected by protocol.")
+            await status_msg.edit(f"{UI.mono('error')} Profile update rejected by protocol.")
     except Exception as e:
-        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Protocol failure: {UI.mono(str(e))}")
+        await status_msg.edit(f"{UI.mono('error')} request failed: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -100,27 +127,27 @@ async def setpfp_handler(client: Client, message: Message):
 )
 async def setgpic_handler(client: Client, message: Message):
     if not str(message.chat_id).endswith("@g.us"):
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target workspace out of bounds (Group only).")
+        return await edit_or_reply(message, f"{UI.mono('error')} Target workspace out of bounds (Group only).")
     if not message.has_quoted_msg or not (message.quoted_type and message.quoted_type == MessageType.IMAGE):
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target image buffer required.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Target image buffer required.")
 
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Rendering group asset...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Rendering group asset...")
 
     try:
         # Use high-reliability bridge downloader
         media_data = await bridge_downloader.download_media(client, message)
         if not media_data:
-            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Asset extraction failed.")
+            return await status_msg.edit(f"{UI.mono('error')} Asset extraction failed.")
 
         media_b64 = base64.b64encode(media_data).decode("utf-8")
         success = await client.group.update_profile_pic(message.chat_id, media_b64)
 
         if success:
-            await status_msg.edit(f"{UI.mono('[ OK ]')} Group asset synchronized.")
+            await status_msg.edit(f"{UI.mono('done')} Group asset synced.")
         else:
-            await status_msg.edit(f"{UI.mono('[ ERROR ]')} Group update rejected by protocol.")
+            await status_msg.edit(f"{UI.mono('error')} Group update rejected by protocol.")
     except Exception as e:
-        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Protocol failure: {UI.mono(str(e))}")
+        await status_msg.edit(f"{UI.mono('error')} request failed: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -134,7 +161,7 @@ async def privacy_handler(client: Client, message: Message):
     args = extract_args(message)
 
     if not args:
-        status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Fetching privacy manifest...")
+        status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Fetching privacy config...")
         try:
             settings = await client.account.get_settings()
             text = f"{UI.header('PRIVACY MANIFEST')}\n"
@@ -143,7 +170,7 @@ async def privacy_handler(client: Client, message: Message):
             text += f"\n{UI.italic('Set via .privacy <category> <value>')}\n{UI.mono('Scope: last_seen, profile_pic, about, status, read_receipts')}"
             await status_msg.edit(text)
         except Exception as e:
-            await status_msg.edit(f"{UI.mono('[ ERROR ]')} Manifest retrieval failure: {UI.mono(str(e))}")
+            await status_msg.edit(f"{UI.mono('error')} config retrieval failure: {UI.mono(str(e))}")
         return
 
     if len(args) < 2:
@@ -159,7 +186,7 @@ async def privacy_handler(client: Client, message: Message):
     if category == "read_receipts":
         value = value in ["true", "on", "yes", "enabled", "all"]
 
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Synchronizing {UI.mono(category)} scope...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} syncing {UI.mono(category)} scope...")
 
     try:
         method_map = {
@@ -171,12 +198,12 @@ async def privacy_handler(client: Client, message: Message):
         }
 
         if category not in method_map:
-            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Invalid security scope: {UI.mono(category)}")
+            return await status_msg.edit(f"{UI.mono('error')} Invalid security scope: {UI.mono(category)}")
 
         await method_map[category](value)
-        await status_msg.edit(f"{UI.mono('[ OK ]')} {UI.mono(category)} scope synchronized to {UI.bold(str(value))}.")
+        await status_msg.edit(f"{UI.mono('done')} {UI.mono(category)} scope synced to {UI.bold(str(value))}.")
     except Exception as e:
-        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Synchronization failed: {UI.mono(str(e))}")
+        await status_msg.edit(f"{UI.mono('error')} sync failed: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -187,32 +214,52 @@ async def privacy_handler(client: Client, message: Message):
     owner_only=True,
 )
 async def install_handler(client: Client, message: Message):
+    args = extract_args(message)
+    force = "-f" in args or "--force" in args
+
     if not message.has_quoted_msg:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Target plugin buffer (.py) required.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Target plugin buffer (.py) required.")
 
     quoted = message.quoted
-    filename = getattr(quoted, "filename", None) or "plugin.py"
+    filename = getattr(quoted, "filename", None) or "ext_plugin.py"
 
     if not filename.endswith(".py"):
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Invalid asset format. Only .py files are allowed.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Invalid asset format. Only .py files are allowed.")
 
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Extracting plugin payload: {UI.mono(filename)}...")
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Extracting plugin payload: {UI.mono(filename)}...")
 
     try:
         # Use high-reliability bridge downloader
         from utils.bridge_downloader import bridge_downloader
         media_data = await bridge_downloader.download_media(client, message)
         if not media_data:
-            return await status_msg.edit(f"{UI.mono('[ ERROR ]')} Payload extraction failure.")
+            return await status_msg.edit(f"{UI.mono('error')} Payload extraction failure.")
 
-        import os
-        import shutil
-
-        # Clean filename
-        clean_name = filename.lower().replace(" ", "_")
-        module_name = clean_name[:-3]
+        module_name = _normalize_plugin_module_name(filename)
+        clean_name = f"{module_name}.py"
         target_dir = os.path.join(os.getcwd(), "commands")
         target_path = os.path.join(target_dir, clean_name)
+
+        # Block collisions unless explicitly forced.
+        if os.path.exists(target_path) and not force:
+            return await status_msg.edit(
+                f"{UI.mono('error')} Scope {UI.mono(module_name)} already exists. Use .install -f to overwrite."
+            )
+
+        # Validate syntax before writing to disk.
+        source_text = media_data.decode("utf-8", errors="replace")
+        try:
+            compile(source_text, clean_name, "exec")
+        except Exception as syn_err:
+            return await status_msg.edit(
+                f"{UI.mono('error')} Syntax check failed: {UI.mono(str(syn_err))}"
+            )
+
+        backup_data = None
+        existed_before = os.path.exists(target_path)
+        if existed_before:
+            with open(target_path, "rb") as f:
+                backup_data = f.read()
 
         # Write the downloaded data to the target path
         with open(target_path, "wb") as f:
@@ -229,10 +276,16 @@ async def install_handler(client: Client, message: Message):
                 f"{UI.italic('Plugin is now persistent and live.')}"
             )
         else:
-            await status_msg.edit(f"{UI.mono('[ ERROR ]')} Dynamic loading failed. Check logs for syntax issues.")
+            # Roll back filesystem state when dynamic load fails.
+            if existed_before and backup_data is not None:
+                with open(target_path, "wb") as f:
+                    f.write(backup_data)
+            elif os.path.exists(target_path):
+                os.remove(target_path)
+            await status_msg.edit(f"{UI.mono('error')} Dynamic loading failed. Check logs for syntax issues.")
 
     except Exception as e:
-        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Installation reached a critical failure: {UI.mono(str(e))}")
+        await status_msg.edit(f"{UI.mono('error')} Installation reached a critical failure: {UI.mono(str(e))}")
 
 
 @astra_command(
@@ -245,10 +298,10 @@ async def install_handler(client: Client, message: Message):
 async def uninstall_handler(client: Client, message: Message):
     args = extract_args(message)
     if not args:
-        return await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Plugin identifier required.")
+        return await edit_or_reply(message, f"{UI.mono('error')} Plugin identifier required.")
 
-    plugin_name = args[0].lower().replace(".py", "")
-    status_msg = await edit_or_reply(message, f"{UI.mono('[ BUSY ]')} Purging plugin scope: {UI.mono(plugin_name)}...")
+    plugin_name = _normalize_plugin_module_name(args[0].replace(".py", ""))
+    status_msg = await edit_or_reply(message, f"{UI.mono('processing')} Purging plugin scope: {UI.mono(plugin_name)}...")
 
     try:
         import os
@@ -262,9 +315,9 @@ async def uninstall_handler(client: Client, message: Message):
         # 2. Remove from disk
         if os.path.exists(target_path):
             os.remove(target_path)
-            await status_msg.edit(f"{UI.mono('[ OK ]')} Plugin {UI.mono(plugin_name)} purged from disk and memory.")
+            await status_msg.edit(f"{UI.mono('done')} Plugin {UI.mono(plugin_name)} purged from disk and memory.")
         else:
-            await status_msg.edit(f"{UI.mono('[ ERROR ]')} Scope {UI.mono(plugin_name)} not found on disk.")
+            await status_msg.edit(f"{UI.mono('error')} Scope {UI.mono(plugin_name)} not found on disk.")
 
     except Exception as e:
-        await status_msg.edit(f"{UI.mono('[ ERROR ]')} Purge failed: {UI.mono(str(e))}")
+        await status_msg.edit(f"{UI.mono('error')} Purge failed: {UI.mono(str(e))}")

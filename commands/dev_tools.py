@@ -217,7 +217,7 @@ async def sysvars_handler(client: Client, message: Message):
         "🔹 `COMMAND_PREFIX`: Bot prefix (e.g. `.` or `!`)\n"
         "🔹 `BOT_NAME`: Your custom bot brand name\n"
         "🔹 `ALLOW_MULTI_PREFIX`: `on/off` (Allow `.`, `!`, `/`)\n\n"
-        "🚀 **Media Engine**\n"
+        "🚀 **Media Service**\n"
         "🔹 `FAST_MEDIA`: `on/off` (Hide progress bars for speed)\n"
         "🔹 `ENABLE_MEDIA_CACHE`: `on/off` (Instant duplicate dl)\n"
         "🔹 `CACHE_AUTO_DELETE`: `on/off` (Delete cache > 2hrs)\n"

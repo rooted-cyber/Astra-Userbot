@@ -45,7 +45,7 @@ async def analytics_handler(client: Client, message: Message):
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         f"{usage_text}\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"✨ *Tracking enabled in Astra Engine v1.1*"
+        f"✨ *Tracking enabled in Astra Service v1.1*"
     )
 
     await status_msg.edit(report)

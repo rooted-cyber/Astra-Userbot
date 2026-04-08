@@ -18,7 +18,7 @@ async def pmpermit_handler(client: Client, message: Message):
     args_list = extract_args(message)
 
     if not args_list:
-        status = f"{UI.mono('[ ACTIVE ]')} Shielded" if state.get_config("ENABLE_PM_PROTECTION") else f"{UI.mono('[ INACTIVE ]')} Open"
+        status = f"{UI.mono('enabled')} Shielded" if state.get_config("ENABLE_PM_PROTECTION") else f"{UI.mono('disabled')} Open"
         permitted_count = len(state.state.get("pm_permits", []))
 
         help_text = (
@@ -38,10 +38,10 @@ async def pmpermit_handler(client: Client, message: Message):
 
     if action == "on":
         state.set_config("ENABLE_PM_PROTECTION", True)
-        await edit_or_reply(message, f"{UI.mono('[ OK ]')} PM Security Shield enabled.")
+        await edit_or_reply(message, f"{UI.mono('done')} PM Security Shield enabled.")
     elif action == "off":
         state.set_config("ENABLE_PM_PROTECTION", False)
-        await edit_or_reply(message, f"{UI.mono('[ OK ]')} PM Security Shield disabled.")
+        await edit_or_reply(message, f"{UI.mono('done')} PM Security Shield disabled.")
     elif action in ["approve", "permit", "a"]:
         target_id = None
         if len(args_list) > 1:
@@ -54,7 +54,7 @@ async def pmpermit_handler(client: Client, message: Message):
 
         if not target_id:
             return await edit_or_reply(
-                message, f"{UI.mono('[ ERROR ]')} Target identification required."
+                message, f"{UI.mono('error')} Target identification required."
             )
 
         # Handle JID objects or strings
@@ -68,7 +68,7 @@ async def pmpermit_handler(client: Client, message: Message):
 
         state.permit_user(target_str)
         name = await get_contact_name(client, target_str)
-        await edit_or_reply(message, f"{UI.mono('[ OK ]')} {UI.mono(name)} authorized via Security Protocol.")
+        await edit_or_reply(message, f"{UI.mono('done')} {UI.mono(name)} authorized via Security Protocol.")
 
     elif action in ["deny", "d"]:
         target_id = None
@@ -82,7 +82,7 @@ async def pmpermit_handler(client: Client, message: Message):
 
         if not target_id:
             return await edit_or_reply(
-                message, f"{UI.mono('[ ERROR ]')} Target identification required."
+                message, f"{UI.mono('error')} Target identification required."
             )
 
         # Handle JID objects or strings
@@ -92,11 +92,11 @@ async def pmpermit_handler(client: Client, message: Message):
 
         state.deny_user(target_str)
         name = await get_contact_name(client, target_str)
-        await edit_or_reply(message, f"{UI.mono('[ OK ]')} {UI.mono(name)} access revoked.")
+        await edit_or_reply(message, f"{UI.mono('done')} {UI.mono(name)} access revoked.")
     elif action == "list":
         permitted = state.state.get("pm_permits", [])
         if not permitted:
-            return await edit_or_reply(message, f"{UI.mono('[ EMPTY ]')} No trusted nodes identified.")
+            return await edit_or_reply(message, f"{UI.mono('empty')} No trusted nodes identified.")
 
         list_text = f"{UI.header('TRUSTED NODES')}\n"
         for i, uid in enumerate(permitted, 1):
@@ -106,4 +106,4 @@ async def pmpermit_handler(client: Client, message: Message):
         await edit_or_reply(message, list_text)
 
     else:
-        await edit_or_reply(message, f"{UI.mono('[ ERROR ]')} Invalid operation: {UI.mono(action)}")
+        await edit_or_reply(message, f"{UI.mono('error')} Invalid operation: {UI.mono(action)}")
